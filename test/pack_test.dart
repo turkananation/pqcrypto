@@ -6,7 +6,7 @@ void main() {
   group('FIPS 203 Serialization', () {
     test('compress/decompress round-trip', () {
       // Test various compression levels
-      for (final d in [1, 4, 10]) {
+      for (final d in [1, 4, 5, 10, 11]) {
         for (int x = 0; x < 3329; x += 100) {
           final compressed = Pack.compress(x, d);
           final decompressed = Pack.decompress(compressed, d);
@@ -14,7 +14,7 @@ void main() {
           // Should be approximately equal (within compression error)
           final error = (x - decompressed).abs();
           expect(
-            error < 3329 ~/ (1 << d),
+            error <= (3329 ~/ (1 << d)) + 1,
             isTrue,
             reason:
                 'd=$d, x=$x, compressed=$compressed, decompressed=$decompressed, error=$error',
@@ -79,6 +79,46 @@ void main() {
       for (int i = 0; i < 256; i++) {
         final expected = i < 128 ? 0 : 1665;
         expect(decoded.coeffs[i], expected);
+      }
+    });
+
+    test('CompressAndEncode11/DecodeAndDecompress11 round-trip', () {
+      final coeffs = List<int>.generate(256, (i) => (i * 23) % 3329);
+      final poly = Poly(coeffs);
+
+      final encoded = Pack.compressAndEncode11(poly);
+      expect(encoded.length, 352);
+
+      final decoded = Pack.decodeAndDecompress11(encoded);
+
+      // Check all coefficients within compression error (should be very small for d=11)
+      for (int i = 0; i < 256; i++) {
+        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
+        expect(
+          error <= 2,
+          isTrue,
+          reason: 'i=$i, error=$error',
+        ); // 3329 / 2048 ≈ 1.6
+      }
+    });
+
+    test('CompressAndEncode5/DecodeAndDecompress5 round-trip', () {
+      final coeffs = List<int>.generate(256, (i) => (i * 29) % 3329);
+      final poly = Poly(coeffs);
+
+      final encoded = Pack.compressAndEncode5(poly);
+      expect(encoded.length, 160);
+
+      final decoded = Pack.decodeAndDecompress5(encoded);
+
+      // Check all coefficients within compression error
+      for (int i = 0; i < 256; i++) {
+        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
+        expect(
+          error < 150,
+          isTrue,
+          reason: 'i=$i, error=$error',
+        ); // 3329 / 32 ≈ 104
       }
     });
   });

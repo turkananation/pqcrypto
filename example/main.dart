@@ -1,63 +1,78 @@
 import 'package:pqcrypto/pqcrypto.dart';
 
 void main() {
-  print('--- Kyber Logic Demo ---');
+  print('--- ML-KEM FIPS 203 Demo ---');
 
-  // Example 1: Kyber-768 (Default/Standard)
-  _runExample('Kyber-768', PqcKem.kyber768);
+  // Example 1: ML-KEM-768 (Default/FIPS 203 Level 3)
+  _runExample('ML-KEM-768', PqcKem.kyber768);
 
-  // Example 2: Kyber-512 (Faster, Level 1 Security)
-  _runExample('Kyber-512', PqcKem.kyber512);
+  // Example 2: ML-KEM-512 (Faster, FIPS 203 Level 1)
+  _runExample('ML-KEM-512', PqcKem.kyber512);
 
-  // Example 3: Kyber-1024 (Stronger, Level 5 Security)
-  _runExample('Kyber-1024', PqcKem.kyber1024);
+  // Example 3: ML-KEM-1024 (Strongest, FIPS 203 Level 5)
+  _runExample('ML-KEM-1024', PqcKem.kyber1024);
 }
 
 void _runExample(String name, KyberKem kem) {
-  print('\nRunning $name...');
+  print('\nRunning $name (FIPS 203 Compliant)...');
 
   // 1. Correctness Check
   final checks = kem.generateKeyPair();
   final (checkPk, checkSk) = checks;
   print(
-    '  Generated Keypair (Sample): pk=${checkPk.length} bytes, sk=${checkSk.length} bytes',
+    '  Generated Keypair: pk=${checkPk.length} bytes, sk=${checkSk.length} bytes',
   );
   print('    pk (first 16 bytes): ${_hex(checkPk.sublist(0, 16))}...');
 
-  // 2. Diligent Benchmarking (KeyGen)
-  // JIT Warmup
-  print('  Warming up JIT...');
-  for (int i = 0; i < 100; i++) {
-    kem.generateKeyPair();
+  // 2. Functionality Check
+  final (ct, clientSecret) = kem.encapsulate(checkPk);
+  final serverSecret = kem.decapsulate(checkSk, ct);
+
+  if (clientSecret.toString() == serverSecret.toString()) {
+    print(
+      '  ✅ SUCCESS: Shared secrets match! (Size: ${clientSecret.length} bytes)',
+    );
+  } else {
+    print('  ❌ FAILURE: Shared secrets do not match.');
+    return;
   }
 
-  // Measurement
-  final iterations = 1000;
-  print('  Benchmarking Key Gen ($iterations iterations)...');
-  final stopwatch = Stopwatch()..start();
+  // 3. Benchmarking
+  // JIT Warmup
+  print('  Warming up JIT...');
+  for (int i = 0; i < 50; i++) {
+    final (pk, sk) = kem.generateKeyPair();
+    final (ct, _) = kem.encapsulate(pk);
+    kem.decapsulate(sk, ct);
+  }
+
+  // Measure KeyGen
+  final iterations = 200;
+  var stopwatch = Stopwatch()..start();
   for (int i = 0; i < iterations; i++) {
     kem.generateKeyPair();
   }
   stopwatch.stop();
-  final avgMs = stopwatch.elapsedMicroseconds / iterations / 1000.0;
+  final keyGenMs = stopwatch.elapsedMicroseconds / iterations / 1000.0;
+  print('  KeyGen: ${keyGenMs.toStringAsFixed(4)} ms');
 
-  print('  Average Key Generation: ${avgMs.toStringAsFixed(4)} ms');
-
-  // 3. Encapsulate (Client Side)
-  // Uses the Server's Public Key to generate a Shared Secret and Ciphertext
-  final (ct, clientSecret) = kem.encapsulate(checkPk);
-  print('  Encapsulated: ct=${ct.length} bytes');
-
-  // 4. Decapsulate (Server Side)
-  // Server uses Secret Key and Ciphertext to recover the same Shared Secret
-  final serverSecret = kem.decapsulate(checkSk, ct);
-
-  // 5. Verify
-  if (clientSecret.toString() == serverSecret.toString()) {
-    print('  SUCCESS: Shared secrets match!');
-  } else {
-    print('  FAILURE: Shared secrets do not match.');
+  // Measure Encaps
+  stopwatch = Stopwatch()..start();
+  for (int i = 0; i < iterations; i++) {
+    kem.encapsulate(checkPk);
   }
+  stopwatch.stop();
+  final encapMs = stopwatch.elapsedMicroseconds / iterations / 1000.0;
+  print('  Encap:  ${encapMs.toStringAsFixed(4)} ms');
+
+  // Measure Decaps
+  stopwatch = Stopwatch()..start();
+  for (int i = 0; i < iterations; i++) {
+    kem.decapsulate(checkSk, ct);
+  }
+  stopwatch.stop();
+  final decapMs = stopwatch.elapsedMicroseconds / iterations / 1000.0;
+  print('  Decap:  ${decapMs.toStringAsFixed(4)} ms');
 }
 
 String _hex(List<int> bytes) {

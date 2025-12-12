@@ -202,6 +202,146 @@ class Pack {
     return Poly(coeffs);
   }
 
+  /// Compress₁₁ + ByteEncode₁₁ for ciphertext u (ML-KEM-1024)
+  /// 256 coefficients → 352 bytes (11 bits per coeff, 8 coeffs → 11 bytes)
+  static Uint8List compressAndEncode11(Poly poly) {
+    final result = Uint8List(352);
+    int outIdx = 0;
+
+    for (int i = 0; i < 256; i += 8) {
+      final c0 = compress(poly.coeffs[i], 11);
+      final c1 = compress(poly.coeffs[i + 1], 11);
+      final c2 = compress(poly.coeffs[i + 2], 11);
+      final c3 = compress(poly.coeffs[i + 3], 11);
+      final c4 = compress(poly.coeffs[i + 4], 11);
+      final c5 = compress(poly.coeffs[i + 5], 11);
+      final c6 = compress(poly.coeffs[i + 6], 11);
+      final c7 = compress(poly.coeffs[i + 7], 11);
+
+      result[outIdx++] = c0 & 0xFF;
+      result[outIdx++] = (c0 >> 8) | ((c1 & 0x1F) << 3);
+      result[outIdx++] = (c1 >> 5) | ((c2 & 0x03) << 6);
+      result[outIdx++] = (c2 >> 2) & 0xFF;
+      result[outIdx++] = (c2 >> 10) | ((c3 & 0x7F) << 1);
+      result[outIdx++] = (c3 >> 7) | ((c4 & 0x0F) << 4);
+      result[outIdx++] = (c4 >> 4) | ((c5 & 0x01) << 7);
+      result[outIdx++] = (c5 >> 1) & 0xFF;
+      result[outIdx++] = (c5 >> 9) | ((c6 & 0x3F) << 2);
+      result[outIdx++] = (c6 >> 6) | ((c7 & 0x07) << 5);
+      result[outIdx++] = (c7 >> 3);
+    }
+
+    return result;
+  }
+
+  /// ByteDecode₁₁ + Decompress₁₁ for ciphertext u (ML-KEM-1024)
+  static Poly decodeAndDecompress11(Uint8List bytes) {
+    if (bytes.length != 352) {
+      throw ArgumentError('Invalid encoding length for DecodeDecompress11');
+    }
+
+    final coeffs = List<int>.filled(256, 0);
+    int inIdx = 0;
+
+    for (int i = 0; i < 256; i += 8) {
+      final b0 = bytes[inIdx++];
+      final b1 = bytes[inIdx++];
+      final b2 = bytes[inIdx++];
+      final b3 = bytes[inIdx++];
+      final b4 = bytes[inIdx++];
+      final b5 = bytes[inIdx++];
+      final b6 = bytes[inIdx++];
+      final b7 = bytes[inIdx++];
+      final b8 = bytes[inIdx++];
+      final b9 = bytes[inIdx++];
+      final b10 = bytes[inIdx++];
+
+      final c0 = b0 | ((b1 & 0x07) << 8);
+      final c1 = (b1 >> 3) | ((b2 & 0x3F) << 5);
+      final c2 = (b2 >> 6) | (b3 << 2) | ((b4 & 0x01) << 10);
+      final c3 = (b4 >> 1) | ((b5 & 0x0F) << 7);
+      final c4 = (b5 >> 4) | ((b6 & 0x7F) << 4);
+      final c5 = (b6 >> 7) | (b7 << 1) | ((b8 & 0x03) << 9);
+      final c6 = (b8 >> 2) | ((b9 & 0x1F) << 6);
+      final c7 = (b9 >> 5) | (b10 << 3);
+
+      coeffs[i] = decompress(c0, 11);
+      coeffs[i + 1] = decompress(c1, 11);
+      coeffs[i + 2] = decompress(c2, 11);
+      coeffs[i + 3] = decompress(c3, 11);
+      coeffs[i + 4] = decompress(c4, 11);
+      coeffs[i + 5] = decompress(c5, 11);
+      coeffs[i + 6] = decompress(c6, 11);
+      coeffs[i + 7] = decompress(c7, 11);
+    }
+
+    return Poly(coeffs);
+  }
+
+  /// Compress₅ + ByteEncode₅ for ciphertext v (ML-KEM-1024)
+  /// 256 coefficients → 160 bytes (5 bits per coeff, 8 coeffs → 5 bytes)
+  static Uint8List compressAndEncode5(Poly poly) {
+    final result = Uint8List(160);
+    int outIdx = 0;
+
+    for (int i = 0; i < 256; i += 8) {
+      final c0 = compress(poly.coeffs[i], 5);
+      final c1 = compress(poly.coeffs[i + 1], 5);
+      final c2 = compress(poly.coeffs[i + 2], 5);
+      final c3 = compress(poly.coeffs[i + 3], 5);
+      final c4 = compress(poly.coeffs[i + 4], 5);
+      final c5 = compress(poly.coeffs[i + 5], 5);
+      final c6 = compress(poly.coeffs[i + 6], 5);
+      final c7 = compress(poly.coeffs[i + 7], 5);
+
+      result[outIdx++] = c0 | ((c1 & 0x07) << 5);
+      result[outIdx++] = (c1 >> 3) | ((c2 & 0x1F) << 2) | ((c3 & 0x01) << 7);
+      result[outIdx++] = (c3 >> 1) | ((c4 & 0x0F) << 4);
+      result[outIdx++] = (c4 >> 4) | ((c5 & 0x1F) << 1) | ((c6 & 0x03) << 6);
+      result[outIdx++] = (c6 >> 2) | (c7 << 3);
+    }
+
+    return result;
+  }
+
+  /// ByteDecode₅ + Decompress₅ for ciphertext v (ML-KEM-1024)
+  static Poly decodeAndDecompress5(Uint8List bytes) {
+    if (bytes.length != 160) {
+      throw ArgumentError('Invalid encoding length for DecodeDecompress5');
+    }
+
+    final coeffs = List<int>.filled(256, 0);
+    int inIdx = 0;
+
+    for (int i = 0; i < 256; i += 8) {
+      final b0 = bytes[inIdx++];
+      final b1 = bytes[inIdx++];
+      final b2 = bytes[inIdx++];
+      final b3 = bytes[inIdx++];
+      final b4 = bytes[inIdx++];
+
+      final c0 = b0 & 0x1F;
+      final c1 = (b0 >> 5) | ((b1 & 0x03) << 3);
+      final c2 = (b1 >> 2) & 0x1F;
+      final c3 = (b1 >> 7) | ((b2 & 0x0F) << 1);
+      final c4 = (b2 >> 4) | ((b3 & 0x01) << 4);
+      final c5 = (b3 >> 1) & 0x1F;
+      final c6 = (b3 >> 6) | ((b4 & 0x07) << 2);
+      final c7 = (b4 >> 3);
+
+      coeffs[i] = decompress(c0, 5);
+      coeffs[i + 1] = decompress(c1, 5);
+      coeffs[i + 2] = decompress(c2, 5);
+      coeffs[i + 3] = decompress(c3, 5);
+      coeffs[i + 4] = decompress(c4, 5);
+      coeffs[i + 5] = decompress(c5, 5);
+      coeffs[i + 6] = decompress(c6, 5);
+      coeffs[i + 7] = decompress(c7, 5);
+    }
+
+    return Poly(coeffs);
+  }
+
   // ========== Legacy public/secret key encoding (keeping for compatibility) ==========
 
   static Uint8List encodePublicKey(Poly t, Uint8List h, KyberParams params) {

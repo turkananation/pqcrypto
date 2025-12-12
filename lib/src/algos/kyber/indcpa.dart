@@ -90,20 +90,20 @@ class Indcpa {
 
     // Pack u vector using Compress+ByteEncode
     for (int i = 0; i < params.k; i++) {
+      u[i] = _polyNormalize(u[i]); // Ensure coeff in [0, q-1]
       if (params.du == 10) {
         ctParts.add(Pack.compressAndEncode10(u[i]));
       } else if (params.du == 11) {
-        // TODO: Implement compressAndEncode11 for ML-KEM-1024
-        throw UnimplementedError('du=11 (ML-KEM-1024) not yet supported');
+        ctParts.add(Pack.compressAndEncode11(u[i]));
       }
     }
 
     // Pack v using Compress+ByteEncode
+    v = _polyNormalize(v); // Ensure coeff in [0, q-1]
     if (params.dv == 4) {
       ctParts.add(Pack.compressAndEncode4(v));
     } else if (params.dv == 5) {
-      // TODO: Implement compressAndEncode5 for ML-KEM-1024
-      throw UnimplementedError('dv=5 (ML-KEM-1024) not yet supported');
+      ctParts.add(Pack.compressAndEncode5(v));
     }
 
     // Concatenate all parts
@@ -138,14 +138,15 @@ class Indcpa {
         u[i] = Pack.decodeAndDecompress10(ct.sublist(offset, offset + 320));
         offset += 320;
       } else if (params.du == 11) {
-        throw UnimplementedError('du=11 (ML-KEM-1024) not yet supported');
+        u[i] = Pack.decodeAndDecompress11(ct.sublist(offset, offset + 352));
+        offset += 352;
       }
     }
 
     // Decode v
     final v = (params.dv == 4)
         ? Pack.decodeAndDecompress4(ct.sublist(uBytes))
-        : throw UnimplementedError('dv=5 (ML-KEM-1024) not yet supported');
+        : Pack.decodeAndDecompress5(ct.sublist(uBytes));
 
     // 3. Compute m = v - InvNTT(s_hat^T o NTT(u))
     // Transform u to NTT
@@ -424,5 +425,18 @@ class Indcpa {
       }
     }
     return Poly(coeffs);
+  }
+
+  // Normalize coefficients to [0, q-1]
+  static Poly _polyNormalize(Poly p) {
+    final res = List<int>.filled(256, 0);
+    const int q = 3329;
+    for (int i = 0; i < 256; i++) {
+      int t = p.coeffs[i];
+      t = t % q;
+      if (t < 0) t += q;
+      res[i] = t;
+    }
+    return Poly(res);
   }
 }

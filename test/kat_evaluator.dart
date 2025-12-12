@@ -59,8 +59,7 @@ Future<void> _runKATFile(File file) async {
   } else if (filename.contains('800') || filename.contains('512')) {
     kem = PqcKem.kyber512;
   } else if (filename.contains('1568') || filename.contains('1024')) {
-    print('Skipping $filename (ML-KEM-1024 not yet implemented)');
-    return; // Skip ML-KEM-1024 for now
+    kem = PqcKem.kyber1024;
   } else {
     print('Unknown scheme for file $filename, skipping.');
     return;
