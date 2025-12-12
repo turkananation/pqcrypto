@@ -1,0 +1,17 @@
+name: pqcrypto
+description: Pure Dart post-quantum cryptography library. Startss with ML-KEM (Kyber) & ML-DSA (Dilithium). NIST-compliant. Flutter & Web compatible.
+version: 0.1.0
+homepage: https://github.com/turkananation/pqcrypto
+repository: https://github.com/turkananation/pqcrypto
+
+environment:
+  sdk: ^3.10.0
+
+# Add regular dependencies here.
+dependencies:
+  crypto: ^3.0.7 # For SHAKE128/Keccak
+  pointycastle: ^4.0.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
