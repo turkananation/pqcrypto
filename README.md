@@ -121,6 +121,8 @@ test/
 
 ### Quick Start
 
+> **Serverpod Users:** Check out the [Full Stack Integration Guide](SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
+
 ```dart
 import 'package:pqcrypto/pqcrypto.dart';
 
@@ -205,4 +207,5 @@ Add to `pubspec.yaml`:
 ```yaml
 dependencies:
   pqcrypto: ^0.1.0
+  pointycastle: ^4.0.0
 ```

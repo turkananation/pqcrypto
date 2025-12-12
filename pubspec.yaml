@@ -9,6 +9,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   lints: ^6.0.0
