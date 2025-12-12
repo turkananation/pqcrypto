@@ -1,4 +1,4 @@
-# ⚡ integrating ML-KEM with Serverpod & Flutter
+# ⚡ Integrating pqcrypto's ML-KEM with Serverpod & Flutter
 
 This guide demonstrates how to establish a **Post-Quantum Secure Session** between a **Flutter Client** and a **Serverpod Backend** using `pqcrypto`.
 
