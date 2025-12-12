@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:pointycastle/export.dart';
 import 'package:pqcrypto/src/algos/kyber/indcpa.dart';
 import 'package:pqcrypto/src/algos/kyber/params.dart';
 

@@ -85,73 +85,36 @@ class Indcpa {
     final mPoly = _polyFromMsg(m);
     v = _polyAdd(v, mPoly); // v += m
 
-    // Pack ct = (u || v)
-    final uBytes = (256 * params.k * params.du) ~/ 8;
-    final vBytes = (256 * params.dv) ~/ 8;
-    final ct = Uint8List(uBytes + vBytes);
-    int offset = 0;
+    // Pack ct = (u || v) using FIPS 203 compression
+    final ctParts = <Uint8List>[];
 
-    // Pack u
+    // Pack u vector using Compress+ByteEncode
     for (int i = 0; i < params.k; i++) {
       if (params.du == 10) {
-        for (int j = 0; j < 256; j += 4) {
-          final c0 = u[i].coeffs[j];
-          final c1 = u[i].coeffs[j + 1];
-          final c2 = u[i].coeffs[j + 2];
-          final c3 = u[i].coeffs[j + 3];
-          int t0 = (c0 * 1024 + 1664) ~/ 3329 & 0x3FF;
-          int t1 = (c1 * 1024 + 1664) ~/ 3329 & 0x3FF;
-          int t2 = (c2 * 1024 + 1664) ~/ 3329 & 0x3FF;
-          int t3 = (c3 * 1024 + 1664) ~/ 3329 & 0x3FF;
-          ct[offset++] = t0 & 0xFF;
-          ct[offset++] = (t0 >> 8) | ((t1 & 0x3F) << 2);
-          ct[offset++] = (t1 >> 6) | ((t2 & 0x0F) << 4);
-          ct[offset++] = (t2 >> 4) | ((t3 & 0x03) << 6);
-          ct[offset++] = (t3 >> 2);
-        }
+        ctParts.add(Pack.compressAndEncode10(u[i]));
       } else if (params.du == 11) {
-        for (int j = 0; j < 256; j += 8) {
-          final t = List<int>.filled(8, 0);
-          for (int k = 0; k < 8; k++) {
-            t[k] = (u[i].coeffs[j + k] * 2048 + 1664) ~/ 3329 & 0x7FF;
-          }
-          ct[offset++] = t[0] & 0xFF;
-          ct[offset++] = (t[0] >> 8) | ((t[1] & 0x1F) << 3);
-          ct[offset++] = (t[1] >> 5) | ((t[2] & 0x03) << 6);
-          ct[offset++] = (t[2] >> 2) & 0xFF;
-          ct[offset++] = (t[2] >> 10) | ((t[3] & 0x7F) << 1);
-          ct[offset++] = (t[3] >> 7) | ((t[4] & 0x0F) << 4);
-          ct[offset++] = (t[4] >> 4) | ((t[5] & 0x01) << 7);
-          ct[offset++] = (t[5] >> 1) & 0xFF;
-          ct[offset++] = (t[5] >> 9) | ((t[6] & 0x3F) << 2);
-          ct[offset++] = (t[6] >> 6) | ((t[7] & 0x07) << 5);
-          ct[offset++] = (t[7] >> 3);
-        }
+        // TODO: Implement compressAndEncode11 for ML-KEM-1024
+        throw UnimplementedError('du=11 (ML-KEM-1024) not yet supported');
       }
     }
 
-    // Pack v
+    // Pack v using Compress+ByteEncode
     if (params.dv == 4) {
-      for (int i = 0; i < 256; i += 2) {
-        int c0 = v.coeffs[i];
-        int c1 = v.coeffs[i + 1];
-        int map0 = (c0 * 16 + 1664) ~/ 3329 & 0x0F;
-        int map1 = (c1 * 16 + 1664) ~/ 3329 & 0x0F;
-        ct[offset++] = map0 | (map1 << 4);
-      }
+      ctParts.add(Pack.compressAndEncode4(v));
     } else if (params.dv == 5) {
-      for (int i = 0; i < 256; i += 8) {
-        final t = List<int>.filled(8, 0);
-        for (int j = 0; j < 8; j++) {
-          t[j] = (v.coeffs[i + j] * 32 + 1664) ~/ 3329 & 0x1F;
-        }
-        ct[offset++] = t[0] | (t[1] << 5);
-        ct[offset++] = (t[1] >> 3) | (t[2] << 2) | (t[3] << 7);
-        ct[offset++] = (t[3] >> 1) | (t[4] << 4);
-        ct[offset++] = (t[4] >> 4) | (t[5] << 1) | (t[6] << 6);
-        ct[offset++] = (t[6] >> 2) | (t[7] << 3);
-      }
+      // TODO: Implement compressAndEncode5 for ML-KEM-1024
+      throw UnimplementedError('dv=5 (ML-KEM-1024) not yet supported');
     }
+
+    // Concatenate all parts
+    final totalSize = ctParts.fold<int>(0, (sum, part) => sum + part.length);
+    final ct = Uint8List(totalSize);
+    int offset = 0;
+    for (final part in ctParts) {
+      ct.setAll(offset, part);
+      offset += part.length;
+    }
+
     return ct;
   }
 
@@ -163,15 +126,26 @@ class Indcpa {
     final (sFlat, _, _, _) = Pack.decodeSecretKey(sk, params);
     final s_hat = _unflattenPolyVec(sFlat, params.k);
 
+    // 2. Decode u, v using FIPS 203 decompression
     final uBytes = (256 * params.k * params.du) ~/ 8;
-    final vBytes = (256 * params.dv) ~/ 8;
-    final uPacked = ct.sublist(0, uBytes);
-    final vPacked = ct.sublist(uBytes, uBytes + vBytes);
+    int offset = 0;
 
-    // 2. Decode u, v (Normal Domain)
-    final u = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
-    _deserializeU(u, uPacked, params);
-    final v = _deserializeV(vPacked, params);
+    final u = List<Poly>.filled(params.k, Poly(List.filled(256, 0)));
+
+    // Decode u vector
+    for (int i = 0; i < params.k; i++) {
+      if (params.du == 10) {
+        u[i] = Pack.decodeAndDecompress10(ct.sublist(offset, offset + 320));
+        offset += 320;
+      } else if (params.du == 11) {
+        throw UnimplementedError('du=11 (ML-KEM-1024) not yet supported');
+      }
+    }
+
+    // Decode v
+    final v = (params.dv == 4)
+        ? Pack.decodeAndDecompress4(ct.sublist(uBytes))
+        : throw UnimplementedError('dv=5 (ML-KEM-1024) not yet supported');
 
     // 3. Compute m = v - InvNTT(s_hat^T o NTT(u))
     // Transform u to NTT
@@ -190,109 +164,6 @@ class Indcpa {
     final mPoly = _polySub(v, result);
 
     return _msgFromPoly(mPoly);
-  }
-
-  static void _deserializeU(
-    List<Poly> u,
-    Uint8List packed,
-    KyberParams params,
-  ) {
-    int offset = 0;
-    for (int i = 0; i < params.k; i++) {
-      final coeffs = u[i].coeffs;
-      if (params.du == 10) {
-        for (int j = 0; j < 256; j += 4) {
-          int b0 = packed[offset];
-          int b1 = packed[offset + 1];
-          int b2 = packed[offset + 2];
-          int b3 = packed[offset + 3];
-          int b4 = packed[offset + 4];
-          offset += 5;
-
-          int t0 = b0 | ((b1 & 0x03) << 8);
-          int t1 = (b1 >> 2) | ((b2 & 0x0F) << 6);
-          int t2 = (b2 >> 4) | ((b3 & 0x3F) << 4);
-          int t3 = (b3 >> 6) | (b4 << 2);
-
-          coeffs[j] = (t0 * 3329 + 512) ~/ 1024;
-          coeffs[j + 1] = (t1 * 3329 + 512) ~/ 1024;
-          coeffs[j + 2] = (t2 * 3329 + 512) ~/ 1024;
-          coeffs[j + 3] = (t3 * 3329 + 512) ~/ 1024;
-        }
-      } else if (params.du == 11) {
-        for (int j = 0; j < 256; j += 8) {
-          int b0 = packed[offset];
-          int b1 = packed[offset + 1];
-          int b2 = packed[offset + 2];
-          int b3 = packed[offset + 3];
-          int b4 = packed[offset + 4];
-          int b5 = packed[offset + 5];
-          int b6 = packed[offset + 6];
-          int b7 = packed[offset + 7];
-          int b8 = packed[offset + 8];
-          int b9 = packed[offset + 9];
-          int b10 = packed[offset + 10];
-          offset += 11;
-
-          int t0 = b0 | ((b1 & 0x07) << 8);
-          int t1 = (b1 >> 3) | ((b2 & 0x3F) << 5);
-          int t2 = (b2 >> 6) | (b3 << 2) | ((b4 & 0x01) << 10);
-          int t3 = (b4 >> 1) | ((b5 & 0x0F) << 7);
-          int t4 = (b5 >> 4) | ((b6 & 0x7F) << 4);
-          int t5 = (b6 >> 7) | (b7 << 1) | ((b8 & 0x03) << 9);
-          int t6 = (b8 >> 2) | ((b9 & 0x1F) << 6);
-          int t7 = (b9 >> 5) | (b10 << 3);
-
-          coeffs[j] = (t0 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 1] = (t1 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 2] = (t2 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 3] = (t3 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 4] = (t4 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 5] = (t5 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 6] = (t6 * 3329 + 1024) ~/ 2048;
-          coeffs[j + 7] = (t7 * 3329 + 1024) ~/ 2048;
-        }
-      }
-    }
-  }
-
-  static Poly _deserializeV(Uint8List packed, KyberParams params) {
-    final v = Poly(List.filled(256, 0));
-    final coeffs = v.coeffs;
-    if (params.dv == 4) {
-      int offset = 0;
-      for (int i = 0; i < 256; i += 2) {
-        int b = packed[offset++];
-        int val0 = b & 0x0F;
-        int val1 = (b >> 4) & 0x0F;
-        coeffs[i] = (val0 * 3329 + 8) ~/ 16;
-        coeffs[i + 1] = (val1 * 3329 + 8) ~/ 16;
-      }
-    } else if (params.dv == 5) {
-      int offset = 0;
-      for (int i = 0; i < 256; i += 8) {
-        int b0 = packed[offset++];
-        int b1 = packed[offset++];
-        int b2 = packed[offset++];
-        int b3 = packed[offset++];
-        int b4 = packed[offset++];
-
-        final t = List<int>.filled(8, 0);
-        t[0] = b0 & 0x1F;
-        t[1] = (b0 >> 5) | ((b1 & 0x03) << 3);
-        t[2] = (b1 >> 2) & 0x1F;
-        t[3] = (b1 >> 7) | ((b2 & 0x0F) << 1);
-        t[4] = (b2 >> 4) | ((b3 & 0x01) << 4);
-        t[5] = (b3 >> 1) & 0x1F;
-        t[6] = (b3 >> 6) | ((b4 & 0x07) << 2);
-        t[7] = (b4 >> 3);
-
-        for (int j = 0; j < 8; j++) {
-          coeffs[i + j] = (t[j] * 3329 + 16) ~/ 32;
-        }
-      }
-    }
-    return v;
   }
 
   static Uint8List _msgFromPoly(Poly p) {

@@ -1,6 +1,5 @@
 void main() {
   const int q = 3329;
-  const int n = 256;
   const int root = 17; // Primitive root of unity for q=3329
 
   // We need n-th roots of unity (actually 2n-th for full negacyclic, but standard defines zetas for N=256)
@@ -8,7 +7,6 @@ void main() {
   // Actually, standard Kyber uses bit-reversed order.
 
   // Let's generate the table as per reference implementation.
-  final zetas = List<int>.filled(128, 0);
 
   // k goes from 0 to 127?
   // Reference impl (ref/poly.c):
@@ -27,7 +25,6 @@ void main() {
   // Or just iterative generation?
 
   // Standard iterative generation for Kyber NTT bits:
-  int k = 0;
   for (int i = 0; i < 128; i++) {
     // This is tricky to get right without reference logic.
     // Let's compute iteratively:

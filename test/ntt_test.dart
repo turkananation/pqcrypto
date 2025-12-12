@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:pqcrypto/src/common/poly.dart';
 

@@ -384,23 +384,6 @@ class Poly {
     1175,
   ];
 
-  static void _baseMulMontgomery(
-    List<int> r,
-    int offset,
-    int a0,
-    int a1,
-    int b0,
-    int b1,
-    int zeta,
-  ) {
-    r[offset] = montgomeryReduce(
-      montgomeryReduce(a1 * b1) * zeta + montgomeryReduce(a0 * b0),
-    );
-    r[offset + 1] = montgomeryReduce(
-      montgomeryReduce(a0 * b1) + montgomeryReduce(a1 * b0),
-    );
-  }
-
   Poly operator +(Poly other) {
     final res = List<int>.filled(256, 0);
     for (int i = 0; i < 256; i++) {
