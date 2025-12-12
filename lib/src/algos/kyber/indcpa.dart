@@ -23,7 +23,7 @@ class Indcpa {
     final rho = pk.sublist(tSize, tSize + 32);
 
     // Expand t_hat
-    final t_hat = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
+    final tHat = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
     // Decode tPacked (NTT coeffs)
     final tCoeffs = List<int>.filled(256 * params.k, 0);
     int tOff = 0;
@@ -37,12 +37,12 @@ class Indcpa {
     }
     for (int i = 0; i < params.k; i++) {
       for (int j = 0; j < 256; j++) {
-        t_hat[i].coeffs[j] = tCoeffs[i * 256 + j];
+        tHat[i].coeffs[j] = tCoeffs[i * 256 + j];
       }
     }
 
     // Matrix A_hat (NTT domain)
-    final A_hat = List.generate(
+    final aHat = List.generate(
       params.k,
       (i) => List.generate(params.k, (j) => _genMatrixPoly(rho, j, i)),
     );
@@ -56,7 +56,7 @@ class Indcpa {
     final e2 = _sampleCBD(coins, 2 * params.k, params.eta2);
 
     // Transform r to NTT: r_hat
-    final r_hat = List.generate(params.k, (i) => Poly.ntt(r[i]));
+    final rHat = List.generate(params.k, (i) => Poly.ntt(r[i]));
 
     // Compute u = InvNTT(A^T * r_hat) + e1
     final u = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
@@ -64,7 +64,7 @@ class Indcpa {
       var acc = Poly(List.filled(256, 0));
       for (int j = 0; j < params.k; j++) {
         // acc += A_hat[j][i] * r_hat[j]  (Transpose: A[j][i])
-        final prod = Poly.baseMul(A_hat[j][i], r_hat[j]);
+        final prod = Poly.baseMul(aHat[j][i], rHat[j]);
         acc = _polyAdd(acc, prod);
       }
       acc = _polyReduce(acc); // Reduce before InvNTT
@@ -73,14 +73,14 @@ class Indcpa {
     }
 
     // Compute v = InvNTT(t_hat^T * r_hat) + e2 + m
-    var v_acc = Poly(List.filled(256, 0));
+    var vAcc = Poly(List.filled(256, 0));
     for (int i = 0; i < params.k; i++) {
       // t_hat[i] * r_hat[i]
-      final prod = Poly.baseMul(t_hat[i], r_hat[i]);
-      v_acc = _polyAdd(v_acc, prod);
+      final prod = Poly.baseMul(tHat[i], rHat[i]);
+      vAcc = _polyAdd(vAcc, prod);
     }
-    v_acc = _polyReduce(v_acc); // Reduce before InvNTT
-    var v = Poly.invNtt(v_acc);
+    vAcc = _polyReduce(vAcc); // Reduce before InvNTT
+    var v = Poly.invNtt(vAcc);
     v = _polyAdd(v, e2);
     final mPoly = _polyFromMsg(m);
     v = _polyAdd(v, mPoly); // v += m
@@ -124,7 +124,7 @@ class Indcpa {
   static Uint8List decrypt(Uint8List sk, Uint8List ct, KyberParams params) {
     // 1. Decode s_hat from sk (it is stored in NTT domain)
     final (sFlat, _, _, _) = Pack.decodeSecretKey(sk, params);
-    final s_hat = _unflattenPolyVec(sFlat, params.k);
+    final sHat = _unflattenPolyVec(sFlat, params.k);
 
     // 2. Decode u, v using FIPS 203 decompression
     final uBytes = (256 * params.k * params.du) ~/ 8;
@@ -150,12 +150,12 @@ class Indcpa {
 
     // 3. Compute m = v - InvNTT(s_hat^T o NTT(u))
     // Transform u to NTT
-    final u_hat = List.generate(params.k, (i) => Poly.ntt(u[i]));
+    final uHat = List.generate(params.k, (i) => Poly.ntt(u[i]));
 
     var sprod = Poly(List.filled(256, 0));
     for (int i = 0; i < params.k; i++) {
       // sprod += s_hat[i] o u_hat[i]
-      final prod = Poly.baseMul(s_hat[i], u_hat[i]);
+      final prod = Poly.baseMul(sHat[i], uHat[i]);
       sprod = _polyAdd(sprod, prod);
     }
     sprod = _polyReduce(sprod); // Reduce before InvNTT
@@ -254,7 +254,7 @@ class Indcpa {
     final k = params.k;
 
     // 1. Gen Matrix A_hat (k x k) in NTT domain
-    final A_hat = List.generate(
+    final aHat = List.generate(
       k,
       (i) => List.generate(k, (j) => _genMatrixPoly(rho, j, i)),
     );
@@ -269,34 +269,34 @@ class Indcpa {
     );
 
     // 3. Transform s, e to NTT domain
-    final s_hat = List.generate(k, (i) => Poly.ntt(s[i]));
-    final e_hat = List.generate(k, (i) => Poly.ntt(e[i]));
+    final sHat = List.generate(k, (i) => Poly.ntt(s[i]));
+    final eHat = List.generate(k, (i) => Poly.ntt(e[i]));
 
     // 4. Compute t_hat = A_hat * s_hat + e_hat
-    final t_hat = List.generate(k, (_) => Poly(List.filled(256, 0)));
+    final tHat = List.generate(k, (_) => Poly(List.filled(256, 0)));
 
     for (int i = 0; i < k; i++) {
       // t_hat[i] starts with e_hat[i]
-      t_hat[i].coeffs.setAll(0, e_hat[i].coeffs);
+      tHat[i].coeffs.setAll(0, eHat[i].coeffs);
 
       for (int j = 0; j < k; j++) {
         // t_hat[i] += A_hat[i][j] * s_hat[j]
-        final prod = Poly.baseMul(A_hat[i][j], s_hat[j]);
-        t_hat[i] = _polyAdd(t_hat[i], prod);
+        final prod = Poly.baseMul(aHat[i][j], sHat[j]);
+        tHat[i] = _polyAdd(tHat[i], prod);
       }
 
       // Reduce accumulated coefficients (like C poly_reduce after accumulation)
-      t_hat[i] = _polyReduce(t_hat[i]);
+      tHat[i] = _polyReduce(tHat[i]);
     }
 
     // 5. Pack pk = (t_hat || rho)
-    final tFlat = _flattenPolyVec(t_hat);
+    final tFlat = _flattenPolyVec(tHat);
     final pk = Pack.encodePublicKey(tFlat, rho, params);
 
     // 6. Pack sk = s_hat
     // H(pk) needed for sk
     final h = SHA3Digest(256).process(pk);
-    final sFlat = _flattenPolyVec(s_hat); // Secret Key stores s_hat
+    final sFlat = _flattenPolyVec(sHat); // Secret Key stores s_hat
     final sk = Pack.encodeSecretKey(sFlat, h, pk, z, params);
 
     return (pk, sk);

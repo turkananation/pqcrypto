@@ -21,7 +21,7 @@ Uint8List fromHex(String s) {
 void main() {
   test('NIST KAT Runner', () async {
     // We look for .rsp files in test/data
-    final dataDir = Directory('test/data');
+    final dataDir = Directory('/home/kali/Dev/Research/KAT/MLKEM');
     if (!await dataDir.exists()) {
       print('No test/data directory found. Skipping KATs.');
       return;
@@ -91,7 +91,7 @@ Future<void> _runKATFile(File file) async {
       ssExp = fromHex(val);
 
       // Trigger Test
-      _verifyVector(count, kem, seed!, pkExp!, skExp!, ctExp!, ssExp!);
+      _verifyVector(count, kem, seed!, pkExp!, skExp!, ctExp!, ssExp);
 
       // Reset optional checks
       seed = null;
@@ -144,7 +144,7 @@ void _verifyVector(
     try {
       final (pk, sk) = kem.generateKeyPair(seed);
       // Optional: Verify PK/SK if we expect exact match (requires exact RNG)
-      // expect(pk, equals(pkExp));
+      expect(pk, equals(pkExp));
     } catch (e) {
       print('Vector $count: KeyGen Failed ($e)');
     }

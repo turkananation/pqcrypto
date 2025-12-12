@@ -39,17 +39,17 @@ class KyberKem {
   }
 
   // Helpers for FIPS 203
-  static Uint8List _H(Uint8List data) {
+  static Uint8List _h(Uint8List data) {
     final digest = SHA3Digest(256);
     return digest.process(data);
   }
 
-  static Uint8List _G(Uint8List data) {
+  static Uint8List _g(Uint8List data) {
     final digest = SHA3Digest(512);
     return digest.process(data);
   }
 
-  static Uint8List _J(Uint8List z, Uint8List c, int len) {
+  static Uint8List _j(Uint8List z, Uint8List c, int len) {
     final input = Uint8List(z.length + c.length);
     input.setAll(0, z);
     input.setAll(z.length, c);
@@ -80,7 +80,7 @@ class KyberKem {
     }
 
     // (rho, sigma) := G(d)
-    final rhoSigma = _G(d);
+    final rhoSigma = _g(d);
 
     // Indcpa KeyGen
     return Indcpa.generateKeyPair(rhoSigma, z, params);
@@ -92,14 +92,14 @@ class KyberKem {
     final m = nonce ?? _randomBytes(32);
 
     // 2. (K, r) := G(m || H(pk))
-    final hPk = _H(pk);
+    final hPk = _h(pk);
     final input = Uint8List(32 + 32);
     input.setAll(0, m);
     input.setAll(32, hPk);
-    final Kr = _G(input);
+    final kR = _g(input);
 
-    final K = Kr.sublist(0, 32);
-    final r = Kr.sublist(32, 64);
+    final K = kR.sublist(0, 32);
+    final r = kR.sublist(32, 64);
 
     // 3. c := Encrypt(pk, m, r)
     final ct = Indcpa.encrypt(pk, m, r, params);
@@ -128,19 +128,19 @@ class KyberKem {
     final input = Uint8List(32 + 32);
     input.setAll(0, mPrime);
     input.setAll(32, h);
-    final KrPrime = _G(input);
+    final kRPrime = _g(input);
 
-    final KPrime = KrPrime.sublist(0, 32);
-    final rPrime = KrPrime.sublist(32, 64);
+    final kPrime = kRPrime.sublist(0, 32);
+    final rPrime = kRPrime.sublist(32, 64);
 
     // 4. c' := Encrypt(pk, m', r')
     final cPrime = Indcpa.encrypt(pk, mPrime, rPrime, params);
 
     // 5. if c == c' return K', else return K_bar = J(z || c, 32)
     if (_constantTimeEq(ct, cPrime)) {
-      return KPrime;
+      return kPrime;
     } else {
-      return _J(z, ct, 32);
+      return _j(z, ct, 32);
     }
   }
 
