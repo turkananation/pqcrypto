@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:pointycastle/export.dart'; // For SHA3Digest
 import 'package:pqcrypto/src/common/shake.dart';
 
 import 'indcpa.dart';
@@ -37,57 +38,124 @@ class KyberKem {
     }
   }
 
+  // Helpers for FIPS 203
+  static Uint8List _H(Uint8List data) {
+    final digest = SHA3Digest(256);
+    return digest.process(data);
+  }
+
+  static Uint8List _G(Uint8List data) {
+    final digest = SHA3Digest(512);
+    return digest.process(data);
+  }
+
+  static Uint8List _J(Uint8List z, Uint8List c, int len) {
+    final input = Uint8List(z.length + c.length);
+    input.setAll(0, z);
+    input.setAll(z.length, c);
+    return Shake256.shake(input, len);
+  }
+
   /// Generate public/private keypair.
   (Uint8List, Uint8List) generateKeyPair([Uint8List? seed]) {
-    seed ??= _hashToSeed(); // 32-byte seed
-    final h = Shake128.shake(seed, 32); // Hash seed
+    // seed can be d (32) or d||z (64)?
+    // FIPS 203 keys are generated from d and z.
+    // If seed is provided, assume it contains d + z (64 bytes) or just d?
+    // Let's assume input seed is 64 bytes (d||z) if provided, else random.
 
-    // Split seed into s/t seeds
-    final (sSeed, tSeed) = _splitSeed(h);
-    final s = Indcpa.sampleInBall(sSeed, params); // Secret vector
-    final t = Indcpa.samplePolyvec(tSeed, params); // Public polyvec
+    Uint8List d, z;
+    if (seed != null) {
+      if (seed.length == 32) {
+        d = seed;
+        z = _randomBytes(32);
+      } else if (seed.length == 64) {
+        d = seed.sublist(0, 32);
+        z = seed.sublist(32, 64);
+      } else {
+        throw ArgumentError("Seed must be 32 or 64 bytes");
+      }
+    } else {
+      d = _randomBytes(32);
+      z = _randomBytes(32);
+    }
 
-    final pk = Pack.encodePublicKey(t, h, params); // pk = (t || h)
-    final sk = Pack.encodeSecretKey(s, h, pk, params); // sk = (s || pk || h)
+    // (rho, sigma) := G(d)
+    final rhoSigma = _G(d);
 
-    return (pk, sk);
+    // Indcpa KeyGen
+    return Indcpa.generateKeyPair(rhoSigma, z, params);
   }
 
   /// Encapsulate: Client generates shared secret from pk.
   (Uint8List ct, Uint8List ss) encapsulate(Uint8List pk, [Uint8List? nonce]) {
-    nonce ??= _hashToSeed();
-    final m = _sampleMessage(nonce); // Random message
+    // 1. m <- Random(32)
+    final m = nonce ?? _randomBytes(32);
 
-    final ct = Indcpa.encrypt(pk, m, params); // CPA encrypt
-    final ss = _kemExtract(ct, m); // KDF to shared secret
+    // 2. (K, r) := G(m || H(pk))
+    final hPk = _H(pk);
+    final input = Uint8List(32 + 32);
+    input.setAll(0, m);
+    input.setAll(32, hPk);
+    final Kr = _G(input);
 
-    return (ct, ss);
+    final K = Kr.sublist(0, 32);
+    final r = Kr.sublist(32, 64);
+
+    // 3. c := Encrypt(pk, m, r)
+    final ct = Indcpa.encrypt(pk, m, r, params);
+
+    // 4. return (c, K)
+    return (ct, K);
   }
 
   /// Decapsulate: Server recovers ss from ct.
   Uint8List decapsulate(Uint8List sk, Uint8List ct) {
-    // ignore: unused_local_variable
-    final (s, _, pkFromSk) = Pack.decodeSecretKey(sk, params); // Ignore 'h'
-    // TODO: Verify re-encryption check (implicit rejection)
-    final m = Indcpa.decrypt(sk, ct, params); // Recover m
-    final ss = _kemExtract(ct, m);
-    return ss;
+    // 1. (s, h, pk, z) := Decode(sk)
+    final (s, h, pk, z) = Pack.decodeSecretKey(sk, params);
+
+    // 2. m' := Decrypt(s, ct)
+    final mPrime = Indcpa.decrypt(
+      sk,
+      ct,
+      params,
+    ); // Indcpa.decrypt decodes s internally from sk.
+    // Wait, Indcpa.decrypt takes SK (encoded).
+    // And unpacks it.
+    // My previous Indcpa.decrypt unpacking was ignoring z.
+    // That's fine, it ignores suffix.
+
+    // 3. (K', r') := G(m' || h)
+    final input = Uint8List(32 + 32);
+    input.setAll(0, mPrime);
+    input.setAll(32, h);
+    final KrPrime = _G(input);
+
+    final KPrime = KrPrime.sublist(0, 32);
+    final rPrime = KrPrime.sublist(32, 64);
+
+    // 4. c' := Encrypt(pk, m', r')
+    final cPrime = Indcpa.encrypt(pk, mPrime, rPrime, params);
+
+    // 5. if c == c' return K', else return K_bar = J(z || c, 32)
+    if (_constantTimeEq(ct, cPrime)) {
+      return KPrime;
+    } else {
+      return _J(z, ct, 32);
+    }
   }
 
-  Uint8List _hashToSeed() {
+  Uint8List _randomBytes(int len) {
     final rng = Random.secure();
-    return Uint8List.fromList(List.generate(32, (_) => rng.nextInt(256)));
+    return Uint8List.fromList(List.generate(len, (_) => rng.nextInt(256)));
   }
 
-  // Stubs for split, sample, extract (implement based on NIST spec FIPS 203).
-  (Uint8List, Uint8List) _splitSeed(Uint8List seed) =>
-      (seed.sublist(0, 16), seed.sublist(16));
-  Uint8List _sampleMessage(Uint8List nonce) => Shake128.shake(nonce, 32);
-  Uint8List _kemExtract(Uint8List ct, Uint8List m) {
-    final combined = Uint8List(ct.length + m.length);
-    combined.setAll(0, ct);
-    combined.setAll(ct.length, m);
-    return Shake128.shake(combined, 32);
+  bool _constantTimeEq(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    int res = 0;
+    for (int i = 0; i < a.length; i++) {
+      res |= a[i] ^ b[i];
+    }
+    return res == 0;
   }
 }
 

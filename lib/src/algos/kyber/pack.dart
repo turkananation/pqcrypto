@@ -33,7 +33,7 @@ class Pack {
     return pk;
   }
 
-  static (Poly s, Uint8List h, Uint8List pk) decodeSecretKey(
+  static (Poly s, Uint8List h, Uint8List pk, Uint8List z) decodeSecretKey(
     Uint8List sk,
     KyberParams params,
   ) {
@@ -54,14 +54,16 @@ class Pack {
 
     final pk = sk.sublist(sBytes, sBytes + pkBytes);
     final h = sk.sublist(sBytes + pkBytes, sBytes + pkBytes + 32);
+    final z = sk.sublist(sBytes + pkBytes + 32, sBytes + pkBytes + 32 + 32);
 
-    return (Poly(sCoeffs), h, pk);
+    return (Poly(sCoeffs), h, pk, z);
   }
 
   static Uint8List encodeSecretKey(
     Poly s,
     Uint8List h,
     Uint8List pk,
+    Uint8List z,
     KyberParams params,
   ) {
     final skSize = params.secretKeyBytes;
@@ -86,8 +88,8 @@ class Pack {
     sk.setAll(sBytes, pk);
     // Append h
     sk.setAll(sBytes + params.publicKeyBytes, h);
-    // Append z (placeholder)
-    // ...
+    // Append z
+    sk.setAll(sBytes + params.publicKeyBytes + 32, z);
 
     return sk;
   }
