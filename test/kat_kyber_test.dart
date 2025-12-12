@@ -1,24 +1,24 @@
 // test/kat_kyber_test.dart
-import 'dart:convert';
+// Note: Comprehensive KAT testing is done in kat_evaluator.dart
+// This test just verifies the KAT files are present
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:pqcrypto/pqcrypto.dart';
 
 void main() {
-  test('NIST KAT for Kyber-768', () async {
-    final katFile = File('test/data/PQCkemKAT_1184.req'); // Download from NIST
-    final lines = await katFile.readAsLines();
+  test('NIST KAT files exist', () {
+    final files = [
+      'test/data/PQCkemKAT_1184.rsp', // Kyber-768 (old format)
+      'test/data/kat_MLKEM_512.rsp', // ML-KEM-512
+      'test/data/kat_MLKEM_768.rsp', // ML-KEM-768
+      'test/data/kat_MLKEM_1024.rsp', // ML-KEM-1024
+    ];
 
-    for (var line in lines) {
-      if (line.startsWith('seed = ')) {
-        final seed = base64Decode(line.split('= ')[1]);
-        final kem = PqcKem.kyber768;
-        // ignore: unused_local_variable
-        final (pk, sk) = kem.generateKeyPair(seed); // Deterministic
-
-        // Parse expected pk from .rsp, assert match
-        // Similar for ct/ss
-      }
+    for (final file in files) {
+      expect(
+        File(file).existsSync(),
+        isTrue,
+        reason: '$file should exist for KAT testing',
+      );
     }
   });
 }

@@ -160,21 +160,27 @@ void _verifyVector(
 
     // Allow for expected failure due to missing NTT (Phase 3)
     if (_listEquals(ssRecov, ssExp)) {
-      // print('Vector $count: Decaps PASS');
+      print('✓ Vector $count: PASS');
     } else {
-      throw TestFailure('Decaps mismatch (NTT incompatibility?)');
+      print('✗ Vector $count: FAIL');
+      print('  Expected SS: ${_toHex(ssExp.sublist(0, 16))}...');
+      print('  Got SS:      ${_toHex(ssRecov.sublist(0, 16))}...');
+      throw TestFailure('Decaps mismatch');
     }
   } catch (e) {
-    // Print first few failures, then silence
-    if (count < 3) {
-      print('Vector $count: Decaps FAILED ($e)');
-    }
-    // rethrow; // Do not abort entire test for one vector
+    print('✗ Vector $count: ERROR - $e');
+    rethrow; // Abort on first failure for debugging
   }
+}
+
+String _toHex(Uint8List bytes) {
+  return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
 }
 
 bool _listEquals(Uint8List a, Uint8List b) {
   if (a.length != b.length) return false;
-  for (int i = 0; i < a.length; i++) if (a[i] != b[i]) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
   return true;
 }

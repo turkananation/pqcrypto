@@ -17,20 +17,14 @@ class Indcpa {
     Uint8List coins,
     KyberParams params,
   ) {
-    // 1152 bytes t, 32 bytes rho. NO, size depends on k.
-    // pk = t (packed) || rho (32)
-    // tPacked size = 384 * k
+    // pk = t_hat || rho
     final tSize = 384 * params.k;
-
-    // ignore: unused_local_variable
     final tPacked = pk.sublist(0, tSize);
-    // ignore: unused_local_variable
     final rho = pk.sublist(tSize, tSize + 32);
 
-    // Expand t
-    final t = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
-    // Decode t
-    // Manual decode of tPacked (12-bit)
+    // Expand t_hat
+    final t_hat = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
+    // Decode tPacked (NTT coeffs)
     final tCoeffs = List<int>.filled(256 * params.k, 0);
     int tOff = 0;
     int tPackOff = 0;
@@ -38,30 +32,22 @@ class Indcpa {
       int b0 = tPacked[tPackOff++];
       int b1 = tPacked[tPackOff++];
       int b2 = tPacked[tPackOff++];
-
       tCoeffs[tOff++] = b0 | ((b1 & 0x0F) << 8);
       tCoeffs[tOff++] = (b1 >> 4) | (b2 << 4);
     }
-    // Distribute tCoeffs into polies
     for (int i = 0; i < params.k; i++) {
       for (int j = 0; j < 256; j++) {
-        t[i].coeffs[j] = tCoeffs[i * 256 + j];
+        t_hat[i].coeffs[j] = tCoeffs[i * 256 + j];
       }
     }
 
-    // Matrix A is deterministic from rho.
-    final A = List.generate(
+    // Matrix A_hat (NTT domain)
+    final A_hat = List.generate(
       params.k,
       (i) => List.generate(params.k, (j) => _genMatrixPoly(rho, j, i)),
     );
 
-    // Encrypt: u = A^T r + e1
-    //          v = t^T r + e2 + m
-    // Needed: r, e1, e2.
-    // r     <-- Sample(coins, 0..k-1, eta1)
-    // e1    <-- Sample(coins, k..2k-1, eta2)
-    // e2    <-- Sample(coins, 2k, eta2)
-
+    // Sample r, e1, e2 (Normal Domain)
     final r = List.generate(params.k, (i) => _sampleCBD(coins, i, params.eta1));
     final e1 = List.generate(
       params.k,
@@ -69,26 +55,33 @@ class Indcpa {
     );
     final e2 = _sampleCBD(coins, 2 * params.k, params.eta2);
 
-    // Compute u = A^T * r + e1
+    // Transform r to NTT: r_hat
+    final r_hat = List.generate(params.k, (i) => Poly.ntt(r[i]));
+
+    // Compute u = InvNTT(A^T * r_hat) + e1
     final u = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
     for (int i = 0; i < params.k; i++) {
-      // Start with e1 noise
-      u[i] = Poly(List.from(e1[i].coeffs));
-
+      var acc = Poly(List.filled(256, 0));
       for (int j = 0; j < params.k; j++) {
-        // u[i] += A[j][i] * r[j]
-        final prod = _polyMult(A[j][i], r[j]);
-        u[i] = _polyAdd(u[i], prod);
+        // acc += A_hat[j][i] * r_hat[j]  (Transpose: A[j][i])
+        final prod = Poly.baseMul(A_hat[j][i], r_hat[j]);
+        acc = _polyAdd(acc, prod);
       }
+      acc = _polyReduce(acc); // Reduce before InvNTT
+      u[i] = Poly.invNtt(acc); // Back to normal
+      u[i] = _polyAdd(u[i], e1[i]); // Add e1
     }
 
-    // Compute v = t^T * r + e2 + m
-    var v = Poly(List.from(e2.coeffs)); // start with e2
+    // Compute v = InvNTT(t_hat^T * r_hat) + e2 + m
+    var v_acc = Poly(List.filled(256, 0));
     for (int i = 0; i < params.k; i++) {
-      final prod = _polyMult(t[i], r[i]);
-      v = _polyAdd(v, prod);
+      // t_hat[i] * r_hat[i]
+      final prod = Poly.baseMul(t_hat[i], r_hat[i]);
+      v_acc = _polyAdd(v_acc, prod);
     }
-
+    v_acc = _polyReduce(v_acc); // Reduce before InvNTT
+    var v = Poly.invNtt(v_acc);
+    v = _polyAdd(v, e2);
     final mPoly = _polyFromMsg(m);
     v = _polyAdd(v, mPoly); // v += m
 
@@ -96,24 +89,20 @@ class Indcpa {
     final uBytes = (256 * params.k * params.du) ~/ 8;
     final vBytes = (256 * params.dv) ~/ 8;
     final ct = Uint8List(uBytes + vBytes);
-
-    // Pack u
     int offset = 0;
 
+    // Pack u
     for (int i = 0; i < params.k; i++) {
-      // Pack u[i] with d=du
       if (params.du == 10) {
         for (int j = 0; j < 256; j += 4) {
           final c0 = u[i].coeffs[j];
           final c1 = u[i].coeffs[j + 1];
           final c2 = u[i].coeffs[j + 2];
           final c3 = u[i].coeffs[j + 3];
-          // Compression d=10: round(x * 2^10 / q)
           int t0 = (c0 * 1024 + 1664) ~/ 3329 & 0x3FF;
           int t1 = (c1 * 1024 + 1664) ~/ 3329 & 0x3FF;
           int t2 = (c2 * 1024 + 1664) ~/ 3329 & 0x3FF;
           int t3 = (c3 * 1024 + 1664) ~/ 3329 & 0x3FF;
-
           ct[offset++] = t0 & 0xFF;
           ct[offset++] = (t0 >> 8) | ((t1 & 0x3F) << 2);
           ct[offset++] = (t1 >> 6) | ((t2 & 0x0F) << 4);
@@ -141,7 +130,7 @@ class Indcpa {
       }
     }
 
-    // pack v
+    // Pack v
     if (params.dv == 4) {
       for (int i = 0; i < 256; i += 2) {
         int c0 = v.coeffs[i];
@@ -151,7 +140,6 @@ class Indcpa {
         ct[offset++] = map0 | (map1 << 4);
       }
     } else if (params.dv == 5) {
-      // Pack 8 coeffs -> 5 bytes.
       for (int i = 0; i < 256; i += 8) {
         final t = List<int>.filled(8, 0);
         for (int j = 0; j < 8; j++) {
@@ -167,57 +155,41 @@ class Indcpa {
     return ct;
   }
 
-  static Poly _polyFromMsg(Uint8List m) {
-    final p = Poly(List.filled(256, 0));
-    // 32 bytes -> 256 bits.
-    for (int i = 0; i < 32; i++) {
-      for (int j = 0; j < 8; j++) {
-        int bit = (m[i] >> j) & 1;
-        if (bit == 1) {
-          p.coeffs[8 * i + j] = ((3329 + 1) / 2).floor(); // 1665
-        } else {
-          p.coeffs[8 * i + j] = 0;
-        }
-      }
-    }
-    return p;
-  }
+  // ... helper methods ...
 
-  /// Decrypt.
   /// Decrypt.
   static Uint8List decrypt(Uint8List sk, Uint8List ct, KyberParams params) {
-    // 1. Decode s from sk
-    final (sFlat, _, _, _) = Pack.decodeSecretKey(
-      sk,
-      params,
-    ); // Helper in Pack updated to return 4 items?
-    // Wait, Pack.decodeSecretKey signature is (Poly, Uint8List, Uint8List, Uint8List)?
-    // Let's verify Pack signature in next step or assume generic pattern logic fixes it.
-    // My previous edit to Pack signature added 'z'.
-
-    final s = _unflattenPolyVec(sFlat, params.k);
+    // 1. Decode s_hat from sk (it is stored in NTT domain)
+    final (sFlat, _, _, _) = Pack.decodeSecretKey(sk, params);
+    final s_hat = _unflattenPolyVec(sFlat, params.k);
 
     final uBytes = (256 * params.k * params.du) ~/ 8;
     final vBytes = (256 * params.dv) ~/ 8;
-
     final uPacked = ct.sublist(0, uBytes);
     final vPacked = ct.sublist(uBytes, uBytes + vBytes);
 
-    // 2. Decode u
+    // 2. Decode u, v (Normal Domain)
     final u = List.generate(params.k, (_) => Poly(List.filled(256, 0)));
     _deserializeU(u, uPacked, params);
-
-    // 3. Decode v
     final v = _deserializeV(vPacked, params);
 
-    // 4. Compute m = v - s^T u
-    var res = v; // Poly copy? v is fresh.
-    for (int i = 0; i < params.k; i++) {
-      final prod = _polyMult(s[i], u[i]);
-      res = _polySub(res, prod);
-    }
+    // 3. Compute m = v - InvNTT(s_hat^T o NTT(u))
+    // Transform u to NTT
+    final u_hat = List.generate(params.k, (i) => Poly.ntt(u[i]));
 
-    return _msgFromPoly(res);
+    var sprod = Poly(List.filled(256, 0));
+    for (int i = 0; i < params.k; i++) {
+      // sprod += s_hat[i] o u_hat[i]
+      final prod = Poly.baseMul(s_hat[i], u_hat[i]);
+      sprod = _polyAdd(sprod, prod);
+    }
+    sprod = _polyReduce(sprod); // Reduce before InvNTT
+    final result = Poly.invNtt(sprod); // Back to normal
+
+    // m = v - result
+    final mPoly = _polySub(v, result);
+
+    return _msgFromPoly(mPoly);
   }
 
   static void _deserializeU(
@@ -409,29 +381,13 @@ class Indcpa {
   ) {
     final k = params.k;
 
-    // 1. Gen Matrix A (k x k)
-    // A[i][j] = GenMatrix(rho, j, i)  <-- transposed? NO.
-    // FIPS 203: A_hat generated XOF(rho, j, i).
-    // t_hat = A_hat * s_hat + e_hat.
-    // So we compute A normally.
-
-    final A = List.generate(
+    // 1. Gen Matrix A_hat (k x k) in NTT domain
+    final A_hat = List.generate(
       k,
       (i) => List.generate(k, (j) => _genMatrixPoly(rho, j, i)),
-    ); // transpose indices for FIPS gen?
-    // Wait, FIPS says A_hat[i][j] <- SampleNTT(XOF(rho, j, i)).
-    // So A[i][j] depends on j, i.
-    // My `_genMatrixPoly(rho, j, i)` creates poly from `rho || j || i`.
-    // So A[i][j] = _genMatrixPoly(rho, j, i). Correct.
+    );
 
-    // 2. Sample s, e
-    // s = Sample(sigma, 0..k-1)
-    // e = Sample(sigma, k..2k-1)
-    // We need a nonce for CBD sampling (params.N).
-    // Actually Indcpa simply extends sigma?
-    // FIPS 203: PRF(sigma, N).
-    // We need `sampleInBall` to take nonce.
-
+    // 2. Sample s, e (Normal Domain)
     // 2.1 Sample s
     final s = List.generate(k, (i) => sampleInBall(sigma, params, nonce: i));
     // 2.2 Sample e
@@ -440,89 +396,73 @@ class Indcpa {
       (i) => sampleInBall(sigma, params, nonce: k + i),
     );
 
-    // 3. Compute t = A * s + e
-    // Typically in NTT domain.
-    // _genMatrixPoly returns NTT domain polys?
-    // Rejection sampling gives coeffs. Are they NTT?
-    // FIPS 203 Logic: GenMatrix produces A_hat (NTT).
-    // Sample(s) produces s (normal). Then NTT(s).
-    // We assume `Poly` handles NTT.
-    // BUT we don't have NTT impl yet in Poly (only stub).
-    // So we just do pointwise mult?
-    // If Poly.ntt() is not implemented, A*s is meaningless.
-    // BUT for GenMatrix task, we just need to generate A.
-    // For "Round Trip" correctness without NTT, we just interpret everything as normal domain.
-    // A is "random polys". s is "small polys". t = A*s + e.
-    // This logic holds even without NTT (just slower convolution).
-    // Our `Poly` class likely does pointwise mult (which implies NTT domain).
+    // 3. Transform s, e to NTT domain
+    final s_hat = List.generate(k, (i) => Poly.ntt(s[i]));
+    final e_hat = List.generate(k, (i) => Poly.ntt(e[i]));
 
-    // Let's compute t.
-    final t = List.generate(k, (_) => Poly(List.filled(256, 0)));
+    // 4. Compute t_hat = A_hat * s_hat + e_hat
+    final t_hat = List.generate(k, (_) => Poly(List.filled(256, 0)));
 
     for (int i = 0; i < k; i++) {
-      // t[i] = dot(row A[i], s) + e[i]
-      // t[i] starts with e[i]
-      // We copy e[i] coeffs.
-      // But Poly is mutable? List is mutable. Use new Poly.
-      t[i] = Poly(List.from(e[i].coeffs)); // t[i] = e[i]
+      // t_hat[i] starts with e_hat[i]
+      t_hat[i].coeffs.setAll(0, e_hat[i].coeffs);
 
       for (int j = 0; j < k; j++) {
-        // t[i] += A[i][j] * s[j]
-        // We need poly add/mult.
-        // Assumes Poly*Poly is implemented.
-        final prod = _polyMult(A[i][j], s[j]);
-        t[i] = _polyAdd(t[i], prod);
+        // t_hat[i] += A_hat[i][j] * s_hat[j]
+        final prod = Poly.baseMul(A_hat[i][j], s_hat[j]);
+        t_hat[i] = _polyAdd(t_hat[i], prod);
       }
+
+      // Reduce accumulated coefficients (like C poly_reduce after accumulation)
+      t_hat[i] = _polyReduce(t_hat[i]);
     }
 
-    // 4. Pack pk = (t || rho)
-    final tFlat = _flattenPolyVec(t);
+    // 5. Pack pk = (t_hat || rho)
+    final tFlat = _flattenPolyVec(t_hat);
     final pk = Pack.encodePublicKey(tFlat, rho, params);
 
-    // 5. Pack sk = s
+    // 6. Pack sk = s_hat
     // H(pk) needed for sk
     final h = SHA3Digest(256).process(pk);
-    final sFlat = _flattenPolyVec(s);
+    final sFlat = _flattenPolyVec(s_hat); // Secret Key stores s_hat
     final sk = Pack.encodeSecretKey(sFlat, h, pk, z, params);
 
     return (pk, sk);
   }
 
-  static Poly _polyMult(Poly a, Poly b) {
-    // Schoolbook multiplication modulo (x^256 + 1)
-    final res = List<int>.filled(256, 0);
-    const int N = 256;
-    const int Q = 3329;
-
-    for (int i = 0; i < N; i++) {
-      if (a.coeffs[i] == 0) continue; // Optimization
-      for (int j = 0; j < N; j++) {
-        if (b.coeffs[j] == 0) continue;
-
-        // Standard: val = a[i] * b[j] (always positive since coeffs normalized)
-        int val = (a.coeffs[i] * b.coeffs[j]) % Q;
-
-        if (i + j < N) {
-          // res[i+j] += val
-          res[i + j] = (res[i + j] + val) % Q;
+  static Poly _polyFromMsg(Uint8List m) {
+    final p = Poly(List.filled(256, 0));
+    // 32 bytes -> 256 coeffs
+    for (int i = 0; i < 32; i++) {
+      for (int j = 0; j < 8; j++) {
+        int bit = (m[i] >> j) & 1;
+        if (bit == 1) {
+          // (q+1)/2 = 1665
+          p.coeffs[8 * i + j] = 1665;
         } else {
-          // res[i+j-N] -= val
-          // = (res[i+j-N] - val + Q) % Q
-          int idx = i + j - N;
-          int diff = res[idx] - val;
-          if (diff < 0) diff += Q; // Assume diff > -Q which is true as val < Q
-          res[idx] = diff; // Already normalized
+          p.coeffs[8 * i + j] = 0;
         }
       }
     }
-
-    return Poly(res);
+    return p;
   }
 
+  // Polynomial addition WITHOUT automatic reduction (matches C reference behavior)
+  // The C reference lets coefficients accumulate and only reduces when serializing
   static Poly _polyAdd(Poly a, Poly b) {
     final res = List<int>.filled(256, 0);
     for (int i = 0; i < 256; i++) {
-      res[i] = (a.coeffs[i] + b.coeffs[i]) % 3329;
+      res[i] = a.coeffs[i] + b.coeffs[i];
+      // No modulo here - let values accumulate like C int16_t
+    }
+    return Poly(res);
+  }
+
+  // Explicit reduction when needed (e.g., before serialization)
+  static Poly _polyReduce(Poly p) {
+    final res = List<int>.filled(256, 0);
+    for (int i = 0; i < 256; i++) {
+      res[i] = Poly.barrettReduce(p.coeffs[i]);
     }
     return Poly(res);
   }
