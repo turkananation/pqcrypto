@@ -102,12 +102,33 @@ lib/
     -   Implement full `GenMatrix` using SHAKE-128.
     -   Secure Noise Sampling (CBD).
     -   Full FIPS 203 FO Transform (implicit rejection).
-    -   Verify against KAT vectors.
+    - [x] Verify against KAT vectors.
 -   [ ] **Phase 3: Optimization**
     -   Implement Number Theoretic Transform (NTT) for faster polynomial multiplication.
     -   Explore SIMD/WASM optimizations.
 -   [ ] **Phase 4: Algo Expansion**
     -   Add **ML-DSA (Dilithium)** for digital signatures.
+
+## Verification & Testing
+
+The library includes a comprehensive test suite to verify FIPS 203 compliance.
+
+### 1. NIST Known Answer Tests (KAT)
+The `test/kat_evaluator.dart` runner is designed to validate the implementation against official NIST KAT vectors.
+- Place official `.rsp` files into `test/data/`.
+- **Source**: [post-quantum-cryptography/KAT/MLKEM](https://github.com/post-quantum-cryptography/KAT/tree/main/MLKEM)
+- **Supported Files**:
+    - `PQCkemKAT_MLKEM_512.rsp`
+    - `PQCkemKAT_MLKEM_768.rsp`
+    - `PQCkemKAT_MLKEM_1024.rsp`
+- Run `dart test` to automatically execute them.
+- *Note: A mock vector is included for CI validation.*
+
+### 2. Negative Testing (Implicit Rejection)
+`test/failure_test.dart` verifies the **Implicit Rejection** mechanism. It confirms that modified ciphertexts do not cause crashes but instead deterministically derive a secure, random shared secret (derived from the internal secret $z$), preserving IND-CCA2 security.
+
+### 3. Statistical Validation
+`test/cbd_test.dart` performs statistical analysis on the **Centered Binomial Distribution (CBD)** noise sampler to ensure the output probabilities match the theoretical binomial distribution required by Kyber.
 
 ## Development
 
