@@ -285,8 +285,9 @@ class MlDsa {
       print("Sign Loop:");
       final cFlat = Uint8List(256 * 4);
       final cView = ByteData.view(cFlat.buffer);
-      for (int j = 0; j < 256; j++)
+      for (int j = 0; j < 256; j++) {
         cView.setInt32(j * 4, c.coeffs[j], Endian.little);
+      }
       print(
         "  c Hash: ${_toHex(DilithiumSymmetric.crh(cFlat)).substring(0, 20)}...",
       );
@@ -442,8 +443,9 @@ class MlDsa {
       }
 
       // Success
-      for (int i = 0; i < params.l; i++)
+      for (int i = 0; i < params.l; i++) {
         zCand[i].reduce(); // Normalize z to [0, q-1]
+      }
       z = zCand;
       h = hCand;
       print("Sign: z Hash: ${_toHex(hashVec(z)).substring(0, 20)}...");
@@ -599,8 +601,9 @@ class MlDsa {
 
     final cFlat = Uint8List(256 * 4);
     final cView = ByteData.view(cFlat.buffer);
-    for (int j = 0; j < 256; j++)
+    for (int j = 0; j < 256; j++) {
       cView.setInt32(j * 4, c.coeffs[j], Endian.little);
+    }
     print(
       "Verify: c Hash: ${_toHex(DilithiumSymmetric.crh(cFlat)).substring(0, 20)}...",
     );
@@ -663,7 +666,9 @@ class MlDsa {
     print("Verify: ct1 Hash: ${_toHex(hashVec(ct1)).substring(0, 20)}...");
 
     // Normalize wApprox for hash check
-    for (int i = 0; i < params.k; i++) wApprox[i].reduce();
+    for (int i = 0; i < params.k; i++) {
+      wApprox[i].reduce();
+    }
     print(
       "Verify: wApprox Hash: ${_toHex(hashVec(wApprox)).substring(0, 20)}...",
     );
