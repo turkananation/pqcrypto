@@ -8,7 +8,7 @@
 ## Documents
 
 | Document | Description | Audience |
-|----------|-------------|----------|
+| -------- | ----------- | -------- |
 | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md) | **Master tracker**: every task, bug, and improvement across all phases | Everyone |
 | [SECURITY_AUDIT.md](SECURITY_AUDIT.md) | Full security audit: 4 Critical, 3 High, 4 Medium, 3 Low findings | Security engineers, maintainers |
 | [BUGS.md](BUGS.md) | All known bugs with reproduction steps and fix guidance | Developers |

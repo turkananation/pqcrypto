@@ -94,11 +94,11 @@ class DilithiumParams { int k, l, eta, tau, beta, omega, gamma1, gamma2; }
 
 ### Benchmarks (Dart VM JIT)
 
-| Operation | ML-KEM-512 | ML-KEM-768 | ML-KEM-1024 |
-|-----------|------------|------------|-------------|
-| KeyGen    | ~0.7 ms    | ~1.3 ms    | ~1.8 ms     |
-| Encapsulate| ~0.7 ms   | ~1.4 ms    | ~1.8 ms     |
-| Decapsulate| ~0.6 ms   | ~1.0 ms    | ~1.7 ms     |
+| Operation   | ML-KEM-512 | ML-KEM-768 | ML-KEM-1024 |
+| ----------- |------------|------------|-------------|
+| KeyGen      | ~0.7 ms    | ~1.3 ms    | ~1.8 ms     |
+| Encapsulate |  ~0.7 ms   | ~1.4 ms    | ~1.8 ms     |
+| Decapsulate | ~0.6 ms    | ~1.0 ms    | ~1.7 ms     |
 
 **Hotspots**: NTT (35%), SHAKE matrix gen (25%), pointwise mul (20%)
 **Optimizations**: Switch Kyber to Int32List, in-place NTT, batch Barrett reduction

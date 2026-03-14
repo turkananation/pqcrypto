@@ -24,7 +24,7 @@ dart pub get
 ### Project Dependencies
 
 | Package | Version | Purpose |
-|---------|---------|---------|
+| ------- | ------- | ------- |
 | `pointycastle` | ^4.0.0 | SHA3-256, SHA3-512, SHAKE-128, SHAKE-256 |
 | `lints` | ^6.0.0 | Static analysis (dev) |
 | `test` | ^1.25.6 | Testing framework (dev) |
@@ -71,7 +71,7 @@ dart run example/main.dart
 ### File Naming
 
 | Pattern | Convention |
-|---------|-----------|
+| ------- | ---------- |
 | Algorithm API | `kem.dart`, `dsa.dart` |
 | NTT operations | `ntt.dart` |
 | Serialization | `pack.dart`, `packing.dart` |
@@ -83,7 +83,7 @@ dart run example/main.dart
 ### Class Naming
 
 | Type | Convention | Example |
-|------|-----------|---------|
+| ---- | ---------- | ------- |
 | High-level API | `<AlgoName>Kem/Dsa` | `KyberKem`, `MlDsa` |
 | Polynomial | `Poly`, `DilithiumPoly` | Algorithm-specific types |
 | Parameters | `<Algo>Params` | `KyberParams`, `DilithiumParams` |
@@ -211,7 +211,7 @@ The NTT transforms a polynomial from the "coefficient domain" to the "evaluation
 
 For reducing `a mod q` without division:
 
-```
+```text
 v = floor(2^k / q)
 t = floor(a * v / 2^k)
 result = a - t * q
@@ -222,7 +222,7 @@ result = a - t * q
 
 Maps field element x in [0, q-1] to d-bit value and back:
 
-```
+```text
 compress(x, d) = round(x * 2^d / q) mod 2^d
 decompress(y, d) = round(y * q / 2^d)
 ```
@@ -233,7 +233,7 @@ Introduces lossy quantization error bounded by q / 2^(d+1).
 
 Splits coefficient into high and low parts:
 
-```
+```text
 Power2Round(r, d): r = r1 * 2^d + r0
 Decompose(r, alpha): r = r1 * alpha + r0 (centered)
 ```

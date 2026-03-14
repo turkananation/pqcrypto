@@ -8,7 +8,7 @@
 ## 1. Current State
 
 | Algorithm | Standard | Status | Maturity |
-|-----------|----------|--------|----------|
+| --------- | -------- | ------ | -------- |
 | ML-KEM (Kyber) | FIPS 203 | ✅ | KAT validated |
 | ML-DSA (Dilithium) | FIPS 204 | ⏳ | Round-trip works |
 | SLH-DSA (SPHINCS+) | FIPS 205 | ❌ | - |
@@ -25,7 +25,7 @@ SLH-DSA is a **hash-based** stateless digital signature scheme. Unlike ML-DSA (l
 
 ### Architecture
 
-```
+```text
 lib/src/algos/sphincs/
   slh_dsa.dart          -- High-level API (KeyGen, Sign, Verify)
   address.dart          -- ADRS (address) structure
@@ -57,7 +57,7 @@ lib/src/algos/sphincs/
 4. **Parameter Sets (FIPS 205)**
 
 | Parameter | SLH-DSA-128s | SLH-DSA-128f | SLH-DSA-192s | SLH-DSA-256f |
-|-----------|-------------|-------------|-------------|-------------|
+| --------- | ------------ | ------------ | ------------ | ------------ |
 | n | 16 | 16 | 24 | 32 |
 | h | 63 | 66 | 63 | 68 |
 | d | 7 | 22 | 7 | 17 |
@@ -94,7 +94,7 @@ FN-DSA is a **lattice-based** signature scheme using NTRU lattices with Gaussian
 
 ### Architecture
 
-```
+```text
 lib/src/algos/falcon/
   fn_dsa.dart           -- High-level API
   ntru_solve.dart       -- NTRU equation solver (KeyGen core)
@@ -129,7 +129,7 @@ lib/src/algos/falcon/
 ### Parameter Sets
 
 | Parameter | FN-DSA-512 | FN-DSA-1024 |
-|-----------|-----------|------------|
+| --------- | ---------- | ----------- |
 | n | 512 | 1024 |
 | Security | 128-bit | 256-bit |
 | PK size | 897 B | 1793 B |
@@ -154,7 +154,7 @@ HQC is a **code-based** KEM selected as an additional KEM standard alongside ML-
 
 ### Architecture
 
-```
+```text
 lib/src/algos/hqc/
   kem.dart              -- High-level KEM API
   gf.dart               -- GF(2^m) arithmetic
@@ -183,7 +183,7 @@ lib/src/algos/hqc/
 ### Parameter Sets
 
 | Parameter | HQC-128 | HQC-192 | HQC-256 |
-|-----------|---------|---------|---------|
+| --------- | ------- | ------- | ------- |
 | Security | 128-bit | 192-bit | 256-bit |
 | PK size | ~2,249 B | ~4,522 B | ~7,245 B |
 | CT size | ~4,497 B | ~9,042 B | ~14,469 B |
@@ -204,7 +204,7 @@ lib/src/algos/hqc/
 ### Recommended Order
 
 | Priority | Algorithm | Rationale |
-|----------|-----------|-----------|
+| -------- | --------- | --------- |
 | 1 | **Complete ML-DSA** | Already started, most requested, FIPS 204 finalized |
 | 2 | **SLH-DSA** | Simplest to implement, conservative security assumption |
 | 3 | **HQC** | Provides KEM diversity (code-based vs lattice-based) |
@@ -236,7 +236,7 @@ For each new algorithm:
 ### Current Reusable Components
 
 | Component | Location | Reusable By |
-|-----------|----------|-------------|
+| --------- | -------- | ------------- |
 | SHAKE-128 | common/shake.dart | All algorithms |
 | SHAKE-256 | common/shake.dart | All algorithms |
 | SHA3-256/512 | via pointycastle | All algorithms |
@@ -244,7 +244,7 @@ For each new algorithm:
 ### Needed Infrastructure
 
 | Component | Needed By | Priority |
-|-----------|-----------|----------|
+| --------- | --------- | -------- |
 | SHA-256 wrapper | SLH-DSA (SHA-256 mode) | P2 |
 | GF(2^m) library | HQC | P3 |
 | Complex number type | FN-DSA | P4 |

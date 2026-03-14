@@ -196,8 +196,6 @@ Benchmarks on commodity hardware (Dart VM, JIT):
 | **ML-KEM-768** | ~1.3 ms | ~1.4 ms | ~1.0 ms | 192-bit security |
 | **ML-KEM-1024** | ~1.8 ms | ~1.8 ms | ~1.7 ms | 256-bit security |
 
-*(Measured on Linux x64, Dart 3.x JIT)*
-
 ---
 
 ## 🔮 Roadmap

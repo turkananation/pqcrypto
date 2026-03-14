@@ -8,7 +8,7 @@
 ## Status Key
 
 | Status | Meaning |
-|--------|---------|
+| ------ | ------- |
 | ❌ | Confirmed, not yet fixed |
 | ⏳ | Fix in progress |
 | ✅ | Fix applied and regression-tested |

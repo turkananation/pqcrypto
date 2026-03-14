@@ -7,7 +7,7 @@
 
 ## 1. High-Level Architecture
 
-```
+```text
 pqcrypto/
   lib/
     pqcrypto.dart                    <-- Public API entrypoint
@@ -49,7 +49,7 @@ pqcrypto/
 
 ## 2. Module Dependency Graph
 
-```
+```text
 pqcrypto.dart
     |
     +-- kyber/kem.dart (PqcKem, KyberKem)
@@ -128,7 +128,7 @@ Different NTT implementations are required (different zeta tables, different red
 
 ### 4.1 ML-KEM Key Encapsulation Flow
 
-```
+```text
 KeyGen:
   d, z (random 32+32 bytes)
     -> G(d) = (rho, sigma)
@@ -155,7 +155,7 @@ Decapsulate(sk, ct):
 
 ### 4.2 ML-DSA Digital Signature Flow
 
-```
+```text
 KeyGen(seed):
   -> (rho, rho', K) = H(seed)            [SHAKE-256 expand]
   -> A = ExpandA(rho)                     [SHAKE-128 matrix, k x l]
@@ -204,7 +204,7 @@ Verify(pk, M, sig):
 ### 5.1 Kyber Ring: R_q = Z_3329[X]/(X^256 + 1)
 
 | Property | Value |
-|----------|-------|
+| -------- | ----- |
 | Modulus q | 3329 (prime, NTT-friendly) |
 | Degree n | 256 |
 | NTT type | Incomplete (degree-2 factors) |
@@ -216,7 +216,7 @@ Verify(pk, M, sig):
 ### 5.2 Dilithium Ring: R_q = Z_8380417[X]/(X^256 + 1)
 
 | Property | Value |
-|----------|-------|
+| -------- | ----- |
 | Modulus q | 8380417 = 2^23 - 2^13 + 1 |
 | Degree n | 256 |
 | NTT type | Complete (degree-1 factors) |
@@ -228,7 +228,7 @@ Verify(pk, M, sig):
 
 ## 6. Test Architecture
 
-```
+```text
 test/
   Unit Tests (isolated component testing):
     dsa_math_test.dart       -- Modular arithmetic, reduce, add, mul
@@ -251,7 +251,7 @@ test/
 ## 7. Platform Compatibility Matrix
 
 | Platform | Dart Runtime | Int Size | NTT Safety | Status |
-|----------|-------------|----------|------------|--------|
+| -------- | ------------ | -------- | ---------- | ------ |
 | Linux x64 | VM (JIT/AOT) | 64-bit | Safe | ✅ |
 | macOS x64/ARM | VM | 64-bit | Safe | ⏳ |
 | Windows x64 | VM | 64-bit | Safe | ⏳ |
