@@ -21,11 +21,12 @@ This audit covers the `pqcrypto` Dart library implementing ML-KEM (FIPS 203) and
 
 ## CRITICAL Findings
 
-### CRIT-01: ML-DSA `tau` Hardcoded as Global Constant
+### CRIT-01: ML-DSA `tau` Hardcoded as Global Constant [RESOLVED]
 
-**File**: `lib/src/algos/dilithium/params.dart:8`
+**File**: `lib/src/algos/dilithium/params.dart`
 **Severity**: CRITICAL
 **CVSS**: N/A (correctness issue preventing FIPS 204 compliance)
+**Resolution**: QW-01. `tau` added to `DilithiumParams` with values 39/49/60. Regression test: `quick_wins_test.dart`.
 
 The `tau` parameter (number of +/-1 coefficients in the challenge polynomial) is defined as a single global constant `const int tau = 39`. Per FIPS 204, `tau` varies by security level:
 
@@ -41,12 +42,12 @@ The `tau` parameter (number of +/-1 coefficients in the challenge polynomial) is
 
 ---
 
-### CRIT-02: Debug `print()` Statements Leak Cryptographic Intermediates
+### CRIT-02: Debug `print()` Statements Leak Cryptographic Intermediates [RESOLVED]
 
-**File**: `lib/src/algos/dilithium/dsa.dart` (lines 125, 255-269, 285-293, 411-437, 451-452, 501-503, 546-547, 607-609, 663-674, 702-713)
-**File**: `lib/src/algos/dilithium/packing.dart` (lines 348-352, 370)
+**File**: `lib/src/algos/dilithium/dsa.dart`, `lib/src/algos/dilithium/packing.dart`
 **Severity**: CRITICAL
 **CWE**: CWE-532 (Insertion of Sensitive Information into Log File)
+**Resolution**: QW-02. All `print()` removed from `lib/`. QW-09: `avoid_print` lint rule enforced as error to prevent regression.
 
 The ML-DSA `sign()` and `verify()` functions contain extensive `print()` calls that output:
 - Hashes of secret key components (`s1Hat`, `s2Hat`, `t0Hat`)
@@ -62,10 +63,11 @@ These values, if captured in logs or console output, constitute a **partial key 
 
 ---
 
-### CRIT-03: ML-DSA `SampleInBall` Insufficient Stream Length
+### CRIT-03: ML-DSA `SampleInBall` Insufficient Stream Length [RESOLVED]
 
-**File**: `lib/src/algos/dilithium/symmetric.dart:357`
+**File**: `lib/src/algos/dilithium/symmetric.dart`
 **Severity**: CRITICAL
+**Resolution**: QW-03. Stream increased from 256 to 840 bytes (6 SHAKE-256 blocks). Stress test: 100 seeds with tau=60 in `quick_wins_test.dart`.
 
 ```dart
 final stream = Shake256.shake(rho, 256); // Safe amount?
@@ -81,10 +83,11 @@ With 256 - 8 = 248 usable bytes and needing up to 60 accepted values with reject
 
 ---
 
-### CRIT-04: ML-DSA `ExpandMask` Truncates 64-byte `rho'` to 32 bytes
+### CRIT-04: ML-DSA `ExpandMask` Truncates 64-byte `rho'` to 32 bytes [RESOLVED]
 
-**File**: `lib/src/algos/dilithium/symmetric.dart:220-222`
+**File**: `lib/src/algos/dilithium/symmetric.dart`
 **Severity**: CRITICAL
+**Resolution**: QW-04. Input buffer changed to `Uint8List(64 + 2)`, copies all 64 bytes. Regression test: `quick_wins_test.dart` verifies upper 32 bytes influence output.
 
 ```dart
 static DilithiumPoly _rejGamma1(Uint8List rho, int nonce, int gamma1) {
@@ -121,11 +124,12 @@ In Dart, there is no `memset_s` equivalent, and the GC may delay collection. How
 
 ---
 
-### HIGH-02: No Input Validation on Public Key / Ciphertext Sizes
+### HIGH-02: No Input Validation on Public Key / Ciphertext Sizes [RESOLVED]
 
-**File**: `lib/src/algos/kyber/kem.dart:90,112`
+**File**: `lib/src/algos/kyber/kem.dart`
 **Severity**: HIGH
 **CWE**: CWE-20 (Improper Input Validation)
+**Resolution**: QW-10. `ArgumentError` guards added to `encapsulate()` (pk size) and `decapsulate()` (sk size, ct size). Regression test: `quick_wins_test.dart`.
 
 The `encapsulate()` and `decapsulate()` methods accept `Uint8List` inputs without validating sizes:
 
@@ -209,23 +213,19 @@ The comment in `_sampleNTT` (line 233) acknowledges "Fallback? If we run out of 
 
 ---
 
-### MED-03: `KyberLevel` Enum Defined in Two Files
+### MED-03: `KyberLevel` Enum Defined in Two Files [RESOLVED]
 
-**File**: `lib/src/algos/kyber/params.dart:27` and `lib/src/algos/kyber/kem.dart:10`
+**File**: `lib/src/algos/kyber/params.dart` and `lib/src/algos/kyber/kem.dart`
 **Severity**: MEDIUM (Code Quality)
-
-The `KyberLevel` enum is defined twice. Changes to one will not propagate to the other.
-
-**Recommendation**: Remove duplicate from `params.dart`.
+**Resolution**: QW-07. Duplicate removed from `params.dart`. Canonical definition in `kem.dart`.
 
 ---
 
-### MED-04: ML-DSA `_rejNttPoly` Constructs Both 34-byte and 36-byte Inputs
+### MED-04: ML-DSA `_rejNttPoly` Constructs Both 34-byte and 36-byte Inputs [PARTIALLY RESOLVED]
 
-**File**: `lib/src/algos/dilithium/symmetric.dart:59-86`
+**File**: `lib/src/algos/dilithium/symmetric.dart`
 **Severity**: MEDIUM
-
-The function creates a 34-byte `input` (unused) and then a 36-byte `inputStrict`. The dead code suggests uncertainty about the correct spec interpretation.
+**Resolution**: QW-06. Dead 34-byte `input` buffer removed. Encoding question (1-byte vs 2-byte index) remains OPEN pending FIPS 204 final spec verification.
 
 FIPS 204 specifies: `rho || IntegerToBytes(s, 1) || IntegerToBytes(r, 1)` = 34 bytes total (since s,r < 256 for all parameter sets). However, the function uses `IntegerToBytes(x, 2)` encoding (2 bytes each), producing 36 bytes.
 

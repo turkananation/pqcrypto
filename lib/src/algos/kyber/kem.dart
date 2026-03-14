@@ -88,6 +88,11 @@ class KyberKem {
 
   /// Encapsulate: Client generates shared secret from pk.
   (Uint8List ct, Uint8List ss) encapsulate(Uint8List pk, [Uint8List? nonce]) {
+    if (pk.length != params.publicKeyBytes) {
+      throw ArgumentError(
+        'Invalid public key length: ${pk.length}, expected ${params.publicKeyBytes}',
+      );
+    }
     // 1. m <- Random(32)
     final m = nonce ?? _randomBytes(32);
 
@@ -110,6 +115,16 @@ class KyberKem {
 
   /// Decapsulate: Server recovers ss from ct.
   Uint8List decapsulate(Uint8List sk, Uint8List ct) {
+    if (sk.length != params.secretKeyBytes) {
+      throw ArgumentError(
+        'Invalid secret key length: ${sk.length}, expected ${params.secretKeyBytes}',
+      );
+    }
+    if (ct.length != params.ciphertextBytes) {
+      throw ArgumentError(
+        'Invalid ciphertext length: ${ct.length}, expected ${params.ciphertextBytes}',
+      );
+    }
     // 1. (s, h, pk, z) := Decode(sk)
     final (s, h, pk, z) = Pack.decodeSecretKey(sk, params);
 

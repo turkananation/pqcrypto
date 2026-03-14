@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:test/test.dart';
@@ -21,7 +23,7 @@ Uint8List fromHex(String s) {
 void main() {
   test('NIST KAT Runner', () async {
     // We look for .rsp files in test/data
-    final dataDir = Directory('/home/kali/Dev/Research/KAT/MLKEM');
+    final dataDir = Directory('C:\\Dev\\Research\\KAT\\MLKEM');
     if (!await dataDir.exists()) {
       print('No test/data directory found. Skipping KATs.');
       return;
@@ -139,14 +141,14 @@ void _verifyVector(
   // We cannot reproduce KeyGen without implementing the full NIST RNG stack.
   if (seed.length == 48) {
     // Skip KeyGen verification for official NIST vectors
-    // print('Vector $count: KeyGen Skipped (NIST Seed)');
+    print('Vector $count: KeyGen Skipped (NIST Seed)');
   } else {
     try {
       final (pk, sk) = kem.generateKeyPair(seed);
       // Optional: Verify PK/SK if we expect exact match (requires exact RNG)
       expect(pk, equals(pkExp));
     } catch (e) {
-      print('Vector $count: KeyGen Failed ($e)');
+      print('Vector $count: KeyGen Failed');
     }
   }
 

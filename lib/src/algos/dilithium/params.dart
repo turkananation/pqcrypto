@@ -5,7 +5,6 @@ library;
 // Global Constants
 const int q = 8380417; // Modulus 2^23 - 2^13 + 1
 const int d = 13; // Dropped bits from t
-const int tau = 39; // Number of +/- 1's in hint
 const int n = 256; // Polynomial degree
 const int seedBytes = 32;
 const int crhBytes = 48;
@@ -17,6 +16,7 @@ class DilithiumParams {
   final int k; // Matrix dimension (k x l)
   final int l;
   final int eta; // Secret key noise range
+  final int tau; // Number of +/-1's in challenge polynomial
   final int beta; // Signature high-order bit range
   final int omega; // Max hamming weight of hint
   final int gamma1;
@@ -28,6 +28,7 @@ class DilithiumParams {
     this.k,
     this.l,
     this.eta,
+    this.tau,
     this.beta,
     this.omega,
     this.gamma1,
@@ -42,6 +43,7 @@ class DilithiumParams {
     4,
     4,
     2,
+    39, // tau per FIPS 204 Table 1
     78,
     80,
     1 << 17,
@@ -53,6 +55,7 @@ class DilithiumParams {
     6,
     5,
     4,
+    49, // tau per FIPS 204 Table 1
     196,
     55,
     1 << 19,
@@ -64,6 +67,7 @@ class DilithiumParams {
     8,
     7,
     2,
+    60, // tau per FIPS 204 Table 1
     120,
     75,
     1 << 19,

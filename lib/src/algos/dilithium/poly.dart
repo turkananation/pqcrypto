@@ -100,8 +100,9 @@ class DilithiumPolyVec {
 
   // Pointwise add
   DilithiumPolyVec operator +(DilithiumPolyVec other) {
-    if (components.length != other.components.length)
+    if (components.length != other.components.length) {
       throw ArgumentError("Dimension mismatch");
+    }
     return DilithiumPolyVec(
       List.generate(length, (i) => components[i] + other.components[i]),
     );

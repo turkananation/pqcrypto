@@ -53,12 +53,6 @@ void main() {
     final p2 = counts[2]! / totalSamples;
     final pMinus2 = counts[3327]! / totalSamples;
 
-    print('P(0): $p0 (Exp: 0.375)');
-    print('P(1): $p1 (Exp: 0.25)');
-    print('P(-1): $pMinus1 (Exp: 0.25)');
-    print('P(2): $p2 (Exp: 0.0625)');
-    print('P(-2): $pMinus2 (Exp: 0.0625)');
-
     expect(p0, closeTo(0.375, 0.005));
     expect(p1, closeTo(0.25, 0.005));
     expect(pMinus1, closeTo(0.25, 0.005));

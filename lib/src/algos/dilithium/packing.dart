@@ -305,7 +305,6 @@ unpackSK(Uint8List sk, int k, int l, int eta) {
 /// if eta=4, bits=4.
 Uint8List bitPack(DilithiumPoly w, int eta) {
   int bits = (eta == 2) ? 3 : 4;
-  final out = Uint8List(32 * bits);
 
   // Map w -> eta - w_i
   final z = DilithiumPoly.zero();
@@ -345,12 +344,6 @@ Uint8List bitPackZ(DilithiumPoly z, int gamma1) {
     mapped.coeffs[i] = (gamma1 - 1) - val;
   }
 
-  if (z.coeffs[0] != 0 || mapped.coeffs[0] != 0) {
-    print(
-      "bitPackZ: z[0]=${z.coeffs[0]} mapped[0]=${mapped.coeffs[0]} bits=$bits",
-    );
-  }
-
   return simpleBitPack(mapped, bits);
 }
 
@@ -366,8 +359,6 @@ DilithiumPoly bitUnpackZ(Uint8List v, int gamma1) {
     if (val < 0) val += q;
     z.coeffs[i] = val;
   }
-
-  print("bitUnpackZ: mapped[0]=${mapped.coeffs[0]} z[0]=${z.coeffs[0]}");
 
   return z;
 }

@@ -16,7 +16,7 @@ void main() {
 
       // Sign
       final sig = MlDsa.sign(sk, message, DilithiumParams.mlDsa44);
-      print('ML-DSA-44 Sig Len: ${sig.length}');
+      // print('ML-DSA-44 Sig Len: ${sig.length}');
       expect(sig.length, 2420); // FIPS 204 Table 2
 
       // Verify
@@ -48,7 +48,7 @@ void main() {
       final m = Uint8List(10);
 
       final sig = MlDsa.sign(sk, m, DilithiumParams.mlDsa65);
-      print('ML-DSA-65 Sig Len: ${sig.length}');
+      // print('ML-DSA-65 Sig Len: ${sig.length}');
       expect(sig.length, 3309);
 
       expect(MlDsa.verify(pk, m, sig, DilithiumParams.mlDsa65), isTrue);
@@ -62,7 +62,7 @@ void main() {
       final m = Uint8List(50);
 
       final sig = MlDsa.sign(sk, m, DilithiumParams.mlDsa87);
-      print('ML-DSA-87 Sig Len: ${sig.length}');
+      // print('ML-DSA-87 Sig Len: ${sig.length}');
       expect(sig.length, 4627);
 
       expect(MlDsa.verify(pk, m, sig, DilithiumParams.mlDsa87), isTrue);

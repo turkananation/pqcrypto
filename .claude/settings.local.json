@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dart test:*)",
+      "Bash(git stash:*)",
+      "Bash(dir:*)",
+      "Bash(awk:*)",
+      "WebFetch(domain:nvlpubs.nist.gov)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

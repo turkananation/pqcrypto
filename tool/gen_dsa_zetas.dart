@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 void main() {
   const q = 8380417;
   const root = 1753;

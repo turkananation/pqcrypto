@@ -51,24 +51,8 @@ class DilithiumSymmetric {
 
   // FIPS 204 Algorithm 12: RejNTTPoly(rho, s, r, q) -> polynomial
   static DilithiumPoly _rejNttPoly(Uint8List rho, int s, int r) {
-    // Input: rho || s (byte) || r (byte)
-    // Actually s and r are 16-bit? FIPS 204 says IntegerToBytes(s, 2)? No, checking spec.
-    // "Little endian byte representation of s and r"
-    // Usually uses SHAKE-128.
-
-    final input = Uint8List(32 + 2);
-    input.setRange(0, 32, rho);
-    input[32] = s & 0xFF; // little endian s? Assuming < 256 for now.
-    input[33] = r & 0xFF; // Assume < 256.
-    // Wait, Dilithium params have l=4/5/7, k=4/6/8. Byte is fine.
-
-    // For safety, full 16-bit?
-    // Reference usually just packs them.
-    // If strict FIPS 204: IntegerToBytes(x, 2) creates 2 bytes.
-    // So 32 + 2 + 2 = 36 bytes?
-    // Let's check: Dilithium reference uses simple byte concatenation for small indices?
-    // FIPS 204 draft: "IntegerToBytes(x, 2)" literally means 16-bit.
-
+    // FIPS 204: rho || IntegerToBytes(s, 2) || IntegerToBytes(r, 2)
+    // 32 + 2 + 2 = 36 bytes, SHAKE-128 input
     final inputStrict = Uint8List(32 + 2 + 2);
     inputStrict.setRange(0, 32, rho);
     inputStrict[32] = s & 0xFF;
@@ -217,10 +201,10 @@ class DilithiumSymmetric {
   }
 
   static DilithiumPoly _rejGamma1(Uint8List rho, int nonce, int gamma1) {
-    final input = Uint8List(32 + 2);
-    input.setRange(0, 32, rho);
-    input[32] = nonce & 0xFF;
-    input[33] = (nonce >> 8) & 0xFF;
+    final input = Uint8List(64 + 2);
+    input.setRange(0, 64, rho);
+    input[64] = nonce & 0xFF;
+    input[65] = (nonce >> 8) & 0xFF;
 
     // SHAKE-256
     // gamma1 is 2^17 or 2^19. large range.
@@ -354,7 +338,7 @@ class DilithiumSymmetric {
     // signs = S[0..7] (64 bits used)
 
     // Implementation:
-    final stream = Shake256.shake(rho, 256); // Safe amount?
+    final stream = Shake256.shake(rho, 840); // 6 SHAKE-256 blocks, safe for tau=60
 
     int offset = 8;
     int k = 0;

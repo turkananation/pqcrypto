@@ -11,6 +11,7 @@
 |--------|---------|
 | OPEN | Confirmed, not yet fixed |
 | WIP | Fix in progress |
+| FIXED | Fix applied and regression-tested |
 | VERIFIED | Tested and confirmed with KAT |
 
 ---
@@ -19,7 +20,7 @@
 
 ### BUG-001: `tau` Global Constant Breaks ML-DSA-65 and ML-DSA-87
 
-**Status**: OPEN
+**Status**: FIXED (QW-01, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/params.dart:8`
 **Affects**: ML-DSA-65, ML-DSA-87 correctness and security
@@ -48,7 +49,7 @@ Then update all call sites: `dsa.dart:278`, `dsa.dart:571`.
 
 ### BUG-002: `ExpandMask`/`_rejGamma1` Input Buffer Truncates `rho'`
 
-**Status**: OPEN
+**Status**: FIXED (QW-04, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:220`
 
@@ -73,7 +74,7 @@ input[65] = (nonce >> 8) & 0xFF;
 
 ### BUG-003: ML-DSA `SampleInBall` Stream Too Short for ML-DSA-87
 
-**Status**: OPEN
+**Status**: FIXED (QW-03, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:357`
 
@@ -87,7 +88,7 @@ Expected bytes consumed with worst-case rejection: ~73 bytes for ML-DSA-87, but 
 
 ### BUG-004: `_rejNttPoly` Dead Code and Possible Wrong Input Encoding
 
-**Status**: OPEN
+**Status**: FIXED (dead code removed via QW-06; encoding question remains OPEN)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:59-86`
 
@@ -122,7 +123,7 @@ final packed = simpleBitPack(t0[i], 13);
 
 ### BUG-006: Debug `print()` Statements in Production Code
 
-**Status**: OPEN
+**Status**: FIXED (QW-02, verified: `grep print lib/` returns 0 matches; QW-09 lint prevents regression)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/dsa.dart` (20+ locations)
 
@@ -134,7 +135,7 @@ These are not behind any debug flag or `assert()` guard.
 
 ### BUG-007: `KyberLevel` Enum Defined Twice
 
-**Status**: OPEN
+**Status**: FIXED (QW-07, removed duplicate from params.dart)
 **Component**: ML-KEM
 **Files**: `lib/src/algos/kyber/params.dart:27`, `lib/src/algos/kyber/kem.dart:10`
 
@@ -179,17 +180,15 @@ assert(ssAlice.toString() == ssBob.toString());
 
 ### BUG-011: Library Docstring is Placeholder
 
+**Status**: FIXED (QW-08)
+
 **File**: `lib/pqcrypto.dart:1-4`
-```dart
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
-```
 
 ### BUG-012: ML-DSA Not Exported
 
+**Status**: FIXED (QW-05, test: quick_wins_test.dart)
+
 **File**: `lib/pqcrypto.dart`
-The main library file only exports ML-KEM. ML-DSA classes are not accessible through `package:pqcrypto/pqcrypto.dart`.
 
 ### BUG-013: `ignore: unused_import` in `indcpa.dart`
 
