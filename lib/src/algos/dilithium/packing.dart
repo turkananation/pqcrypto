@@ -215,9 +215,14 @@ Uint8List packSK(
     offset += packed.length;
   }
 
-  // Pack t0
+  // Pack t0: FIPS 204 BitPack(t0[i], 2^(d-1)-1, 2^(d-1))
+  // C ref: t[j] = (1 << (D-1)) - a->coeffs[i]  (polyt0_pack)
   for (int i = 0; i < t0.length; i++) {
-    final packed = simpleBitPack(t0[i], 13);
+    final mapped = DilithiumPoly.zero();
+    for (int j = 0; j < n; j++) {
+      mapped.coeffs[j] = (1 << (d - 1)) - t0[i].coeffs[j];
+    }
+    final packed = simpleBitPack(mapped, 13);
     out.setRange(offset, offset + packed.length, packed);
     offset += packed.length;
   }
@@ -274,18 +279,11 @@ unpackSK(Uint8List sk, int k, int l, int eta) {
   final t0Vec = DilithiumPolyVec.zero(k);
   for (int i = 0; i < k; i++) {
     t0Vec[i] = simpleBitUnpack(sk.sublist(offset, offset + t0Bytes), 13);
-    // Correct sign for t0 (13 bits, centered)
-    // Range [-4096, 4096] map from [0, 8191]
-    const limit = 1 << 12; // 4096
-    const modulus = 1 << 13; // 8192
-
+    // FIPS 204 BitUnpack: val = (1 << (d-1)) - packed_val
+    // C ref: r->coeffs[i] = (1 << (D-1)) - r->coeffs[i]  (polyt0_unpack)
     for (int j = 0; j < n; j++) {
-      int val = t0Vec[i].coeffs[j];
-      if (val > limit) {
-        val -= modulus;
-      }
-      // Normalize to [0, q-1]
-      if (val < 0) val += 8380417; // q
+      int val = (1 << (d - 1)) - t0Vec[i].coeffs[j]; // 4096 - packed
+      if (val < 0) val += q;
       t0Vec[i].coeffs[j] = val;
     }
 
@@ -336,12 +334,13 @@ DilithiumPoly bitUnpack(Uint8List v, int eta) {
 Uint8List bitPackZ(DilithiumPoly z, int gamma1) {
   int bits = (gamma1 == (1 << 17)) ? 18 : 20;
 
-  // Map w -> gamma1 - 1 - w (where w is centered)
+  // FIPS 204 BitPack(z, gamma1-1, gamma1): mapped = gamma1 - val
+  // C ref: t[0] = GAMMA1 - a->coeffs[i]
   final mapped = DilithiumPoly.zero();
   for (int i = 0; i < n; i++) {
     int val = z.coeffs[i];
     if (val > (q >> 1)) val -= q;
-    mapped.coeffs[i] = (gamma1 - 1) - val;
+    mapped.coeffs[i] = gamma1 - val;
   }
 
   return simpleBitPack(mapped, bits);
@@ -353,9 +352,10 @@ DilithiumPoly bitUnpackZ(Uint8List v, int gamma1) {
   final mapped = simpleBitUnpack(v, bits);
   final z = DilithiumPoly.zero();
 
+  // FIPS 204 BitUnpack(v, gamma1-1, gamma1): val = gamma1 - mapped
+  // C ref: r->coeffs[i] = GAMMA1 - r->coeffs[i]
   for (int i = 0; i < n; i++) {
-    int val = (gamma1 - 1) - mapped.coeffs[i];
-    // Put back to [0, q-1]
+    int val = gamma1 - mapped.coeffs[i];
     if (val < 0) val += q;
     z.coeffs[i] = val;
   }

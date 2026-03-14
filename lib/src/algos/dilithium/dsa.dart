@@ -16,9 +16,13 @@ class MlDsa {
   ) {
     if (seed.length != 32) throw ArgumentError("Seed must be 32 bytes");
 
-    // 1. Expand seed into rho (32), rho' (64), K (32)
-    // FIPS 204 Alg 1: (rho, rho', K) <- SHAKE-256(seed, 128)
-    final expanded = Shake256.shake(seed, 32 + 64 + 32);
+    // FIPS 204 Algorithm 6, Line 2:
+    // (rho, rho', K) <- H(xi || IntegerToBytes(k,1) || IntegerToBytes(l,1), 128)
+    final seedInput = Uint8List(32 + 1 + 1);
+    seedInput.setRange(0, 32, seed);
+    seedInput[32] = params.k;
+    seedInput[33] = params.l;
+    final expanded = Shake256.shake(seedInput, 32 + 64 + 32);
     final rho = Uint8List(32);
     rho.setRange(0, 32, expanded.sublist(0, 32));
 
@@ -95,12 +99,14 @@ class MlDsa {
   }
 
   /// Sign message M using secret key sk.
+  /// [rnd] is 32 bytes: all zeros for deterministic, random for hedged.
   static Uint8List sign(
     Uint8List sk,
     Uint8List m,
     DilithiumParams params, {
-    bool deterministic = false,
+    Uint8List? rnd,
   }) {
+    rnd ??= Uint8List(32); // deterministic: all zeros
     // 1. Unpack SK
     final (rho, kKey, tr, s1, s2, t0) = unpackSK(
       sk,
@@ -115,10 +121,11 @@ class MlDsa {
     muInput.setRange(tr.length, tr.length + m.length, m);
     final mu = DilithiumSymmetric.crh(muInput);
 
-    // 3. rho' = CRH(K || mu)
-    final rhoPrimeInput = Uint8List(kKey.length + mu.length);
-    rhoPrimeInput.setRange(0, kKey.length, kKey);
-    rhoPrimeInput.setRange(kKey.length, kKey.length + mu.length, mu);
+    // FIPS 204 Algorithm 7, Line 5: rho' = H(K || rnd || mu, 64)
+    final rhoPrimeInput = Uint8List(32 + 32 + 64);
+    rhoPrimeInput.setRange(0, 32, kKey);
+    rhoPrimeInput.setRange(32, 64, rnd);
+    rhoPrimeInput.setRange(64, 128, mu);
     final rhoPrime = DilithiumSymmetric.crh(rhoPrimeInput); // 64 bytes
 
     // Expand Matrix A

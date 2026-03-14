@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import '../../common/shake.dart';
 import 'poly.dart';
 import 'params.dart';
+import 'packing.dart';
 
 // Import rounding? maybe for some checks.
 
@@ -49,16 +50,13 @@ class DilithiumSymmetric {
 
   // --- Sampling Algorithms ---
 
-  // FIPS 204 Algorithm 12: RejNTTPoly(rho, s, r, q) -> polynomial
+  // FIPS 204 Algorithm 30: RejNTTPoly(rho || IntegerToBytes(s,1) || IntegerToBytes(r,1))
+  // C ref: nonce = (r << 8) + s, t[0] = s, t[1] = r → 34 bytes total
   static DilithiumPoly _rejNttPoly(Uint8List rho, int s, int r) {
-    // FIPS 204: rho || IntegerToBytes(s, 2) || IntegerToBytes(r, 2)
-    // 32 + 2 + 2 = 36 bytes, SHAKE-128 input
-    final inputStrict = Uint8List(32 + 2 + 2);
+    final inputStrict = Uint8List(34);
     inputStrict.setRange(0, 32, rho);
     inputStrict[32] = s & 0xFF;
-    inputStrict[33] = (s >> 8) & 0xFF;
-    inputStrict[34] = r & 0xFF;
-    inputStrict[35] = (r >> 8) & 0xFF;
+    inputStrict[33] = r & 0xFF;
 
     // SHAKE-128
     // We squeeze enough blocks.
@@ -95,13 +93,13 @@ class DilithiumSymmetric {
     return DilithiumPoly(coeffs);
   }
 
-  // FIPS 204 Algorithm 13: RejBoundedPoly(rho, kappa, eta)
+  // FIPS 204 Algorithm 31: RejBoundedPoly(rho' || IntegerToBytes(kappa, 2))
+  // C ref: seed is CRHBYTES=64 bytes, nonce is 2 bytes → 66 bytes total
   static DilithiumPoly _rejBoundedPoly(Uint8List rho, int kappa, int eta) {
-    // Input: rho || IntegerToBytes(kappa, 2)
-    final input = Uint8List(32 + 2);
-    input.setRange(0, 32, rho);
-    input[32] = kappa & 0xFF;
-    input[33] = (kappa >> 8) & 0xFF;
+    final input = Uint8List(64 + 2);
+    input.setRange(0, 64, rho);
+    input[64] = kappa & 0xFF;
+    input[65] = (kappa >> 8) & 0xFF;
 
     // SHAKE-256 (Uses PRF logic usually)
     // Length depends on eta.
@@ -200,107 +198,25 @@ class DilithiumSymmetric {
     return y;
   }
 
+  // FIPS 204 Algorithm 16 (ExpandMask): Direct BitUnpack, no rejection.
+  // C ref: polyz_unpack(a, buf) with coeff = GAMMA1 - unpacked_val
   static DilithiumPoly _rejGamma1(Uint8List rho, int nonce, int gamma1) {
     final input = Uint8List(64 + 2);
     input.setRange(0, 64, rho);
     input[64] = nonce & 0xFF;
     input[65] = (nonce >> 8) & 0xFF;
 
-    // SHAKE-256
-    // gamma1 is 2^17 or 2^19. large range.
-    // 17 bits -> 3 bytes? 20 bits -> 3 bytes.
-    // Total size: 256 * 3 = 768.
-    // Rate 136. ~6 blocks.
-    // Use 1120 bytes safety margin.
+    // 18 bits per coeff for gamma1=2^17, 20 bits for gamma1=2^19
+    int bits = (gamma1 == (1 << 17)) ? 18 : 20;
+    int streamLen = 256 * bits ~/ 8; // 576 or 640 bytes
+    final stream = Shake256.shake(input, streamLen);
 
-    final stream = Shake256.shake(input, 1120);
-
+    // Direct BitUnpack: unpack 18/20 bits per coefficient
+    final mapped = simpleBitUnpack(stream, bits);
     final coeffs = Int32List(256);
-    int ctr = 0;
-    int offset = 0;
-
-    // Packing logic depends on gamma1 size.
-    // If gamma1 = 2^17 -> 18 bits magnitude? (range -gamma1+1 to gamma1-1?)
-    // FIPS 204: Sample y in [-(gamma1-1), (gamma1-1)] ?
-    // check spec. "SamplePoly_gamma1".
-    // uniform in [ - (gamma1 - 1), (gamma1 - 1) ].
-    // wait, gamma1 is power of 2.
-
-    /*
-     Alg:
-     z_j = Coeffs from blocks.  
-     gamma1=2^17: 20 bits taken (b2*2^16 + b1*2^8 + b0).
-     t = z mod 2^20. 
-     if t <= 2*gamma_1 - 2?
-        res = t - (gamma_1 - 1).
-        
-     Actually commonly:
-     b0, b1, b2.  d = b0 | b1<<8 | b2<<16.
-     d &= 0xFFFFF (20 bits).
-     if d < 2*gamma1 - 1? No.
-     Standard ref: d = val. Res = gamma1 - d ?
-     
-     Let's use rejection on range [0, 2*gamma1 - 2].
-     And map to [-(gamma1-1), gamma1-1].
-     
-     Common gamma1: (q-1)/88 = 95232 ?? No.
-     FIPS 204 params: gamma1 = 2^17 (131072) or 2^19 (524288).
-     
-     For 2^17 (ML-DSA-44):
-       Mask bounds. 18 bits needed? 2*gamma1 approx 2^18.
-       We take 3 bytes (24 bits). 
-       t = d & 0x3FFFF (18 bits).
-       if t <= 2*gamma1 - 2?
-       No, bounds check: gamma1 is 1 << 17.
-       Range size 2*gamma1 - 1?
-     */
-
-    // Simple logic:
-    // 1. Extract 24 bits (3 bytes)
-    // 2. Interpret as integer ‘z’
-    // 3. Mask needed bits?
-    //    If gamma1 = 1<<17. Range is approx 2^18. Mask 0x3FFFF (18 bits).
-    //    Check z < 2*gamma1 - 1? No, 2*gamma1.
-    //    Value = gamma1 - z.
-
-    // Implementation detail (Alg 15?):
-    // Unpacking logic specific to gamma1.
-
-    // For gamma1 = 2^17:
-    //   z = b0 | b1<<8 | (b2 & 0x03)<<16
-    //   (take 18 bits)
-    //   if z < 2*gamma1 - 1:
-    //      coeff = gamma1 - 1 - z
-
-    // For gamma1 = 2^19:
-    //   z = b0 | b1<<8 | (b2 & 0x0F)<<16
-    //   (take 20 bits)
-    //   if z < 2*gamma1 - 1:
-    //     coeff = gamma1 - 1 - z
-
-    while (ctr < 256 && offset + 3 <= stream.length) {
-      int b0 = stream[offset];
-      int b1 = stream[offset + 1];
-      int b2 = stream[offset + 2];
-      offset += 3;
-
-      int val = b0 | (b1 << 8) | (b2 << 16);
-
-      if (gamma1 == (1 << 17)) {
-        int z = val & 0x3FFFF; // 18 bits
-        if (z < (gamma1 * 2) - 1) {
-          // < 2^18 - 1
-          coeffs[ctr++] = (gamma1 - 1) - z; // Result in [-(gamma1-1), gamma1-1]
-        }
-      } else if (gamma1 == (1 << 19)) {
-        int z = val & 0xFFFFF; // 20 bits
-        if (z < (gamma1 * 2) - 1) {
-          coeffs[ctr++] = (gamma1 - 1) - z;
-        }
-      }
+    for (int i = 0; i < 256; i++) {
+      coeffs[i] = gamma1 - mapped.coeffs[i];
     }
-
-    if (ctr < 256) throw Exception("RejGamma1 failed");
     return DilithiumPoly(coeffs);
   }
 
