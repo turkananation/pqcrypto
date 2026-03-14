@@ -1,6 +1,6 @@
 # Algorithm Expansion Guide
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **How to add remaining PQC algorithms to pqcrypto**
 
 ---
@@ -9,11 +9,11 @@
 
 | Algorithm | Standard | Status | Maturity |
 |-----------|----------|--------|----------|
-| ML-KEM (Kyber) | FIPS 203 | Production | KAT validated |
-| ML-DSA (Dilithium) | FIPS 204 | In Development | Round-trip works |
-| SLH-DSA (SPHINCS+) | FIPS 205 | Not started | - |
-| FN-DSA (FALCON) | Draft FIPS 206 | Not started | - |
-| HQC | Selected Round 4 | Not started | - |
+| ML-KEM (Kyber) | FIPS 203 | ✅ | KAT validated |
+| ML-DSA (Dilithium) | FIPS 204 | ⏳ | Round-trip works |
+| SLH-DSA (SPHINCS+) | FIPS 205 | ❌ | - |
+| FN-DSA (FALCON) | Draft FIPS 206 | ❌ | - |
+| HQC | Selected Round 4 | ❌ | - |
 
 ---
 
@@ -67,6 +67,7 @@ lib/src/algos/sphincs/
 | **Speed** | Slow | Fast | Slow | Fast |
 
 ### Effort Estimate
+
 - **Complexity**: Medium (simpler math than lattice schemes)
 - **LOC**: ~800-1200
 - **Time**: 2-3 weeks for a single developer
@@ -136,6 +137,7 @@ lib/src/algos/falcon/
 | **Advantage** | **Smallest sigs** | **Smallest sigs** |
 
 ### Effort Estimate
+
 - **Complexity**: High (most complex PQC algorithm to implement correctly)
 - **LOC**: ~2000-3000
 - **Time**: 4-8 weeks
@@ -188,6 +190,7 @@ lib/src/algos/hqc/
 | SS size | 64 B | 64 B | 64 B |
 
 ### Effort Estimate
+
 - **Complexity**: Medium-High
 - **LOC**: ~1500-2000
 - **Time**: 3-5 weeks
@@ -210,6 +213,7 @@ lib/src/algos/hqc/
 ### Implementation Checklist Template
 
 For each new algorithm:
+
 - [ ] Create `lib/src/algos/<name>/` directory structure
 - [ ] Implement parameter classes with all security levels
 - [ ] Implement core mathematical primitives (NTT/FFT/GF)

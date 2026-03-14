@@ -1,6 +1,6 @@
 # pqcrypto Performance Analysis & Optimization Guide
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Version**: 0.1.0
 
 ---
@@ -64,6 +64,7 @@ Called 256 times per NTT layer, 7 layers = 1792 calls per NTT. With 7+ NTTs per 
 The `pointycastle` SHAKE implementation processes data through the Keccak permutation. Each `shake()` call creates a new `SHAKEDigest` object, performs absorption, and squeezes output.
 
 **Overhead sources**:
+
 - Object allocation for each call
 - No streaming/incremental API usage
 - Internal state copying
@@ -79,9 +80,11 @@ The NTT creates `List<int>.from(poly.coeffs)` (a copy) on every call. With Kyber
 ### Tier 1: Algorithmic Optimizations (No API Change)
 
 #### OPT-01: Use `Int32List` for Kyber Polynomials
+
 **Estimated speedup**: 15-25%
 
 Replace `List<int>` with `Int32List` in `Poly` class:
+
 ```dart
 class Poly {
   final Int32List coeffs;  // Instead of List<int>
@@ -89,6 +92,7 @@ class Poly {
 ```
 
 Benefits:
+
 - Contiguous memory layout (cache-friendly)
 - No boxing/unboxing overhead
 - Better GC performance (single allocation vs 256 objects)
@@ -96,9 +100,11 @@ Benefits:
 Note: Dilithium already uses `Int32List`. Kyber should follow.
 
 #### OPT-02: In-Place NTT Operations
+
 **Estimated speedup**: 10-15%
 
 Current Kyber NTT copies the coefficient list:
+
 ```dart
 static Poly ntt(Poly poly) {
     final f = List<int>.from(poly.coeffs);  // Allocation!
@@ -108,6 +114,7 @@ static Poly ntt(Poly poly) {
 ```
 
 Make NTT in-place (Dilithium already does this):
+
 ```dart
 static void ntt(Poly poly) {  // Modify in-place
     final f = poly.coeffs;
@@ -116,14 +123,17 @@ static void ntt(Poly poly) {  // Modify in-place
 ```
 
 #### OPT-03: Pre-compute Matrix A for Repeated Operations
+
 **Estimated speedup**: 20-30% for batch operations
 
 Currently, `ExpandA` is called separately in each `encrypt()` call during encapsulation. For protocols requiring multiple encapsulations with the same public key, cache the expanded matrix.
 
 #### OPT-04: Lazy Barrett Reduction
+
 **Estimated speedup**: 5-10%
 
 Currently, `_fieldMul` applies Barrett reduction after every multiplication. In the NTT butterfly, the result of multiplication is immediately added/subtracted:
+
 ```dart
 final t = _fieldMul(zeta, f[j + len]);
 f[j + len] = _fieldSub(f[j], t);
@@ -135,31 +145,38 @@ Since `_fieldAdd` and `_fieldSub` handle values up to `2q`, Barrett reduction co
 ### Tier 2: Platform-Specific Optimizations
 
 #### OPT-05: Native SHAKE via `dart:ffi` (Mobile/Desktop)
+
 **Estimated speedup**: 50-70% overall
 
 SHAKE-128/256 dominates compute time. Using a C implementation via FFI:
+
 - OpenSSL's EVP interface
 - XKCP (eXtended Keccak Code Package)
 - Custom minimal Keccak-f[1600]
 
 Implementation:
+
 ```dart
 // Conditional import
 import 'shake_native.dart' if (dart.library.html) 'shake_web.dart';
 ```
 
 #### OPT-06: WebAssembly NTT Kernel (Web)
+
 **Estimated speedup**: 30-50% on web
 
 Compile a tight NTT loop in C/Rust to Wasm, call via `dart:js_interop` or `dart:wasm`:
+
 - NTT forward/inverse
 - BaseMul
 - Matrix-vector multiplication
 
 #### OPT-07: SIMD via `dart:ffi` + Platform Intrinsics
+
 **Estimated speedup**: 3-5x on x86/ARM with NEON/AVX2
 
 For server-side or native mobile deployment:
+
 - Vectorized NTT butterfly (4-wide for 32-bit coefficients)
 - Vectorized Barrett reduction
 - Vectorized polynomial addition/subtraction
@@ -167,9 +184,11 @@ For server-side or native mobile deployment:
 ### Tier 3: Architectural Optimizations
 
 #### OPT-08: Streaming SHAKE Interface
+
 **Estimated speedup**: 10-15%
 
 Replace single-shot `Shake128.shake(input, outputLen)` with an incremental absorb/squeeze API:
+
 ```dart
 class ShakeStream {
     void absorb(Uint8List data);
@@ -180,6 +199,7 @@ class ShakeStream {
 This avoids over-allocating output buffers for rejection sampling.
 
 #### OPT-09: Object Pooling for Polynomials
+
 **Estimated speedup**: 5-10%
 
 Pre-allocate a pool of `Int32List(256)` buffers to reduce GC pressure during batch operations.

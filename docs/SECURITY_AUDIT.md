@@ -1,7 +1,7 @@
 # pqcrypto Security Audit Report
 
 **Auditor**: Automated Deep Code Audit
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Scope**: Full codebase (`lib/`, `test/`, `tool/`)
 **Version**: 0.1.0 (commit `176e2b4`)
 
@@ -50,6 +50,7 @@ The `tau` parameter (number of +/-1 coefficients in the challenge polynomial) is
 **Resolution**: QW-02. All `print()` removed from `lib/`. QW-09: `avoid_print` lint rule enforced as error to prevent regression.
 
 The ML-DSA `sign()` and `verify()` functions contain extensive `print()` calls that output:
+
 - Hashes of secret key components (`s1Hat`, `s2Hat`, `t0Hat`)
 - Hashes of intermediate values (`mu`, `w1`, `cTilde`, `z`, `h`)
 - NTT-domain values of the challenge polynomial `c`
@@ -112,6 +113,7 @@ FIPS 204 specifies that `rho'` (used for mask generation) is 64 bytes. The `_rej
 **CWE**: CWE-244 (Improper Clearing of Heap Memory)
 
 Neither ML-KEM nor ML-DSA implementations zeroize sensitive data after use:
+
 - Secret key polynomial coefficients remain in memory
 - Intermediate values (`rhoSigma`, `sigma`, `kKey`, `rhoPrime`) are never cleared
 - SHAKE digest internal states are `reset()` but not zeroized
@@ -147,6 +149,7 @@ Uint8List decapsulate(Uint8List sk, Uint8List ct) {
 **Impact**: Malformed inputs cause array index out-of-bounds exceptions that leak timing information. An attacker could probe the implementation with various sizes to gain side-channel information.
 
 **Recommendation**: Add size validation at the top of all public API methods:
+
 ```dart
 if (pk.length != params.publicKeyBytes) throw ArgumentError('Invalid PK size');
 ```

@@ -1,6 +1,6 @@
 # pqcrypto Release Roadmap
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Current Version**: 0.1.0
 
 ---
@@ -22,19 +22,20 @@
 
 | Task | Priority | Status |
 |------|----------|--------|
-| Fix `tau` parameter per security level | P0 | Open |
-| Fix `ExpandMask` rho' truncation (64 bytes) | P0 | Open |
-| Fix `SampleInBall` stream length | P0 | Open |
-| Remove all debug `print()` statements | P0 | Open |
-| Verify `RejNTTPoly` input encoding vs FIPS 204 | P0 | Open |
-| Add input validation on all public APIs | P1 | Open |
-| Implement instance-based `MlDsa` API (like `KyberKem`) | P1 | Open |
-| Export ML-DSA through `pqcrypto.dart` | P1 | Open |
-| Run NIST KAT vectors for ML-DSA-44/65/87 | P1 | Open |
-| Update README with ML-DSA usage and compliance table | P2 | Open |
-| Add comprehensive negative tests | P2 | Open |
+| Fix `tau` parameter per security level | P0 | ✅ |
+| Fix `ExpandMask` rho' truncation (64 bytes) | P0 | ✅ |
+| Fix `SampleInBall` stream length | P0 | ✅ |
+| Remove all debug `print()` statements | P0 | ✅ |
+| Verify `RejNTTPoly` input encoding vs FIPS 204 | P0 | ❌ |
+| Add input validation on all public APIs | P1 | ❌ |
+| Implement instance-based `MlDsa` API (like `KyberKem`) | P1 | ❌ |
+| Export ML-DSA through `pqcrypto.dart` | P1 | ❌ |
+| Run NIST KAT vectors for ML-DSA-44/65/87 | P1 | ❌ |
+| Update README with ML-DSA usage and compliance table | P2 | ❌ |
+| Add comprehensive negative tests | P2 | ❌ |
 
 **Release Criteria**:
+
 - All three ML-DSA parameter sets pass NIST KAT vectors
 - Sign/Verify round-trip for all levels
 - Negative test coverage (bad sig, bad msg, bad pk)
@@ -64,6 +65,7 @@
 | Cross-platform CI (VM, dart2js, dart2wasm) | P2 | Open |
 
 **Release Criteria**:
+
 - All public APIs have Dartdoc
 - No timing-dependent branches in cryptographic code
 - All secret buffers zeroized after use
@@ -89,6 +91,7 @@
 | Export through `pqcrypto.dart` | P1 | Open |
 
 **Release Criteria**:
+
 - At least SLH-DSA-128s and SLH-DSA-128f pass NIST KAT
 - Performance benchmarks documented
 - API follows established patterns
@@ -111,6 +114,7 @@
 | AOT compilation testing and optimization | P2 | Open |
 
 **Release Criteria**:
+
 - 2x improvement on native platforms (via FFI SHAKE)
 - 1.5x improvement on web (via Wasm NTT)
 - Automated benchmark tracking in CI

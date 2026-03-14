@@ -1,6 +1,6 @@
 # pqcrypto NIST FIPS Compliance Report
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Version**: 0.1.0
 **Standards**: FIPS 203 (ML-KEM), FIPS 204 (ML-DSA)
 
@@ -165,6 +165,7 @@ Note: `pointycastle` is not FIPS-validated. For FIPS compliance of the overall s
 ## 4. Compliance Roadmap
 
 ### Phase 1: ML-DSA Correctness (Target: v0.2.0)
+
 - [ ] Fix tau per security level
 - [ ] Fix ExpandMask rho' handling
 - [ ] Fix SampleInBall stream length
@@ -173,12 +174,14 @@ Note: `pointycastle` is not FIPS-validated. For FIPS compliance of the overall s
 - [ ] Run NIST KAT vectors for all three levels
 
 ### Phase 2: Security Hardening (Target: v0.3.0)
+
 - [ ] Add input validation on all public APIs
 - [ ] Implement constant-time norm checks
 - [ ] Add secret material zeroization
 - [ ] Side-channel analysis review
 
 ### Phase 3: FIPS Module Validation (Long-term)
+
 - [ ] Integrate with FIPS-validated SHA-3 module (e.g., OpenSSL FIPS)
 - [ ] Implement approved DRBG (SP 800-90A)
 - [ ] Engage CMVP lab for validation testing

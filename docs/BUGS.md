@@ -1,6 +1,6 @@
 # pqcrypto Known Bugs & Issues
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Version**: 0.1.0
 
 ---
@@ -9,10 +9,10 @@
 
 | Status | Meaning |
 |--------|---------|
-| OPEN | Confirmed, not yet fixed |
-| WIP | Fix in progress |
-| FIXED | Fix applied and regression-tested |
-| VERIFIED | Tested and confirmed with KAT |
+| ❌ | Confirmed, not yet fixed |
+| ⏳ | Fix in progress |
+| ✅ | Fix applied and regression-tested |
+| 🔍 | Tested and confirmed with KAT |
 
 ---
 
@@ -20,12 +20,13 @@
 
 ### BUG-001: `tau` Global Constant Breaks ML-DSA-65 and ML-DSA-87
 
-**Status**: FIXED (QW-01, test: quick_wins_test.dart)
+**Status**: ✅ (QW-01, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/params.dart:8`
 **Affects**: ML-DSA-65, ML-DSA-87 correctness and security
 
 **Description**: `tau` is defined as `const int tau = 39` at module scope. Per FIPS 204 Table 1:
+
 - ML-DSA-44: tau = 39
 - ML-DSA-65: tau = 49
 - ML-DSA-87: tau = 60
@@ -33,6 +34,7 @@
 The `SampleInBall` function and all callers use this global `tau`, meaning ML-DSA-65/87 generate challenge polynomials with only 39 non-zero coefficients instead of the required 49/60.
 
 **Fix**: Add `tau` field to `DilithiumParams`:
+
 ```dart
 class DilithiumParams {
   final int tau; // Add this
@@ -49,7 +51,7 @@ Then update all call sites: `dsa.dart:278`, `dsa.dart:571`.
 
 ### BUG-002: `ExpandMask`/`_rejGamma1` Input Buffer Truncates `rho'`
 
-**Status**: FIXED (QW-04, test: quick_wins_test.dart)
+**Status**: ✅ (QW-04, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:220`
 
@@ -63,6 +65,7 @@ input.setRange(0, 32, rho);             // Should copy 64 bytes
 **Impact**: All masking vectors `y` are derived from only half the entropy. NIST KAT vectors will not match.
 
 **Fix**:
+
 ```dart
 final input = Uint8List(64 + 2);
 input.setRange(0, 64, rho);
@@ -74,7 +77,7 @@ input[65] = (nonce >> 8) & 0xFF;
 
 ### BUG-003: ML-DSA `SampleInBall` Stream Too Short for ML-DSA-87
 
-**Status**: FIXED (QW-03, test: quick_wins_test.dart)
+**Status**: ✅ (QW-03, test: quick_wins_test.dart)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:357`
 
@@ -88,11 +91,12 @@ Expected bytes consumed with worst-case rejection: ~73 bytes for ML-DSA-87, but 
 
 ### BUG-004: `_rejNttPoly` Dead Code and Possible Wrong Input Encoding
 
-**Status**: FIXED (dead code removed via QW-06; encoding question remains OPEN)
+**Status**: ✅ (dead code removed via QW-06; encoding question remains ❌)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/symmetric.dart:59-86`
 
 **Description**: Two input buffers are constructed:
+
 1. `input` (34 bytes) - unused dead code
 2. `inputStrict` (36 bytes) - used with 2-byte index encoding
 
@@ -106,11 +110,12 @@ FIPS 204 Algorithm 30 (RejNTTPoly) specifies `rho || IntegerToBytes(s, 1) || Int
 
 ### BUG-005: ML-DSA `t0` Packing May Lose Sign Information
 
-**Status**: OPEN
+**Status**: ❌
 **Component**: ML-DSA Packing
 **File**: `lib/src/algos/dilithium/packing.dart:219-223`
 
 **Description**: `t0` coefficients are in the centered range `[-2^(d-1), 2^(d-1)]` = `[-4096, 4096]`. The `packSK` function uses:
+
 ```dart
 final packed = simpleBitPack(t0[i], 13);
 ```
@@ -123,7 +128,7 @@ final packed = simpleBitPack(t0[i], 13);
 
 ### BUG-006: Debug `print()` Statements in Production Code
 
-**Status**: FIXED (QW-02, verified: `grep print lib/` returns 0 matches; QW-09 lint prevents regression)
+**Status**: ✅ (QW-02, verified: `grep print lib/` returns 0 matches; QW-09 lint prevents regression)
 **Component**: ML-DSA
 **File**: `lib/src/algos/dilithium/dsa.dart` (20+ locations)
 
@@ -135,7 +140,7 @@ These are not behind any debug flag or `assert()` guard.
 
 ### BUG-007: `KyberLevel` Enum Defined Twice
 
-**Status**: FIXED (QW-07, removed duplicate from params.dart)
+**Status**: ✅ (QW-07, removed duplicate from params.dart)
 **Component**: ML-KEM
 **Files**: `lib/src/algos/kyber/params.dart:27`, `lib/src/algos/kyber/kem.dart:10`
 
@@ -150,6 +155,7 @@ These are not behind any debug flag or `assert()` guard.
 **File**: `example/main.dart:31` and `README.md:150`
 
 **Description**: Example and documentation compare shared secrets using:
+
 ```dart
 assert(ssAlice.toString() == ssBob.toString());
 ```
@@ -180,19 +186,20 @@ assert(ssAlice.toString() == ssBob.toString());
 
 ### BUG-011: Library Docstring is Placeholder
 
-**Status**: FIXED (QW-08)
+**Status**: ✅ (QW-08)
 
 **File**: `lib/pqcrypto.dart:1-4`
 
 ### BUG-012: ML-DSA Not Exported
 
-**Status**: FIXED (QW-05, test: quick_wins_test.dart)
+**Status**: ✅ (QW-05, test: quick_wins_test.dart)
 
 **File**: `lib/pqcrypto.dart`
 
 ### BUG-013: `ignore: unused_import` in `indcpa.dart`
 
 **File**: `lib/src/algos/kyber/indcpa.dart:7`
+
 ```dart
 // ignore: unused_import
 import 'package:pqcrypto/src/algos/kyber/pack.dart';

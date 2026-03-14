@@ -1,6 +1,6 @@
 # pqcrypto Architecture Document
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Version**: 0.1.0
 
 ---
@@ -87,6 +87,7 @@ pqcrypto.dart
 **Decision**: Kyber uses `Poly` (from `common/poly.dart`) with `List<int>` coefficients and 3329 modulus. Dilithium uses `DilithiumPoly` (from `dilithium/poly.dart`) with `Int32List` coefficients and 8380417 modulus.
 
 **Rationale**: The two algorithms operate in fundamentally different polynomial rings:
+
 - Kyber: Z_3329[X]/(X^256 + 1), coefficients fit in 12 bits
 - Dilithium: Z_8380417[X]/(X^256 + 1), coefficients need 23 bits
 
@@ -99,6 +100,7 @@ Different NTT implementations are required (different zeta tables, different red
 **Decision**: Both Kyber and Dilithium NTTs use direct modular arithmetic (`(a * b) % q`) rather than Montgomery multiplication.
 
 **Rationale**:
+
 - Simpler code, easier to audit
 - Dart's 64-bit integers handle intermediate products without overflow
 - `q^2` for both algorithms fits in 53 bits (safe for JS compilation)
@@ -250,12 +252,12 @@ test/
 
 | Platform | Dart Runtime | Int Size | NTT Safety | Status |
 |----------|-------------|----------|------------|--------|
-| Linux x64 | VM (JIT/AOT) | 64-bit | Safe | Tested |
-| macOS x64/ARM | VM | 64-bit | Safe | Expected |
-| Windows x64 | VM | 64-bit | Safe | Expected |
-| Android | VM (AOT) | 64-bit | Safe | Expected |
-| iOS | VM (AOT) | 64-bit | Safe | Expected |
-| Web (dart2js) | JS | 53-bit double | **Verify** | Needs testing |
-| Web (dart2wasm) | Wasm | 64-bit | Safe | Expected |
+| Linux x64 | VM (JIT/AOT) | 64-bit | Safe | ✅ |
+| macOS x64/ARM | VM | 64-bit | Safe | ⏳ |
+| Windows x64 | VM | 64-bit | Safe | ⏳ |
+| Android | VM (AOT) | 64-bit | Safe | ⏳ |
+| iOS | VM (AOT) | 64-bit | Safe | ⏳ |
+| Web (dart2js) | JS | 53-bit double | **Verify** | ⚠️ |
+| Web (dart2wasm) | Wasm | 64-bit | Safe | ⏳ |
 
 **JS Safety Note**: Dilithium's `q^2 = (8380417)^2 = 7.023 * 10^13 < 2^53`. Safe for JS. Kyber's `q^2 = (3329)^2 = 1.108 * 10^7`. Trivially safe.

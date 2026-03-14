@@ -8,16 +8,16 @@ The current release provides a **production-hardened implementation of ML-KEM (K
 
 ## 🚀 Features
 
--   **Full FIPS 203 Compliance**:
-    -   **Algorithm Support**: ML-KEM-512, ML-KEM-768, ML-KEM-1024
-    -   **Secure Primitives**: 
-        -   **SHAKE-128/256** based matrix generation and hashing.
-        -   **Centered Binomial Distribution (CBD)** for secure noise sampling.
-    -   **Key Encapsulation**: Correct `(rho, sigma) := G(d)` derivation.
-    -   **Fujisaki-Okamoto Transform**: Robust re-encryption check to prevent chosen-ciphertext attacks (IND-CCA2 security).
--   **Platform Agnostic**:
-    -   100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm).
-    -   Zero native dependencies (uses `pointycastle` for SHA3 primitives).
+- **Full FIPS 203 Compliance**:
+- **Algorithm Support**: ML-KEM-512, ML-KEM-768, ML-KEM-1024
+- **Secure Primitives**:
+- **SHAKE-128/256** based matrix generation and hashing.
+- **Centered Binomial Distribution (CBD)** for secure noise sampling.
+- **Key Encapsulation**: Correct `(rho, sigma) := G(d)` derivation.
+- **Fujisaki-Okamoto Transform**: Robust re-encryption check to prevent chosen-ciphertext attacks (IND-CCA2 security).
+- **Platform Agnostic**:
+- 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm).
+- Zero native dependencies (uses `pointycastle` for SHA3 primitives).
 
 ---
 
@@ -40,30 +40,36 @@ This implementation is **fully compliant** with [FIPS 203](https://csrc.nist.gov
 This library adheres strictly to the FIPS 203 specification structure.
 
 ### 1. Number Theoretic Transform (NTT)
+
 Uses **pure modular arithmetic** (not Montgomery) matching the FIPS 203 Algorithms 8 and 9:
+
 - **NTT/InvNTT**: Cooley-Tukey butterfly operations with modular reduction.
 - **Base Multiplication**: Karatsuba-style in NTT domain using $\gamma$ coefficients (Algorithm 10).
 - **Polynomial Ring**: Operations in $\mathbb{Z}_q[X]/(X^{256}+1)$ where $q = 3329$.
 
 ### 2. Compression & Serialization
+
 All compression functions implement FIPS 203 Definitions 4.7-4.8 with bit-exact correctness:
+
 - **compress(x, d)**: Standard rounding logic $\lceil (2^d/q) \cdot x \rfloor \bmod 2^d$.
 - **Formula**: `(2 * x * 2^d + q) / (2 * q)` with edge-case clamping.
 - **ByteEncode support**:
-    - **12-bit**: Public Keys (`ByteEncode₁₂`)
-    - **11-bit**: ML-KEM-1024 Ciphertext $u$ (`ByteEncode₁₁`)
-    - **10-bit**: ML-KEM-768 Ciphertext $u$ (`ByteEncode₁₀`)
-    - **5-bit**: ML-KEM-1024 Ciphertext $v$ (`ByteEncode₅`)
-    - **4-bit**: ML-KEM-512/768 Ciphertext $v$ (`ByteEncode₄`)
-    - **1-bit**: Messages (`ByteEncode₁`)
+  - **12-bit**: Public Keys (`ByteEncode₁₂`)
+  - **11-bit**: ML-KEM-1024 Ciphertext $u$ (`ByteEncode₁₁`)
+  - **10-bit**: ML-KEM-768 Ciphertext $u$ (`ByteEncode₁₀`)
+  - **5-bit**: ML-KEM-1024 Ciphertext $v$ (`ByteEncode₅`)
+  - **4-bit**: ML-KEM-512/768 Ciphertext $v$ (`ByteEncode₄`)
+  - **1-bit**: Messages (`ByteEncode₁`)
 
 ### 3. Cryptographic Primitives
+
 - **XOF**: SHAKE-128 for matrix generation (Algorithm 7).
 - **PRF**: SHAKE-256 for noise sampling.
 - **Hash Functions**: SHA3-256, SHA3-512 for key derivation.
 - **CBD Sampling**: Centered Binomial Distribution with $\eta \in \{2,3\}$.
 
 ### 4. Security Hardening
+
 - **Implicit Rejection**: Implementation of the modified Fujisaki-Okamoto transform guarantees that invalid ciphertexts produce a pseudo-random shared secret (derived from internal secret $z$) rather than failing. This prevents chosen-ciphertext timing attacks.
 - **Domain Separation**: All hash calls include the standardized domain separation bytes.
 
@@ -159,19 +165,23 @@ void main() {
 The quality of this cryptographic library is verified through three comprehensive layers:
 
 ### 1. NIST Known Answer Tests (KAT)
+
 Validates against the official test vectors from NIST ([GitHub: post-quantum-cryptography/KAT](https://github.com/post-quantum-cryptography/KAT)).
+
 - **Parser**: `test/kat_evaluator.dart` handles `.rsp` files using FIPS 203 `ct_n`/`ss_n` format.
 - **Coverage**:
-    - ✅ **ML-KEM-512**: 100/100 vectors
-    - ✅ **ML-KEM-768**: 100/100 vectors
-    - ✅ **ML-KEM-1024**: 100/100 vectors
+  - ✅ **ML-KEM-512**: 100/100 vectors
+  - ✅ **ML-KEM-768**: 100/100 vectors
+  - ✅ **ML-KEM-1024**: 100/100 vectors
 
 ### 2. Unit & Property Tests
+
 - **Serialization (`test/pack_test.dart`)**: Round-trip validation for all bit-depths (1, 4, 5, 10, 11, 12) checking exact reconstruction.
 - **NTT Correctness (`test/ntt_test.dart`)**: Verifies NTT/InvNTT reversibility and polynomial multiplication.
 - **Statistical (`test/cbd_test.dart`)**: Verifies the output distribution of the CBD sampler matches theoretical binomial probabilities.
 
 ### 3. Negative Testing (Implicit Rejection)
+
 - **`test/failure_test.dart`**: Confirms that decapsulating a modified/invalid ciphertext does NOT crash but instead deterministically derives a secure random key, preserving IND-CCA2 security.
 
 ---
@@ -185,6 +195,7 @@ Benchmarks on commodity hardware (Dart VM, JIT):
 | **ML-KEM-512** | ~0.7 ms | ~0.7 ms | ~0.6 ms | 128-bit security |
 | **ML-KEM-768** | ~1.3 ms | ~1.4 ms | ~1.0 ms | 192-bit security |
 | **ML-KEM-1024** | ~1.8 ms | ~1.8 ms | ~1.7 ms | 256-bit security |
+
 *(Measured on Linux x64, Dart 3.x JIT)*
 
 ---

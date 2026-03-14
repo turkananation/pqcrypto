@@ -1,0 +1,21 @@
+{
+    "servers": {
+        "github": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp"
+        },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@microsoft/mcp-server-playwright"
+            ]
+        },
+        "dart": {
+            "command": "dart",
+            "args": [
+                "mcp-server"
+            ]
+        }
+    }
+}

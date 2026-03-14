@@ -1,6 +1,6 @@
 # pqcrypto Improvements & Recommendations
 
-**Date**: 2026-03-13
+**Date**: 2026-03-14
 **Version**: 0.1.0
 
 ---
@@ -23,6 +23,7 @@ Required additions to DilithiumParams:
 ### IMP-02: Remove All Debug Output from Cryptographic Code
 
 Every `print()` in `dsa.dart` and `packing.dart` must be removed or guarded behind `assert()`:
+
 ```dart
 // WRONG - runs in production
 print("Sign Loop: mu: ${_toHex(mu)}...");
@@ -72,6 +73,7 @@ export 'src/algos/dilithium/params.dart' show DilithiumParams, DilithiumParamete
 ### IMP-05: Consistent Naming Convention
 
 Current naming inconsistency:
+
 | Kyber | Dilithium | Suggested |
 |-------|-----------|-----------|
 | `KyberKem` | `MlDsa` | Both should use FIPS names |
@@ -80,6 +82,7 @@ Current naming inconsistency:
 | `encapsulate()` | `sign()` | Correct per function |
 
 Suggested high-level API:
+
 ```dart
 // Key Encapsulation
 final kem = PqcKem.mlKem768;  // Rename from kyber768
@@ -135,6 +138,7 @@ void secureZeroInt32(Int32List data) {
 ```
 
 Apply to:
+
 - `rhoSigma`, `sigma`, `kKey` after use in KeyGen
 - `rhoPrime` after signing
 - `mPrime`, `kPrime`, `rPrime` after decapsulation
@@ -161,6 +165,7 @@ static bool _checkNorm(DilithiumPoly p, int bound) {
 ### IMP-09: Constant-Time Conditional Select for ML-KEM
 
 While `_constantTimeEq` is correct, add a constant-time select:
+
 ```dart
 Uint8List _constantTimeSelect(int condition, Uint8List a, Uint8List b) {
   // condition is 0 or 1
@@ -180,6 +185,7 @@ Uint8List _constantTimeSelect(int condition, Uint8List a, Uint8List b) {
 ### IMP-10: Eliminate Dead Code
 
 Files with dead/unreachable code:
+
 - `indcpa.dart:7`: Unused `pack.dart` import with `// ignore: unused_import`
 - `symmetric.dart:59-63`: Unused 34-byte `input` buffer (superseded by `inputStrict`)
 - `dsa.dart:111-123`: `hashVec` debug function defined inside `generateKeyPair`
@@ -188,6 +194,7 @@ Files with dead/unreachable code:
 ### IMP-11: Comprehensive Dartdoc
 
 Add `///` documentation to all public classes and methods:
+
 ```dart
 /// ML-KEM Key Encapsulation Mechanism (FIPS 203).
 ///
@@ -205,6 +212,7 @@ class KyberKem {
 ### IMP-12: Add `@visibleForTesting` Annotations
 
 Internal methods used by tests should be annotated:
+
 ```dart
 import 'package:meta/meta.dart';
 
@@ -215,6 +223,7 @@ static Poly sampleInBall(Uint8List seed, KyberParams params, {int nonce = 0}) {
 ### IMP-13: Stricter Analysis Options
 
 Update `analysis_options.yaml`:
+
 ```yaml
 include: package:lints/recommended.yaml
 
@@ -238,6 +247,7 @@ analyzer:
 ### IMP-14: NIST KAT Vectors for ML-DSA
 
 Implement a KAT evaluator for ML-DSA similar to `kat_evaluator.dart`:
+
 ```dart
 // test/dsa_kat_evaluator.dart
 void main() {
@@ -251,11 +261,12 @@ void main() {
 ```
 
 NIST KAT vectors are available at:
-https://github.com/post-quantum-cryptography/KAT
+<https://github.com/post-quantum-cryptography/KAT>
 
 ### IMP-15: Cross-Platform Testing
 
 Add CI jobs for:
+
 - Dart VM (Linux, macOS, Windows)
 - `dart2js` (browser)
 - `dart2wasm` (browser)
@@ -301,6 +312,7 @@ test('Verify rejects wrong public key', () {
 ### IMP-17: Benchmark Tests
 
 Add automated performance regression tests:
+
 ```dart
 test('ML-KEM-768 encapsulation under 5ms', () {
   final kem = PqcKem.kyber768;
@@ -324,6 +336,7 @@ test('ML-KEM-768 encapsulation under 5ms', () {
 ### IMP-18: Fix Library Docstring
 
 Replace placeholder in `lib/pqcrypto.dart`:
+
 ```dart
 /// Pure Dart Post-Quantum Cryptography library.
 ///
@@ -338,6 +351,7 @@ library pqcrypto;
 ### IMP-19: Update README for ML-DSA
 
 Add ML-DSA usage examples and compliance status table:
+
 ```markdown
 ## ML-DSA FIPS 204 Compliance Status
 
@@ -351,6 +365,7 @@ Add ML-DSA usage examples and compliance status table:
 ### IMP-20: Add CONTRIBUTING.md
 
 Document:
+
 - How to run tests
 - Code style requirements
 - PR review process
@@ -368,6 +383,7 @@ These are changes that can be made in **under 30 minutes each** and deliver imme
 **Files**: `params.dart`, `dsa.dart`
 
 Add `tau` to `DilithiumParams`, remove the global constant, update callers:
+
 ```dart
 // params.dart: Add to class
 final int tau;
@@ -405,6 +421,7 @@ Lines to remove in `packing.dart`: 348-352, 370.
 **File**: `symmetric.dart:357`
 
 One-line change:
+
 ```dart
 // Before:
 final stream = Shake256.shake(rho, 256);
@@ -496,6 +513,7 @@ This will flag any new `print()` added to `lib/` during development.
 **Files**: `kem.dart`
 
 Add three guards:
+
 ```dart
 // In encapsulate():
 if (pk.length != params.publicKeyBytes) throw ArgumentError(...);
