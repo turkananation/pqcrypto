@@ -1,0 +1,45 @@
+name: CI
+
+# Run on every branch push and every pull request so the full test suite
+# (which includes the checked-in 3000-vector ML-KEM KAT corpus) is exercised
+# on each change.
+on:
+  push:
+  pull_request:
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
+# If a newer commit is pushed to the same ref, cancel the in-progress run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Analyze & test (Dart stable)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Print Dart version
+        run: dart --version
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze source
+        run: dart analyze
+
+      - name: Run tests (unit suite + ML-KEM KAT corpus)
+        run: dart test

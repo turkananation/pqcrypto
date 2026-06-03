@@ -1,0 +1,8 @@
+# markdownlint configuration — https://github.com/DavidAnson/markdownlint
+# Read by both the markdownlint VS Code extension and markdownlint-cli2.
+default: true
+
+# MD013 (line length): disabled. Markdown tables, URLs, and fenced code blocks
+# cannot be wrapped to 80 columns, and GitHub/pub.dev render long prose fine.
+# Every other rule stays on and is satisfied.
+MD013: false

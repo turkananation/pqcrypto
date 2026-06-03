@@ -21,9 +21,9 @@ class Pack {
     final denominator = 2 * q;
     final result = numerator ~/ denominator;
 
-    // Clamp to [0, 2^d - 1] to handle edge cases where rounding gives 2^d
+    // Wrap to [0, 2^d - 1] per FIPS 203 — mod 2^d
     final maxVal = (1 << d) - 1;
-    return result > maxVal ? maxVal : result;
+    return result & maxVal;
   }
 
   /// Decompress d-bit value to field element per FIPS 203 Definition 4.8
@@ -374,6 +374,13 @@ class Pack {
     Uint8List sk,
     KyberParams params,
   ) {
+    if (sk.length != params.secretKeyBytes) {
+      throw ArgumentError(
+        'Invalid secret key length for ML-KEM decode: expected '
+        '${params.secretKeyBytes}, got ${sk.length}',
+      );
+    }
+
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 

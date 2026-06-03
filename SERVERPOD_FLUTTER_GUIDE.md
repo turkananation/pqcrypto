@@ -3,11 +3,12 @@
 This guide demonstrates how to establish a **Post-Quantum Secure Session** between a **Flutter Client** and a **Serverpod Backend** using `pqcrypto`.
 
 We will implement a standard **KEM (Key Encapsulation Mechanism)** flow:
-1.  **Server** holds a static (or ephemeral) ML-KEM Keypair.
-2.  **Client** fetches Server's Public Key.
-3.  **Client** Encapsulates a Shared Secret and sends Ciphertext to Server.
-4.  **Server** Decapsulates using Secret Key.
-5.  Both parties now share a 32-byte secret for symmetric encryption (e.g., AES-GCM).
+
+1. **Server** holds a static (or ephemeral) ML-KEM Keypair.
+2. **Client** fetches Server's Public Key.
+3. **Client** Encapsulates a Shared Secret and sends Ciphertext to Server.
+4. **Server** Decapsulates using Secret Key.
+5. Both parties now share a 32-byte secret for symmetric encryption (e.g., AES-GCM).
 
 ---
 
@@ -16,6 +17,7 @@ We will implement a standard **KEM (Key Encapsulation Mechanism)** flow:
 Add `pqcrypto` to both your generic Client/Server implementations.
 
 **server/pubspec.yaml** AND **flutter_app/pubspec.yaml**:
+
 ```yaml
 dependencies:
   # ... other deps
@@ -32,6 +34,7 @@ dependencies:
 Create a service to manage the server's long-term identity keys. In production, load these from secure storage (Hashicorp Vault, AWS KMS, or local secure file).
 
 `lib/src/services/key_manager.dart`:
+
 ```dart
 import 'dart:typed_data';
 import 'package:pqcrypto/pqcrypto.dart';
@@ -63,6 +66,7 @@ class KeyManager {
 
 **Initialize on Server Start:**
 Update `lib/server.dart` -> `run()`:
+
 ```dart
 void run(List<String> args) async {
   // ...
@@ -76,6 +80,7 @@ void run(List<String> args) async {
 Create an endpoint to exchange keys.
 
 `lib/src/endpoints/crypto_endpoint.dart`:
+
 ```dart
 import 'dart:typed_data';
 import 'package:serverpod/serverpod.dart';
@@ -119,6 +124,7 @@ class CryptoEndpoint extends Endpoint {
 ### A. The Handshake Logic
 
 `lib/services/pqc_service.dart`:
+
 ```dart
 import 'dart:typed_data';
 import 'package:pqcrypto/pqcrypto.dart';
@@ -167,8 +173,8 @@ void _connect() async {
 
 ## 🔒 Security Considerations
 
-1.  **Transport Layer**: **ALWAYS** use this over **HTTPS (TLS 1.3)**. PQC is a defense-in-depth layer against "Harvest Now, Decrypt Later" attacks on TLS.
-2.  **Authentication**: The KEM exchange is anonymous by default. You must sign the Public Key (using conventional ECDSA or post-quantum ML-DSA) to prevent Man-in-the-Middle (MitM) attacks.
-3.  **Symmetric Algo**: The `32-byte` shared secret is perfect for `AES-256-GCM` or `ChaCha20-Poly1305`.
+1. **Transport Layer**: **ALWAYS** use this over **HTTPS (TLS 1.3)**. PQC is a defense-in-depth layer against "Harvest Now, Decrypt Later" attacks on TLS.
+2. **Authentication**: The KEM exchange is anonymous by default. You must sign the Public Key (using conventional ECDSA or post-quantum ML-DSA) to prevent Man-in-the-Middle (MitM) attacks.
+3. **Symmetric Algo**: The `32-byte` shared secret is perfect for `AES-256-GCM` or `ChaCha20-Poly1305`.
 
 ---
