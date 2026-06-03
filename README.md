@@ -275,6 +275,6 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.1.0
+  pqcrypto: ^0.2.1
   pointycastle: ^4.0.0
 ```
