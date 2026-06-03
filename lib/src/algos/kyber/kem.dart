@@ -185,11 +185,11 @@ class KyberKem {
     final hStart = pkEnd;
     final hEnd = hStart + 32;
 
-    final pk = sk.sublist(pkStart, pkEnd);
+    final pk = Uint8List.sublistView(sk, pkStart, pkEnd);
     _validatePublicKey(pk);
 
     final expectedHash = _h(pk);
-    final storedHash = sk.sublist(hStart, hEnd);
+    final storedHash = Uint8List.sublistView(sk, hStart, hEnd);
     if (!_constantTimeEq(expectedHash, storedHash)) {
       throw ArgumentError('Invalid ML-KEM secret key hash');
     }
