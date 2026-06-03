@@ -1,0 +1,69 @@
+name: Interop (OpenSSL)
+
+# Direct OpenSSL <-> pqcrypto ML-KEM-768 interoperability proof (Tests A/B/C/D).
+# Heavier than ci.yml because it needs an OpenSSL >= 3.5 libcrypto (ML-KEM landed
+# in 3.5; GitHub's runner images ship OpenSSL 3.0.x), so it provisions one and
+# caches it by version. See docs/OPENSSL_INTEROP.md.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENSSL_VERSION: "4.0.0"
+  OPENSSL_PREFIX: ${{ github.workspace }}/.openssl-cache
+
+jobs:
+  openssl-interop:
+    name: OpenSSL ↔ pqcrypto ML-KEM-768 (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Cache OpenSSL ${{ env.OPENSSL_VERSION }}
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.OPENSSL_PREFIX }}
+          key: openssl-${{ env.OPENSSL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Build OpenSSL ${{ env.OPENSSL_VERSION }} (cache miss only)
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          tag="openssl-${OPENSSL_VERSION}"
+          curl -fsSL "https://github.com/openssl/openssl/releases/download/${tag}/${tag}.tar.gz" -o /tmp/openssl.tar.gz
+          mkdir -p /tmp/openssl-src
+          tar xzf /tmp/openssl.tar.gz -C /tmp/openssl-src --strip-components=1
+          cd /tmp/openssl-src
+          ./Configure no-docs no-tests shared --prefix="${OPENSSL_PREFIX}" --libdir=lib
+          make -j"$(nproc)"
+          make install_sw
+
+      - name: Verify libcrypto exposes ML-KEM
+        run: |
+          set -euxo pipefail
+          LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib" "${OPENSSL_PREFIX}/bin/openssl" list -kem-algorithms | grep -i 'ml-kem'
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install interop tool dependencies
+        run: dart pub get
+        working-directory: tool/openssl_interop
+
+      - name: Run interop tests (A/B/C/D)
+        run: dart run bin/openssl_pqcrypto_interop.dart
+        working-directory: tool/openssl_interop
+        env:
+          LIBCRYPTO_PATH: ${{ env.OPENSSL_PREFIX }}/lib/libcrypto.so

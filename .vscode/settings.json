@@ -1,0 +1,7 @@
+{
+  // Treat ignore-family files as "ignore" (not Markdown) so the markdownlint
+  // extension does not flag .pubignore's `#` comments as Markdown headings.
+  "files.associations": {
+    ".pubignore": "ignore"
+  }
+}

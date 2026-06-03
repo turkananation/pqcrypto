@@ -1,0 +1,4 @@
+# Paths the markdownlint editor extension should never lint as Markdown.
+# .pubignore uses .gitignore syntax (# = comment), not Markdown headings.
+.pubignore
+.dart_tool/

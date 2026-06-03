@@ -5,24 +5,15 @@ class Poly {
 
   Poly(this.coeffs);
 
-  /// Montgomery reduction: returns (a * R^-1) mod q
-  static int montgomeryReduce(int a) {
-    const int qinv = 62209; // -q^-1 mod 2^16
-    int t = (a * qinv) & 0xFFFF; // "Unsigned" 16-bit
-    // Dart ints are 64-bit, so standard montgomery needs care with sign extension if using 32-bit algo.
-    // Spec: t = (a * qinv) mod 2^16.
-    // int u = (a - t*q) >> 16.
-    int u = (a - t * q) >> 16;
-    return u;
-  }
-
   /// Barrett reduction: returns a mod q in [0, q-1]
   static int barrettReduce(int a) {
     const int v = 20159; // 2^26 / q
-    int shift = 26;
-    int product = (a * v) >> shift;
-    int res = a - product * q;
-    if (res < 0) res += q;
+    const int shift = 26;
+    final product = (a * v) >> shift;
+    var res = a - product * q;
+    if (res < 0 || res >= q) {
+      res %= q;
+    }
     return res;
   }
 

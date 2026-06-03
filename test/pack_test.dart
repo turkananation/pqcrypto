@@ -11,10 +11,10 @@ void main() {
           final compressed = Pack.compress(x, d);
           final decompressed = Pack.decompress(compressed, d);
 
-          // Should be approximately equal (within compression error)
-          final error = (x - decompressed).abs();
+          // Compression is modulo q, so values near q can wrap back to 0.
+          final error = _modularDistance(x, decompressed);
           expect(
-            error <= (3329 ~/ (1 << d)) + 1,
+            error <= _compressionErrorLimit(d),
             isTrue,
             reason:
                 'd=$d, x=$x, compressed=$compressed, decompressed=$decompressed, error=$error',
@@ -45,8 +45,7 @@ void main() {
 
       // Check all coefficients within compression error
       for (int i = 0; i < 256; i++) {
-        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
-        expect(error < 10, isTrue, reason: 'i=$i, error=$error');
+        _expectCompressionClose(poly.coeffs[i], decoded.coeffs[i], 10, 'i=$i');
       }
     });
 
@@ -61,8 +60,7 @@ void main() {
 
       // Check all coefficients within compression error
       for (int i = 0; i < 256; i++) {
-        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
-        expect(error < 250, isTrue, reason: 'i=$i, error=$error');
+        _expectCompressionClose(poly.coeffs[i], decoded.coeffs[i], 4, 'i=$i');
       }
     });
 
@@ -93,12 +91,7 @@ void main() {
 
       // Check all coefficients within compression error (should be very small for d=11)
       for (int i = 0; i < 256; i++) {
-        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
-        expect(
-          error <= 2,
-          isTrue,
-          reason: 'i=$i, error=$error',
-        ); // 3329 / 2048 ≈ 1.6
+        _expectCompressionClose(poly.coeffs[i], decoded.coeffs[i], 11, 'i=$i');
       }
     });
 
@@ -113,13 +106,48 @@ void main() {
 
       // Check all coefficients within compression error
       for (int i = 0; i < 256; i++) {
-        final error = (poly.coeffs[i] - decoded.coeffs[i]).abs();
-        expect(
-          error < 150,
-          isTrue,
-          reason: 'i=$i, error=$error',
-        ); // 3329 / 32 ≈ 104
+        _expectCompressionClose(poly.coeffs[i], decoded.coeffs[i], 5, 'i=$i');
+      }
+    });
+
+    test('compression round-trip handles modular wrap boundary cases', () {
+      for (final case_ in [
+        (d: 1, x: 2500),
+        (d: 4, x: (170 * 19) % Pack.q),
+        (d: 5, x: (113 * 29) % Pack.q),
+        (d: 10, x: Pack.q - 1),
+        (d: 11, x: Pack.q - 1),
+      ]) {
+        final compressed = Pack.compress(case_.x, case_.d);
+        final decompressed = Pack.decompress(compressed, case_.d);
+        _expectCompressionClose(
+          case_.x,
+          decompressed,
+          case_.d,
+          'd=${case_.d}, x=${case_.x}, compressed=$compressed',
+        );
       }
     });
   });
+}
+
+int _compressionErrorLimit(int d) {
+  final denominator = 1 << (d + 1);
+  return (Pack.q + denominator - 1) ~/ denominator;
+}
+
+int _modularDistance(int a, int b) {
+  final distance = (a - b).abs();
+  return distance <= Pack.q - distance ? distance : Pack.q - distance;
+}
+
+void _expectCompressionClose(int expected, int actual, int d, String context) {
+  final error = _modularDistance(expected, actual);
+  expect(
+    error <= _compressionErrorLimit(d),
+    isTrue,
+    reason:
+        '$context, d=$d, expected=$expected, actual=$actual, error=$error, '
+        'limit=${_compressionErrorLimit(d)}',
+  );
 }

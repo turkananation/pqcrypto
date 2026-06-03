@@ -19,9 +19,11 @@ include: package:lints/recommended.yaml
 #   rules:
 #     - camel_case_types
 
-# analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+# The interop tool is a separate path-package (tool/openssl_interop) with its
+# own pubspec and an FFI dependency. Exclude it from the main package analysis.
+analyzer:
+  exclude:
+    - tool/openssl_interop/**
 
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints

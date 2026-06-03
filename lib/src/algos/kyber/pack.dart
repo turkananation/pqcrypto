@@ -374,6 +374,13 @@ class Pack {
     Uint8List sk,
     KyberParams params,
   ) {
+    if (sk.length != params.secretKeyBytes) {
+      throw ArgumentError(
+        'Invalid secret key length for ML-KEM decode: expected '
+        '${params.secretKeyBytes}, got ${sk.length}',
+      );
+    }
+
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 
