@@ -34,7 +34,7 @@ This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final)
 
 **Total checked-in vectors:** 3000/3000 pass locally as of June 3, 2026.
 
-See [docs/MLKEM_TESTING.md](docs/MLKEM_TESTING.md) for the KAT file hashes, coverage boundaries, and release-gate commands.
+See [doc/MLKEM_TESTING.md](doc/MLKEM_TESTING.md) for the KAT file hashes, coverage boundaries, and release-gate commands.
 
 ---
 
@@ -74,7 +74,7 @@ dart run bin/openssl_pqcrypto_interop.dart   # Linux: prefix LIBCRYPTO_PATH=/pat
 CI runs these four tests on every push via
 [`.github/workflows/interop.yml`](.github/workflows/interop.yml).
 
-**Full details:** [docs/OPENSSL_INTEROP.md](docs/OPENSSL_INTEROP.md) — FFI
+**Full details:** [doc/OPENSSL_INTEROP.md](doc/OPENSSL_INTEROP.md) — FFI
 bindings, the FIPS 203 fixes interop required, exact versions/results, and use
 cases (hybrid TLS `X25519MLKEM768`, Dart ↔ OpenSSL services, migration).
 
@@ -227,7 +227,7 @@ The quality of this cryptographic library is verified through these repository-l
 
 Validates against the `.rsp` files checked into `test/data`.
 
-- **Parser**: `test/kat_evaluator.dart` handles `.rsp` files with `z`, `d`, `msg`, `seed`, `pk`, `sk`, `ct`, `ss`, `ct_n`, and `ss_n`.
+- **Parser**: `test/kat_evaluator_test.dart` handles `.rsp` files with `z`, `d`, `msg`, `seed`, `pk`, `sk`, `ct`, `ss`, `ct_n`, and `ss_n`.
 - **Coverage**:
   - ✅ **ML-KEM-512**: 1000/1000 vectors
   - ✅ **ML-KEM-768**: 1000/1000 vectors
@@ -242,7 +242,7 @@ Validates against the `.rsp` files checked into `test/data`.
 ### 3. Validation & Negative Testing
 
 - **Input validation (`test/kem_validation_test.dart`)**: Confirms malformed public keys, malformed secret keys, and wrong ciphertext lengths are rejected.
-- **Invalid decapsulation KATs (`test/kat_evaluator.dart`)**: Confirms checked-in `ct_n` vectors produce their expected `ss_n` shared secrets.
+- **Invalid decapsulation KATs (`test/kat_evaluator_test.dart`)**: Confirms checked-in `ct_n` vectors produce their expected `ss_n` shared secrets.
 
 ---
 

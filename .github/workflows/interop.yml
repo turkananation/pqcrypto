@@ -3,7 +3,7 @@ name: Interop (OpenSSL)
 # Direct OpenSSL <-> pqcrypto ML-KEM-768 interoperability proof (Tests A/B/C/D).
 # Heavier than ci.yml because it needs an OpenSSL >= 3.5 libcrypto (ML-KEM landed
 # in 3.5; GitHub's runner images ship OpenSSL 3.0.x), so it provisions one and
-# caches it by version. See docs/OPENSSL_INTEROP.md.
+# caches it by version. See doc/OPENSSL_INTEROP.md.
 on:
   push:
   pull_request:

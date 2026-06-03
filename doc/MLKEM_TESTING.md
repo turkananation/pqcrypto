@@ -25,7 +25,7 @@ If a corpus file changes, update the hash table in the same change and run the r
 
 ## KAT Coverage
 
-`test/kat_evaluator.dart` parses these fields when present:
+`test/kat_evaluator_test.dart` parses these fields when present:
 
 - `z`, `d`, `msg`, `seed`
 - `pk`, `sk`
@@ -53,7 +53,7 @@ Run these before merging or making correctness claims:
 ```bash
 dart format lib test
 dart analyze
-dart test test/kat_evaluator.dart
+dart test test/kat_evaluator_test.dart
 dart test
 ```
 

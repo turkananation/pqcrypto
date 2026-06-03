@@ -18,8 +18,8 @@
   - `keygen_derivation_test.dart`: isolates FIPS 203 domain separation (`G(d || k)`) and matrix expansion ordering.
   - `poly_test.dart`: verifies `barrettReduce` returns canonical residues in `[0, q)`.
 - **Documentation**:
-  - `docs/MLKEM_TESTING.md`: KAT file hashes, coverage boundaries, release-gate commands, and scoped claim boundary.
-  - `docs/OPENSSL_INTEROP.md`: full interop guide with FFI bindings, versions, results, and use cases.
+  - `doc/MLKEM_TESTING.md`: KAT file hashes, coverage boundaries, release-gate commands, and scoped claim boundary.
+  - `doc/OPENSSL_INTEROP.md`: full interop guide with FFI bindings, versions, results, and use cases.
 - Test hooks `genMatrixEntryForTest` / `sampleNttForTest` on `Indcpa` (internal, not exported).
 - `.pubignore` to exclude dev-only files from the published package.
 
