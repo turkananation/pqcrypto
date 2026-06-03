@@ -1,9 +1,10 @@
 name: openssl_pqcrypto_interop
 description: >-
-  Developer tool: OpenSSL <-> pqcrypto ML-KEM-768 interoperability check via
-  FFI to libcrypto. Not published; depends on the parent package by path.
+  Developer tool: OpenSSL <-> pqcrypto ML-KEM-512/768/1024 interoperability
+  checks via FFI to libcrypto. Not published; depends on the parent package by
+  path.
 publish_to: none
-version: 0.2.0
+version: 0.2.1
 
 environment:
   sdk: ^3.10.0
@@ -13,3 +14,6 @@ dependencies:
   pqcrypto:
     path: ../..
   ffi: ^2.1.0
+
+dev_dependencies:
+  test: ^1.25.6

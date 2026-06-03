@@ -1,581 +1,225 @@
-import 'dart:ffi';
+/// OpenSSL ↔ pqcrypto ML-KEM interoperability harness.
+///
+/// Runs the cross-implementation proof for **all three** FIPS 203 parameter
+/// sets — ML-KEM-512, ML-KEM-768, ML-KEM-1024 — against an OpenSSL ≥ 3.5
+/// `libcrypto` reached via `dart:ffi`. For each level it runs:
+///
+///   * Size/spec conformance (OpenSSL & pqcrypto vs FIPS 203 constants)
+///   * Tests A–D: the self-consistency + bidirectional cross-decapsulation matrix
+///   * Test E: same seed (d‖z) ⇒ byte-identical public keys
+///   * Test F: public-key wire round-trip (pqcrypto → OpenSSL → bytes)
+///   * Test G: implicit-rejection secret J(z‖c) agrees on an invalid ciphertext
+///
+/// E and G require deterministic seed-based keygen; if the loaded `libcrypto`
+/// lacks it they are reported as SKIP rather than failing.
+///
+/// Exits 0 if every executed check passes, 1 on any failure, 2 if no
+/// ML-KEM-capable `libcrypto` could be located. See doc/OPENSSL_INTEROP.md.
+library;
+
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:ffi/ffi.dart';
-import 'package:pqcrypto/pqcrypto.dart';
 
-// ── OpenSSL EVP opaque types ──────────────────────────────────────────────────
-final class EVP_PKEY extends Opaque {}
+import 'package:openssl_pqcrypto_interop/openssl_ml_kem.dart';
 
-final class EVP_PKEY_CTX extends Opaque {}
+/// How many random round-trips to run for the cross tests (C and D) per level.
+const int _fuzzIterations = 16;
 
-final class OSSL_PARAM extends Opaque {}
+final List<String> _failures = <String>[];
+int _passes = 0;
+int _skips = 0;
 
-final class OSSL_PARAM_BLD extends Opaque {}
-
-// ── FFI typedefs ─────────────────────────────────────────────────────────────
-
-// EVP_PKEY_CTX_new_from_name(NULL, "ML-KEM-768", NULL)
-typedef EvpPkeyCtxNewFromNameNative =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
-typedef EvpPkeyCtxNewFromNameDart =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
-
-// EVP_PKEY_CTX_new(EVP_PKEY*, ENGINE*)  — for decaps ctx from existing key
-typedef EvpPkeyCtxNewNative =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<EVP_PKEY>, Pointer<Void>);
-typedef EvpPkeyCtxNewDart =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<EVP_PKEY>, Pointer<Void>);
-
-typedef EvpPkeyCtxFreeNative = Void Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyCtxFreeDart = void Function(Pointer<EVP_PKEY_CTX>);
-
-typedef EvpPkeyFreeNative = Void Function(Pointer<EVP_PKEY>);
-typedef EvpPkeyFreeDart = void Function(Pointer<EVP_PKEY>);
-
-// EVP_PKEY_keygen_init(ctx)
-typedef EvpPkeyKeygenInitNative = Int32 Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyKeygenInitDart = int Function(Pointer<EVP_PKEY_CTX>);
-
-// EVP_PKEY_encapsulate_init(ctx, params[]) / EVP_PKEY_decapsulate_init(ctx, params[])
-typedef EvpPkeyKemInitNative =
-    Int32 Function(Pointer<EVP_PKEY_CTX>, Pointer<Void>);
-typedef EvpPkeyKemInitDart = int Function(Pointer<EVP_PKEY_CTX>, Pointer<Void>);
-
-// EVP_PKEY_fromdata_init(ctx)
-typedef EvpPkeyFromdataInitNative = Int32 Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyFromdataInitDart = int Function(Pointer<EVP_PKEY_CTX>);
-
-// EVP_PKEY_keygen(ctx, EVP_PKEY**)
-typedef EvpPkeyKeygenNative =
-    Int32 Function(Pointer<EVP_PKEY_CTX>, Pointer<Pointer<EVP_PKEY>>);
-typedef EvpPkeyKeygenDart =
-    int Function(Pointer<EVP_PKEY_CTX>, Pointer<Pointer<EVP_PKEY>>);
-
-// EVP_PKEY_get1_encoded_public_key(pkey, unsigned char**) -> size_t
-typedef EvpPkeyGet1EncodedPublicKeyNative =
-    IntPtr Function(Pointer<EVP_PKEY>, Pointer<Pointer<Uint8>>);
-typedef EvpPkeyGet1EncodedPublicKeyDart =
-    int Function(Pointer<EVP_PKEY>, Pointer<Pointer<Uint8>>);
-
-// EVP_PKEY_encapsulate(ctx, wrappedkey*, wrappedkeylen*, genkey*, genkeylen*)
-typedef EvpPkeyEncapsulateNative =
-    Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-    );
-typedef EvpPkeyEncapsulateDart =
-    int Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-    );
-
-// EVP_PKEY_decapsulate(ctx, unwrapped*, unwrappedlen*, wrapped*, wrappedlen)
-typedef EvpPkeyDecapsulateNative =
-    Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-      Pointer<Uint8>,
-      IntPtr,
-    );
-typedef EvpPkeyDecapsulateDart =
-    int Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Uint8>,
-      Pointer<IntPtr>,
-      Pointer<Uint8>,
-      int,
-    );
-
-// OSSL_PARAM_BLD_new / free / to_param
-typedef OsslParamBldNewNative = Pointer<OSSL_PARAM_BLD> Function();
-typedef OsslParamBldNewDart = Pointer<OSSL_PARAM_BLD> Function();
-
-typedef OsslParamBldFreeNative = Void Function(Pointer<OSSL_PARAM_BLD>);
-typedef OsslParamBldFreeDart = void Function(Pointer<OSSL_PARAM_BLD>);
-
-typedef OsslParamBldToParamNative =
-    Pointer<OSSL_PARAM> Function(Pointer<OSSL_PARAM_BLD>);
-typedef OsslParamBldToParamDart =
-    Pointer<OSSL_PARAM> Function(Pointer<OSSL_PARAM_BLD>);
-
-typedef OsslParamBldPushOctetStringNative =
-    Int32 Function(
-      Pointer<OSSL_PARAM_BLD>,
-      Pointer<Utf8>,
-      Pointer<Uint8>,
-      IntPtr,
-    );
-typedef OsslParamBldPushOctetStringDart =
-    int Function(Pointer<OSSL_PARAM_BLD>, Pointer<Utf8>, Pointer<Uint8>, int);
-
-typedef OsslParamFreeNative = Void Function(Pointer<OSSL_PARAM>);
-typedef OsslParamFreeDart = void Function(Pointer<OSSL_PARAM>);
-
-// EVP_PKEY_fromdata_init / EVP_PKEY_fromdata  (defined above, no duplicate needed)
-
-typedef EvpPkeyFromdataNative =
-    Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Pointer<EVP_PKEY>>,
-      Int32,
-      Pointer<OSSL_PARAM>,
-    );
-typedef EvpPkeyFromdataDart =
-    int Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Pointer<EVP_PKEY>>,
-      int,
-      Pointer<OSSL_PARAM>,
-    );
-
-// CRYPTO_free
-typedef CryptoFreeNative = Void Function(Pointer<Void>, Pointer<Utf8>, Int32);
-typedef CryptoFreeDart = void Function(Pointer<Void>, Pointer<Utf8>, int);
-
-// const char *OpenSSL_version(int type);  type 0 = OPENSSL_VERSION (full string)
-typedef OpenSslVersionNative = Pointer<Utf8> Function(Int32);
-typedef OpenSslVersionDart = Pointer<Utf8> Function(int);
-
-// ── OpenSSL selection constants ───────────────────────────────────────────────
-// OSSL_KEYMGMT_SELECT_ALL_PARAMETERS = 0x04 | 0x80 = 0x84
-// EVP_PKEY_PUBLIC_KEY = ALL_PARAMETERS | PUBLIC_KEY(0x02) = 0x86
-// EVP_PKEY_KEYPAIR    = ALL_PARAMETERS | PUBLIC_KEY | PRIVATE_KEY(0x01) = 0x87
-const int _evpPkeyPublicKey = 0x86;
-const int _evpPkeyKeypair = 0x87;
-
-// ── OpenSSL FFI wrapper ───────────────────────────────────────────────────────
-class OpenSslMlKem768 {
-  final DynamicLibrary _lib;
-
-  late final EvpPkeyCtxNewFromNameDart _ctxNewFromName;
-  late final EvpPkeyCtxNewDart _ctxNew;
-  late final EvpPkeyCtxFreeDart _ctxFree;
-  late final EvpPkeyFreeDart _pkeyFree;
-  late final EvpPkeyKeygenInitDart _keygenInit;
-  late final EvpPkeyKeygenDart _keygen;
-  late final EvpPkeyGet1EncodedPublicKeyDart _get1EncodedPubKey;
-  late final EvpPkeyKemInitDart _encapsInit;
-  late final EvpPkeyEncapsulateDart _encapsulate;
-  late final EvpPkeyKemInitDart _decapsInit;
-  late final EvpPkeyDecapsulateDart _decapsulate;
-  late final OsslParamBldNewDart _bldNew;
-  late final OsslParamBldFreeDart _bldFree;
-  late final OsslParamBldToParamDart _bldToParam;
-  late final OsslParamBldPushOctetStringDart _bldPushOctet;
-  late final OsslParamFreeDart _paramFree;
-  late final EvpPkeyFromdataInitDart _fromdataInit;
-  late final EvpPkeyFromdataDart _fromdata;
-  late final CryptoFreeDart _cryptoFree;
-  late final OpenSslVersionDart _opensslVersion;
-
-  OpenSslMlKem768.load(String path) : _lib = DynamicLibrary.open(path) {
-    _ctxNewFromName = _lib
-        .lookupFunction<EvpPkeyCtxNewFromNameNative, EvpPkeyCtxNewFromNameDart>(
-          'EVP_PKEY_CTX_new_from_name',
-        );
-    _ctxNew = _lib.lookupFunction<EvpPkeyCtxNewNative, EvpPkeyCtxNewDart>(
-      'EVP_PKEY_CTX_new',
-    );
-    _ctxFree = _lib.lookupFunction<EvpPkeyCtxFreeNative, EvpPkeyCtxFreeDart>(
-      'EVP_PKEY_CTX_free',
-    );
-    _pkeyFree = _lib.lookupFunction<EvpPkeyFreeNative, EvpPkeyFreeDart>(
-      'EVP_PKEY_free',
-    );
-    _keygenInit = _lib
-        .lookupFunction<EvpPkeyKeygenInitNative, EvpPkeyKeygenInitDart>(
-          'EVP_PKEY_keygen_init',
-        );
-    _keygen = _lib.lookupFunction<EvpPkeyKeygenNative, EvpPkeyKeygenDart>(
-      'EVP_PKEY_keygen',
-    );
-    _get1EncodedPubKey = _lib
-        .lookupFunction<
-          EvpPkeyGet1EncodedPublicKeyNative,
-          EvpPkeyGet1EncodedPublicKeyDart
-        >('EVP_PKEY_get1_encoded_public_key');
-    _encapsInit = _lib.lookupFunction<EvpPkeyKemInitNative, EvpPkeyKemInitDart>(
-      'EVP_PKEY_encapsulate_init',
-    );
-    _encapsulate = _lib
-        .lookupFunction<EvpPkeyEncapsulateNative, EvpPkeyEncapsulateDart>(
-          'EVP_PKEY_encapsulate',
-        );
-    _decapsInit = _lib.lookupFunction<EvpPkeyKemInitNative, EvpPkeyKemInitDart>(
-      'EVP_PKEY_decapsulate_init',
-    );
-    _decapsulate = _lib
-        .lookupFunction<EvpPkeyDecapsulateNative, EvpPkeyDecapsulateDart>(
-          'EVP_PKEY_decapsulate',
-        );
-    _bldNew = _lib.lookupFunction<OsslParamBldNewNative, OsslParamBldNewDart>(
-      'OSSL_PARAM_BLD_new',
-    );
-    _bldFree = _lib
-        .lookupFunction<OsslParamBldFreeNative, OsslParamBldFreeDart>(
-          'OSSL_PARAM_BLD_free',
-        );
-    _bldToParam = _lib
-        .lookupFunction<OsslParamBldToParamNative, OsslParamBldToParamDart>(
-          'OSSL_PARAM_BLD_to_param',
-        );
-    _bldPushOctet = _lib
-        .lookupFunction<
-          OsslParamBldPushOctetStringNative,
-          OsslParamBldPushOctetStringDart
-        >('OSSL_PARAM_BLD_push_octet_string');
-    _paramFree = _lib.lookupFunction<OsslParamFreeNative, OsslParamFreeDart>(
-      'OSSL_PARAM_free',
-    );
-    _fromdataInit = _lib
-        .lookupFunction<EvpPkeyFromdataInitNative, EvpPkeyFromdataInitDart>(
-          'EVP_PKEY_fromdata_init',
-        );
-    _fromdata = _lib.lookupFunction<EvpPkeyFromdataNative, EvpPkeyFromdataDart>(
-      'EVP_PKEY_fromdata',
-    );
-    _cryptoFree = _lib.lookupFunction<CryptoFreeNative, CryptoFreeDart>(
-      'CRYPTO_free',
-    );
-    _opensslVersion = _lib
-        .lookupFunction<OpenSslVersionNative, OpenSslVersionDart>(
-          'OpenSSL_version',
-        );
-  }
-
-  /// Generate an ML-KEM-768 keypair. Returns (publicKeyBytes, EVP_PKEY*).
-  /// Caller must free the returned EVP_PKEY* with [freeKey].
-  (Uint8List, Pointer<EVP_PKEY>) generateKeypair() {
-    final algName = 'ML-KEM-768'.toNativeUtf8();
-    final ctx = _ctxNewFromName(nullptr, algName, nullptr);
-    calloc.free(algName);
-    if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new_from_name failed');
-
-    try {
-      if (_keygenInit(ctx) <= 0)
-        throw StateError('EVP_PKEY_keygen_init failed');
-      final pkeyPtr = calloc<Pointer<EVP_PKEY>>();
-      try {
-        if (_keygen(ctx, pkeyPtr) <= 0)
-          throw StateError('EVP_PKEY_keygen failed');
-        final pkey = pkeyPtr.value;
-        final pubKeyBytes = _extractPublicKeyBytes(pkey);
-        return (pubKeyBytes, pkey);
-      } finally {
-        calloc.free(pkeyPtr);
-      }
-    } finally {
-      _ctxFree(ctx);
-    }
-  }
-
-  /// Extract the raw public key bytes from an EVP_PKEY.
-  Uint8List _extractPublicKeyBytes(Pointer<EVP_PKEY> pkey) {
-    final ppub = calloc<Pointer<Uint8>>();
-    try {
-      final len = _get1EncodedPubKey(pkey, ppub);
-      if (len <= 0) throw StateError('EVP_PKEY_get1_encoded_public_key failed');
-      final bytes = Uint8List.fromList(ppub.value.asTypedList(len));
-      _cryptoFree(ppub.value.cast(), nullptr, 0);
-      return bytes;
-    } finally {
-      calloc.free(ppub);
-    }
-  }
-
-  /// Import a raw public key (1184 bytes) and return an EVP_PKEY*.
-  /// Caller must free with [freeKey].
-  Pointer<EVP_PKEY> importPublicKey(Uint8List pubKeyBytes) {
-    // All native buffers must outlive the EVP_PKEY_fromdata call —
-    // OSSL_PARAM_BLD stores pointers, not copies.
-    final algName = 'ML-KEM-768'.toNativeUtf8();
-    final paramName = 'pub'.toNativeUtf8();
-    final keyBuf = calloc<Uint8>(pubKeyBytes.length);
-    keyBuf.asTypedList(pubKeyBytes.length).setAll(0, pubKeyBytes);
-
-    Pointer<OSSL_PARAM>? params;
-    Pointer<EVP_PKEY_CTX>? ctx;
-    final pkeyPtr = calloc<Pointer<EVP_PKEY>>();
-
-    try {
-      final bld = _bldNew();
-      if (bld == nullptr) throw StateError('OSSL_PARAM_BLD_new failed');
-      if (_bldPushOctet(bld, paramName, keyBuf, pubKeyBytes.length) <= 0) {
-        _bldFree(bld);
-        throw StateError('OSSL_PARAM_BLD_push_octet_string failed');
-      }
-      params = _bldToParam(bld);
-      _bldFree(bld);
-      if (params == nullptr) throw StateError('OSSL_PARAM_BLD_to_param failed');
-
-      ctx = _ctxNewFromName(nullptr, algName, nullptr);
-      if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new_from_name failed');
-
-      if (_fromdataInit(ctx) <= 0)
-        throw StateError('EVP_PKEY_fromdata_init failed');
-
-      if (_fromdata(ctx, pkeyPtr, _evpPkeyPublicKey, params) <= 0) {
-        throw StateError('EVP_PKEY_fromdata failed');
-      }
-
-      return pkeyPtr.value;
-    } finally {
-      if (ctx != null) _ctxFree(ctx);
-      if (params != null) _paramFree(params);
-      // Free these only after fromdata has completed
-      calloc.free(keyBuf);
-      calloc.free(paramName);
-      calloc.free(algName);
-      calloc.free(pkeyPtr);
-    }
-  }
-
-  /// Encapsulate against a public EVP_PKEY*. Returns (ciphertext, sharedSecret).
-  (Uint8List, Uint8List) encapsulate(Pointer<EVP_PKEY> pubKey) {
-    final ctx = _ctxNew(pubKey, nullptr);
-    if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new failed');
-    try {
-      if (_encapsInit(ctx, nullptr) <= 0)
-        throw StateError('EVP_PKEY_encapsulate_init failed');
-
-      // Query sizes
-      final ctLen = calloc<IntPtr>();
-      final ssLen = calloc<IntPtr>();
-      try {
-        if (_encapsulate(ctx, nullptr, ctLen, nullptr, ssLen) <= 0) {
-          throw StateError('EVP_PKEY_encapsulate (size query) failed');
-        }
-
-        final ctBuf = calloc<Uint8>(ctLen.value);
-        final ssBuf = calloc<Uint8>(ssLen.value);
-        try {
-          if (_encapsulate(ctx, ctBuf, ctLen, ssBuf, ssLen) <= 0) {
-            throw StateError('EVP_PKEY_encapsulate failed');
-          }
-          return (
-            Uint8List.fromList(ctBuf.asTypedList(ctLen.value)),
-            Uint8List.fromList(ssBuf.asTypedList(ssLen.value)),
-          );
-        } finally {
-          calloc.free(ctBuf);
-          calloc.free(ssBuf);
-        }
-      } finally {
-        calloc.free(ctLen);
-        calloc.free(ssLen);
-      }
-    } finally {
-      _ctxFree(ctx);
-    }
-  }
-
-  /// Decapsulate using a full keypair EVP_PKEY*. Returns shared secret.
-  Uint8List decapsulate(Pointer<EVP_PKEY> secretKey, Uint8List ciphertext) {
-    final ctx = _ctxNew(secretKey, nullptr);
-    if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new failed');
-    try {
-      if (_decapsInit(ctx, nullptr) <= 0)
-        throw StateError('EVP_PKEY_decapsulate_init failed');
-
-      final ssLen = calloc<IntPtr>();
-      final ctBuf = calloc<Uint8>(ciphertext.length);
-      ctBuf.asTypedList(ciphertext.length).setAll(0, ciphertext);
-      try {
-        // Query shared secret size
-        if (_decapsulate(ctx, nullptr, ssLen, ctBuf, ciphertext.length) <= 0) {
-          throw StateError('EVP_PKEY_decapsulate (size query) failed');
-        }
-        final ssBuf = calloc<Uint8>(ssLen.value);
-        try {
-          if (_decapsulate(ctx, ssBuf, ssLen, ctBuf, ciphertext.length) <= 0) {
-            throw StateError('EVP_PKEY_decapsulate failed');
-          }
-          return Uint8List.fromList(ssBuf.asTypedList(ssLen.value));
-        } finally {
-          calloc.free(ssBuf);
-        }
-      } finally {
-        calloc.free(ssLen);
-        calloc.free(ctBuf);
-      }
-    } finally {
-      _ctxFree(ctx);
-    }
-  }
-
-  void freeKey(Pointer<EVP_PKEY> pkey) => _pkeyFree(pkey);
-
-  /// Full OpenSSL version string, e.g. "OpenSSL 4.0.0 14 Apr 2026".
-  String version() => _opensslVersion(0).toDartString();
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-String hex(List<int> bytes, {int maxBytes = 16}) {
-  final shown = bytes.length > maxBytes ? bytes.sublist(0, maxBytes) : bytes;
-  final h = shown.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
-  return bytes.length > maxBytes ? '$h... (${bytes.length} bytes)' : h;
-}
-
-bool bytesEqual(List<int> a, List<int> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
-}
-
-final _failures = <String>[];
-
-void check(String label, bool condition) {
-  final mark = condition ? 'PASS' : 'FAIL';
-  print('[$mark] $label');
-  if (!condition) _failures.add(label);
-}
-
-/// Resolves a path to an OpenSSL >= 3.5 libcrypto that exposes ML-KEM.
-///
-/// Honors the LIBCRYPTO_PATH environment variable first; otherwise probes
-/// common per-platform locations. ML-KEM landed in OpenSSL 3.5, so a distro's
-/// system libcrypto (often OpenSSL 3.0.x) will NOT work — set LIBCRYPTO_PATH
-/// to a 3.5+ build in that case.
-String _resolveLibcryptoPath() {
-  final override = Platform.environment['LIBCRYPTO_PATH'];
-  if (override != null && override.isNotEmpty) return override;
-
-  final candidates = <String>[
-    if (Platform.isMacOS) ...[
-      '/opt/homebrew/opt/openssl@3.6/lib/libcrypto.dylib',
-      '/opt/homebrew/opt/openssl@3.5/lib/libcrypto.dylib',
-      '/opt/homebrew/opt/openssl/lib/libcrypto.dylib',
-      '/usr/local/opt/openssl@3.6/lib/libcrypto.dylib',
-      '/usr/local/opt/openssl/lib/libcrypto.dylib',
-    ],
-    if (Platform.isLinux) ...[
-      '/usr/local/lib64/libcrypto.so',
-      '/usr/local/lib/libcrypto.so',
-    ],
-  ];
-
-  for (final candidate in candidates) {
-    if (File(candidate).existsSync()) return candidate;
-  }
-
-  throw StateError(
-    'Could not locate an OpenSSL libcrypto exposing ML-KEM (needs OpenSSL '
-    '>= 3.5).\n'
-    'Set LIBCRYPTO_PATH explicitly, e.g.:\n'
-    '  LIBCRYPTO_PATH=/path/to/libcrypto.so dart run '
-    'bin/openssl_pqcrypto_interop.dart\n'
-    'Probed: ${candidates.isEmpty ? "(no defaults for this platform)" : candidates.join(", ")}',
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-void main() {
-  final libPath = _resolveLibcryptoPath();
-  final ossl = OpenSslMlKem768.load(libPath);
-  final pq = PqcKem.kyber768;
-
-  print('=== ML-KEM-768 Cross-Implementation Comparison ===');
-  print('    ${ossl.version()} (via FFI → libcrypto) vs pqcrypto package');
-  print('    libcrypto: $libPath\n');
-
-  // ── Test A: OpenSSL keygen → OpenSSL encaps → OpenSSL decaps ─────────────
-  print('--- Test A: OpenSSL → OpenSSL (sanity check) ---');
-  final (Uint8List opensslPubA, Pointer<EVP_PKEY> opensslKeyA) = ossl
-      .generateKeypair();
-  final (Uint8List ctA, Uint8List ssAliceA) = ossl.encapsulate(
-    ossl.importPublicKey(opensslPubA),
-  );
-  final Uint8List ssBobA = ossl.decapsulate(opensslKeyA, ctA);
-
-  print('  PK:           ${hex(opensslPubA)}');
-  print('  Ciphertext:   ${hex(ctA)}');
-  print('  Alice SS:     ${hex(ssAliceA)}');
-  print('  Bob   SS:     ${hex(ssBobA)}');
-  check(
-    'OpenSSL encaps/decaps shared secrets match',
-    bytesEqual(ssAliceA, ssBobA),
-  );
-  ossl.freeKey(opensslKeyA);
-
-  // ── Test B: pqcrypto keygen → pqcrypto encaps → pqcrypto decaps ──────────
-  print('\n--- Test B: pqcrypto → pqcrypto (sanity check) ---');
-  final (pqPubB, pqSkB) = pq.generateKeyPair();
-  final (ctB, ssAliceB) = pq.encapsulate(pqPubB);
-  final ssBobB = pq.decapsulate(pqSkB, ctB);
-
-  print('  PK:           ${hex(pqPubB)}');
-  print('  Ciphertext:   ${hex(ctB)}');
-  print('  Alice SS:     ${hex(ssAliceB)}');
-  print('  Bob   SS:     ${hex(ssBobB)}');
-  check(
-    'pqcrypto encaps/decaps shared secrets match',
-    bytesEqual(ssAliceB, ssBobB),
-  );
-
-  // ── Test C: OpenSSL keygen → pqcrypto encaps → OpenSSL decaps ────────────
-  print('\n--- Test C: OpenSSL keygen → pqcrypto encaps → OpenSSL decaps ---');
-  final (opensslPubC, opensslKeyC) = ossl.generateKeypair();
-  print('  OpenSSL PK size: ${opensslPubC.length} bytes');
-
-  final (ctC, ssAliceC) = pq.encapsulate(opensslPubC);
-  print('  pqcrypto ciphertext: ${hex(ctC)}');
-  print('  pqcrypto SS (Alice): ${hex(ssAliceC)}');
-
-  final ssBobC = ossl.decapsulate(opensslKeyC, Uint8List.fromList(ctC));
-  print('  OpenSSL  SS (Bob):   ${hex(ssBobC)}');
-  check(
-    'OpenSSL keygen + pqcrypto encaps + OpenSSL decaps: shared secrets match',
-    bytesEqual(ssAliceC, ssBobC),
-  );
-  ossl.freeKey(opensslKeyC);
-
-  // ── Test D: pqcrypto keygen → OpenSSL encaps → pqcrypto decaps ───────────
-  print('\n--- Test D: pqcrypto keygen → OpenSSL encaps → pqcrypto decaps ---');
-  final (pqPubD, pqSkD) = pq.generateKeyPair();
-  print('  pqcrypto PK size: ${pqPubD.length} bytes');
-
-  final opensslPubKeyD = ossl.importPublicKey(Uint8List.fromList(pqPubD));
-  final (ctD, ssAliceD) = ossl.encapsulate(opensslPubKeyD);
-  ossl.freeKey(opensslPubKeyD);
-  print('  OpenSSL  ciphertext: ${hex(ctD)}');
-  print('  OpenSSL  SS (Alice): ${hex(ssAliceD)}');
-
-  final ssBobD = pq.decapsulate(pqSkD, ctD);
-  print('  pqcrypto SS (Bob):   ${hex(ssBobD)}');
-  check(
-    'pqcrypto keygen + OpenSSL encaps + pqcrypto decaps: shared secrets match',
-    bytesEqual(ssAliceD, ssBobD),
-  );
-
-  // ── Summary ───────────────────────────────────────────────────────────────
-  print('\n=== Summary ===');
-  if (_failures.isEmpty) {
-    print('[PASS] All tests passed.');
-    print('Both implementations conform to FIPS 203 ML-KEM-768:');
-    print('  - Ciphertexts produced by one can be decapsulated by the other');
-    print('  - Shared secrets are byte-identical across implementations');
+void _check(String label, bool condition) {
+  if (condition) {
+    _passes++;
+    print('[PASS] $label');
   } else {
-    print('[FAIL] ${_failures.length} test(s) failed:');
+    _failures.add(label);
+    print('[FAIL] $label');
+  }
+}
+
+void _skip(String label, String reason) {
+  _skips++;
+  print('[SKIP] $label — $reason');
+}
+
+void main() {
+  final libPath = resolveLibcryptoPath();
+  if (libPath == null) {
+    stderr.writeln(
+      'Could not locate an OpenSSL libcrypto exposing ML-KEM (needs OpenSSL '
+      '>= 3.5).\n'
+      'Set LIBCRYPTO_PATH explicitly, e.g.:\n'
+      '  LIBCRYPTO_PATH=/path/to/libcrypto.so dart run '
+      'bin/openssl_pqcrypto_interop.dart\n'
+      'Probed: ${libcryptoProbePaths().join(", ")}',
+    );
+    exit(2);
+  }
+
+  final ossl = OpenSslMlKem.load(libPath);
+  final seedOk = ossl.supportsSeedKeygen;
+
+  print('=== OpenSSL ↔ pqcrypto ML-KEM Interoperability ===');
+  print('    ${ossl.version()} (via FFI → libcrypto) vs pqcrypto package');
+  print('    libcrypto: $libPath');
+  print(
+    '    levels: ${mlKemLevels.map((l) => l.opensslName).join(", ")}'
+    '   |   fuzz: $_fuzzIterations iterations/direction',
+  );
+  if (!seedOk) {
+    print(
+      '    note: this libcrypto lacks seed-based ML-KEM keygen — '
+      'tests E and G will be skipped.',
+    );
+  }
+
+  for (final level in mlKemLevels) {
+    _runLevel(ossl, level, seedOk: seedOk);
+  }
+
+  print('\n=== Summary ===');
+  print('passed: $_passes   skipped: $_skips   failed: ${_failures.length}');
+  if (_failures.isEmpty) {
+    print('[PASS] All executed interop checks passed.');
+    print('Both implementations conform to FIPS 203 ML-KEM at every tested');
+    print('parameter set: encodings are byte-compatible and shared secrets');
+    print('(including the implicit-rejection branch) agree byte-for-byte.');
+  } else {
+    print('[FAIL] ${_failures.length} check(s) failed:');
     for (final f in _failures) {
       print('  - $f');
     }
     print('\nInterpretation:');
-    print(
-      '  Tests A and B verify each implementation is internally consistent.',
-    );
-    print('  Tests C and D verify cross-implementation interoperability.');
-    print('  A failure in C or D means the pqcrypto package deviates from');
-    print('  FIPS 203 and cannot exchange keys with OpenSSL ML-KEM-768.');
+    print('  A/B verify each implementation is internally consistent.');
+    print('  C/D verify bidirectional cross-implementation interoperability.');
+    print('  E/F/G verify byte-level wire and implicit-rejection conformance.');
+    print('  A C/D/E/F/G failure means pqcrypto deviates from FIPS 203 and');
+    print('  cannot reliably exchange ML-KEM material with OpenSSL.');
     exit(1);
+  }
+}
+
+void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
+  final name = level.opensslName;
+  final pq = level.pq;
+  print('\n--- $name ---');
+
+  // ── Sizes vs FIPS 203 (independent constants), OpenSSL and pqcrypto ───────
+  final (osslPub0, osslKey0) = ossl.generateKeypair(name);
+  final (pqPub0, pqSk0) = pq.generateKeyPair();
+  final (osslCt0, _) = ossl.encapsulate(ossl.importPublicKey(name, pqPub0));
+  print(
+    '  sizes pk/ct/sk/ss — OpenSSL ${osslPub0.length}/${osslCt0.length}/—/— · '
+    'pqcrypto ${pqPub0.length}/${pq.params.ciphertextBytes}/'
+    '${pqSk0.length}/$kSharedSecretBytes · '
+    'FIPS ${level.specPublicKeyBytes}/${level.specCiphertextBytes}/'
+    '${level.specSecretKeyBytes}/${level.specSharedSecretBytes}',
+  );
+  _check(
+    '$name sizes: OpenSSL & pqcrypto match FIPS 203 pk/ct/sk/ss',
+    osslPub0.length == level.specPublicKeyBytes &&
+        osslCt0.length == level.specCiphertextBytes &&
+        pqPub0.length == level.specPublicKeyBytes &&
+        pq.params.ciphertextBytes == level.specCiphertextBytes &&
+        pqSk0.length == level.specSecretKeyBytes,
+  );
+  ossl.freeKey(osslKey0);
+
+  // ── Test A: OpenSSL → OpenSSL (sanity) ────────────────────────────────────
+  final (osslPubA, osslKeyA) = ossl.generateKeypair(name);
+  final (ctA, ssAliceA) = ossl.encapsulate(
+    ossl.importPublicKey(name, osslPubA),
+  );
+  final ssBobA = ossl.decapsulate(osslKeyA, ctA);
+  ossl.freeKey(osslKeyA);
+  _check(
+    '$name A: OpenSSL→OpenSSL self-consistent',
+    bytesEqual(ssAliceA, ssBobA),
+  );
+
+  // ── Test B: pqcrypto → pqcrypto (sanity) ──────────────────────────────────
+  final (pqPubB, pqSkB) = pq.generateKeyPair();
+  final (ctB, ssAliceB) = pq.encapsulate(pqPubB);
+  final ssBobB = pq.decapsulate(pqSkB, ctB);
+  _check(
+    '$name B: pqcrypto→pqcrypto self-consistent',
+    bytesEqual(ssAliceB, ssBobB),
+  );
+
+  // ── Test C: OpenSSL keygen → pqcrypto encaps → OpenSSL decaps (×fuzz) ──────
+  var cOk = true;
+  for (var i = 0; i < _fuzzIterations; i++) {
+    final (osslPubC, osslKeyC) = ossl.generateKeypair(name);
+    final (ctC, ssAliceC) = pq.encapsulate(osslPubC);
+    final ssBobC = ossl.decapsulate(osslKeyC, Uint8List.fromList(ctC));
+    ossl.freeKey(osslKeyC);
+    if (!bytesEqual(ssAliceC, ssBobC)) cOk = false;
+  }
+  _check('$name C: OpenSSL keygen + pqcrypto encaps + OpenSSL decaps', cOk);
+
+  // ── Test D: pqcrypto keygen → OpenSSL encaps → pqcrypto decaps (×fuzz) ─────
+  var dOk = true;
+  for (var i = 0; i < _fuzzIterations; i++) {
+    final (pqPubD, pqSkD) = pq.generateKeyPair();
+    final osslPubKeyD = ossl.importPublicKey(name, Uint8List.fromList(pqPubD));
+    final (ctD, ssAliceD) = ossl.encapsulate(osslPubKeyD);
+    ossl.freeKey(osslPubKeyD);
+    final ssBobD = pq.decapsulate(pqSkD, ctD);
+    if (!bytesEqual(ssAliceD, ssBobD)) dOk = false;
+  }
+  _check('$name D: pqcrypto keygen + OpenSSL encaps + pqcrypto decaps', dOk);
+
+  // ── Test F: public-key wire round-trip (pqcrypto → OpenSSL → bytes) ───────
+  final (pqPubF, _) = pq.generateKeyPair();
+  final osslKeyF = ossl.importPublicKey(name, Uint8List.fromList(pqPubF));
+  final reexportedF = ossl.exportPublicKey(osslKeyF);
+  ossl.freeKey(osslKeyF);
+  _check(
+    '$name F: public-key wire round-trip (pqcrypto→OpenSSL→bytes identical)',
+    bytesEqual(pqPubF, reexportedF),
+  );
+
+  // ── Tests E and G need deterministic seed-based keygen ────────────────────
+  if (!seedOk) {
+    _skip('$name E: same seed ⇒ identical public keys', 'no seed keygen');
+    _skip('$name G: implicit-rejection secret agreement', 'no seed keygen');
+    return;
+  }
+
+  // A fixed (obviously non-secret) seed, varied per level so the three runs
+  // exercise distinct key material.
+  final seed = Uint8List(kSeedBytes);
+  for (var i = 0; i < seed.length; i++) {
+    seed[i] = (i * 7 + level.pq.params.k * 31) & 0xFF;
+  }
+
+  final (pqSeedPub, pqSeedSk) = pq.generateKeyPair(seed);
+  final osslSeedKey = ossl.keypairFromSeed(name, seed);
+  try {
+    // ── Test E: identical public keys from identical seed ──────────────────
+    final osslSeedPub = ossl.exportPublicKey(osslSeedKey);
+    _check(
+      '$name E: same seed ⇒ identical public keys (OpenSSL == pqcrypto)',
+      bytesEqual(pqSeedPub, osslSeedPub),
+    );
+
+    // ── Test G: implicit-rejection agreement on an invalid ciphertext ──────
+    // A correctly-sized but invalid ciphertext: FIPS 203 decapsulation never
+    // fails — both sides return K̄ = J(z‖c). Same z (shared seed) + same c ⇒
+    // identical secret. This exercises the rejection branch A–D never hit.
+    final invalidCt = Uint8List(level.specCiphertextBytes);
+    for (var i = 0; i < invalidCt.length; i++) {
+      invalidCt[i] = (i * 251 + 17) & 0xFF;
+    }
+    final ssRejPq = pq.decapsulate(pqSeedSk, invalidCt);
+    final ssRejOssl = ossl.decapsulate(osslSeedKey, invalidCt);
+    _check(
+      '$name G: implicit-rejection secret J(z‖c) agrees on invalid ciphertext',
+      bytesEqual(ssRejPq, ssRejOssl) && ssRejPq.length == kSharedSecretBytes,
+    );
+  } finally {
+    ossl.freeKey(osslSeedKey);
   }
 }
