@@ -3,7 +3,7 @@ description: >-
   Developer tool: OpenSSL <-> pqcrypto ML-KEM-768 interoperability check via
   FFI to libcrypto. Not published; depends on the parent package by path.
 publish_to: none
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.10.0
