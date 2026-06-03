@@ -162,8 +162,14 @@ class KyberKem {
 
     final packedPolyBytes = 384 * params.k;
     for (var offset = 0; offset < packedPolyBytes; offset += 384) {
-      final encoded = pk.sublist(offset, offset + 384);
+      final encoded = Uint8List.sublistView(pk, offset, offset + 384);
       final decoded = Pack.byteDecode12(encoded);
+
+      // FIPS 203 §7.2 Step 2 (Modulus check): verify that ByteEncode12(ByteDecode12(ek)) == ek.
+      // Note: Pack.byteDecode12 already performs a strict bounds check throwing if any coefficient >= q.
+      // Since all decoded coefficients are in [0, q-1] (< 2^12), the 12-bit encoding is a bijection, making
+      // this round-trip mathematically redundant. We retain it here as a spec-literal implementation of the
+      // modulus check, providing defense-in-depth against any future changes to Pack.byteDecode12's checks.
       final reencoded = Pack.byteEncode12(decoded);
       if (!_constantTimeEq(encoded, reencoded)) {
         throw ArgumentError('Invalid ML-KEM public key encoding');
