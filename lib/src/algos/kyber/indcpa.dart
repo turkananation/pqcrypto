@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:pointycastle/export.dart';
+import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
 import 'package:pqcrypto/src/common/poly.dart';
 // ignore: unused_import
@@ -305,7 +305,7 @@ class Indcpa {
 
     // 6. Pack sk = s_hat
     // H(pk) needed for sk
-    final h = SHA3Digest(256).process(pk);
+    final h = sha3256(pk);
     final sFlat = _flattenPolyVec(sHat); // Secret Key stores s_hat
     final sk = Pack.encodeSecretKey(sFlat, h, pk, z, params);
 

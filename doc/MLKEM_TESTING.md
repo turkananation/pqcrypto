@@ -45,6 +45,17 @@ It verifies:
 - `test/poly_test.dart` checks that `Poly.barrettReduce` returns canonical residues in `[0, q - 1]`.
 - `test/kem_validation_test.dart` checks public-key length/modulus validation, secret-key length/hash validation, and ciphertext length validation.
 - `test/cbd_test.dart` checks CBD sampling distribution.
+- `test/keccak_test.dart` checks the vendored FIPS 202 primitives (SHA3-256/512, SHAKE128/256) against published NIST known-answer values, including a multi-block message and the SHAKE stream-prefix property.
+- `test/roundtrip_test.dart` checks end-to-end keygen → encaps → decaps shared-secret agreement (and implicit rejection of a tampered ciphertext) for all three parameter sets, with no `dart:io`, so it runs on the web compilers too.
+
+## Platform coverage
+
+The library is pure Dart with **no third-party dependencies** (FIPS 202 is vendored in `lib/src/common/keccak.dart`). Because the web compilers use a different integer backend from the VM (`dart2js`: 53-bit `int`, 32-bit bitwise ops), correctness is verified on **all three backends**:
+
+- VM — the full suite, including the file-based KAT corpus.
+- `dart2js` and `dart2wasm` (headless Chrome) — every test except the `@TestOn('vm')` KAT-file reader, which needs `dart:io`.
+
+The file-based KAT test is the strongest conformance check but runs VM-only; `test/roundtrip_test.dart` and `test/keccak_test.dart` are the always-portable gate that catches platform-specific arithmetic defects on the web.
 
 ## Release Gate
 
@@ -54,7 +65,9 @@ Run these before merging or making correctness claims:
 dart format lib test
 dart analyze
 dart test test/kat_evaluator_test.dart
-dart test
+dart test                                    # VM: full suite + KAT corpus
+dart test -p chrome                          # web: dart2js
+dart test -p chrome --compiler dart2wasm     # web: dart2wasm
 ```
 
 ## Claim Boundary

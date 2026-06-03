@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:pointycastle/export.dart' show SHA3Digest;
 import 'package:pqcrypto/pqcrypto.dart';
+import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/algos/kyber/indcpa.dart';
 import 'package:pqcrypto/src/common/shake.dart';
 import 'package:test/test.dart';
@@ -31,7 +31,7 @@ void main() {
         final dk = Uint8List(33)
           ..setAll(0, d)
           ..[32] = kem.params.k;
-        final expected = SHA3Digest(512).process(dk).sublist(0, 32);
+        final expected = sha3512(dk).sublist(0, 32);
 
         expect(rho, equals(expected), reason: 'k=${kem.params.k}');
       }

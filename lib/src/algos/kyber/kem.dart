@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:pointycastle/export.dart'; // For SHA3Digest
+import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
 
 import 'indcpa.dart';
@@ -39,15 +39,9 @@ class KyberKem {
   }
 
   // Helpers for FIPS 203
-  static Uint8List _h(Uint8List data) {
-    final digest = SHA3Digest(256);
-    return digest.process(data);
-  }
+  static Uint8List _h(Uint8List data) => sha3256(data);
 
-  static Uint8List _g(Uint8List data) {
-    final digest = SHA3Digest(512);
-    return digest.process(data);
-  }
+  static Uint8List _g(Uint8List data) => sha3512(data);
 
   static Uint8List _j(Uint8List z, Uint8List c, int len) {
     final input = Uint8List(z.length + c.length);

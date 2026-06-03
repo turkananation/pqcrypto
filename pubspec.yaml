@@ -7,9 +7,9 @@ repository: https://github.com/turkananation/pqcrypto
 environment:
   sdk: ^3.10.0
 
-# Add regular dependencies here.
-dependencies:
-  pointycastle: ^4.0.0
+# No third-party runtime dependencies: pqcrypto is pure Dart and fully
+# self-contained. FIPS 202 (SHA-3/SHAKE) is vendored in
+# lib/src/common/keccak.dart; the public API depends only on dart:typed_data.
 
 dev_dependencies:
   lints: ^6.0.0

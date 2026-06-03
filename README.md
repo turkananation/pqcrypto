@@ -17,8 +17,8 @@ The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kybe
   - **Fujisaki-Okamoto Transform**: Robust re-encryption check to prevent chosen-ciphertext attacks (IND-CCA2 security).
   - **Input Checks**: Public-key length/modulus checks, decapsulation-key length/hash checks, and ciphertext length checks.
 - **Platform Agnostic**:
-  - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm).
-  - Zero native dependencies (uses `pointycastle` for SHA3 primitives).
+  - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
+  - **Zero dependencies.** No third-party packages at all: FIPS 202 (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`.
 
 ---
 
@@ -40,21 +40,25 @@ See [doc/MLKEM_TESTING.md](doc/MLKEM_TESTING.md) for the KAT file hashes, covera
 
 ## 🔗 OpenSSL Interoperability
 
-`pqcrypto` ML-KEM-768 is **wire-compatible with OpenSSL's** native ML-KEM. A
-blackbox harness ([`tool/openssl_interop/`](tool/openssl_interop/)) runs four
-tests — each implementation against itself (sanity), and each implementation's
-ciphertext decapsulated by the other (the cross-implementation proof):
+`pqcrypto`'s ML-KEM is **wire-compatible with OpenSSL's** native ML-KEM at **all
+three parameter sets** — ML-KEM-512, ML-KEM-768, and ML-KEM-1024. OpenSSL
+exposes those native ML-KEM algorithms in the 3.5 line and newer; the local
+interop harness ([`tool/openssl_interop/`](tool/openssl_interop/)) drives both
+implementations over `dart:ffi` and proves byte-level agreement on each:
 
-| Test | KeyGen | Encaps | Decaps | Result |
-| :--: | :--- | :--- | :--- | :---: |
-| A | OpenSSL | OpenSSL | OpenSSL | ✅ |
-| B | pqcrypto | pqcrypto | pqcrypto | ✅ |
-| C | OpenSSL | **pqcrypto** | OpenSSL | ✅ |
-| D | pqcrypto | **OpenSSL** | pqcrypto | ✅ |
+| Test | What it proves |
+| :--- | :--- |
+| **A / B** | each implementation is internally self-consistent (sanity) |
+| **C** | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed) |
+| **D** | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
+| **E** | same seed `(d‖z)` ⇒ **byte-identical public keys** |
+| **F** | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical |
+| **G** | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext |
 
-Shared secrets are **byte-identical** across implementations in both directions
-(public keys are 1184 bytes, ciphertexts 1088, shared secrets 32 — no format
-conversion needed).
+Shared secrets — including the FIPS 203 implicit-rejection branch — are
+**byte-identical** across implementations in both directions, at every level
+(public keys and ciphertexts are standardized raw encodings, so no format
+conversion is needed).
 
 > **The library stays 100% pure Dart.** This interop check is a developer/CI
 > tool under [`tool/`](tool/openssl_interop/) that uses `dart:ffi` to call
@@ -62,16 +66,19 @@ conversion needed).
 > dependencies — `lib/` imports no FFI, nothing native ships to consumers, and
 > the tool is excluded from the published package (see `.pubignore`).
 
-- **Linux:** verified against **OpenSSL 4.0.0** (Dart 3.12.0) on 2026-06-03.
-- **macOS:** runs against **OpenSSL 3.6** (`brew install openssl@3.6`).
+- **Linux:** verified against **OpenSSL 3.5.4 and 3.5.6** (Dart 3.12.0) on
+  2026-06-03; CI also builds and runs **OpenSSL 4.0.0**.
+- **macOS:** runs against Homebrew OpenSSL ≥ 3.5 (`brew install openssl@3.5`).
 
 ```sh
 cd tool/openssl_interop
 dart pub get
-dart run bin/openssl_pqcrypto_interop.dart   # Linux: prefix LIBCRYPTO_PATH=/path/to/libcrypto.so (OpenSSL >= 3.5)
+dart test                                    # rigorous suite: tests A–G × all three levels
+dart run bin/openssl_pqcrypto_interop.dart   # human-readable harness
+# Linux: prefix LIBCRYPTO_PATH=/path/to/libcrypto.so (OpenSSL >= 3.5)
 ```
 
-CI runs these four tests on every push via
+CI runs the full suite on every push via
 [`.github/workflows/interop.yml`](.github/workflows/interop.yml).
 
 **Full details:** [doc/OPENSSL_INTEROP.md](doc/OPENSSL_INTEROP.md) — FFI
@@ -112,6 +119,7 @@ Compression functions follow FIPS 203 Definitions 4.7-4.8:
 - **PRF**: SHAKE-256 for noise sampling.
 - **Hash Functions**: SHA3-256, SHA3-512 for key derivation.
 - **CBD Sampling**: Centered Binomial Distribution with $\eta \in \{2,3\}$.
+- **Vendored FIPS 202**: SHA-3 and SHAKE are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`.
 
 ### 4. Security Hardening
 
@@ -154,11 +162,16 @@ lib/
         │                         # - SampleNTT [Parse] (Algorithm 7)
         │                         # - PolyAdd, PolySub, PolyReduce
         │
-        └── shake.dart            # 🎲 Cryptographic Primitives
-                                  # - SHAKE-128 / SHAKE-256 wrappers
+        ├── shake.dart            # 🎲 SHAKE-128 / SHAKE-256 wrappers
+        │
+        └── keccak.dart           # 🧱 Vendored FIPS 202 (zero-dependency)
+                                  # - SHA3-256/512, SHAKE128/256
+                                  # - web-safe 32-bit lanes (dart2js/dart2wasm)
 
 test/
-├── kat_evaluator_test.dart       # 🧪 Checked-in ML-KEM KAT runner (3000 vectors)
+├── kat_evaluator_test.dart       # 🧪 Checked-in ML-KEM KAT runner (3000 vectors, VM-only)
+├── keccak_test.dart              # 🧱 FIPS 202 (SHA3/SHAKE) known-answer tests
+├── roundtrip_test.dart           # 🔁 End-to-end KEM round-trip (runs on VM + web)
 ├── kem_validation_test.dart      # 🔎 Public key, secret key, and ciphertext checks
 ├── keygen_derivation_test.dart   # 🔑 G(d‖k) + matrix XOF-ordering unit tests
 ├── pack_test.dart                # 📦 Serialization round-trip bounds
@@ -170,14 +183,15 @@ test/
     └── kat_MLKEM_1024.rsp        # ML-KEM-1024 checked-in KAT corpus
 
 tool/
-└── openssl_interop/              # 🔗 OpenSSL FFI interop harness (dev tool)
-    └── bin/
-        └── openssl_pqcrypto_interop.dart
+└── openssl_interop/              # 🔗 OpenSSL FFI interop harness (dev tool, separate package)
+    ├── lib/openssl_ml_kem.dart   #    generalized EVP bindings (512/768/1024)
+    ├── bin/openssl_pqcrypto_interop.dart
+    └── test/interop_test.dart    #    rigorous A–G interop suite
 
 .github/
 └── workflows/
-    ├── ci.yml                    # analyze + format + unit suite + KAT corpus
-    └── interop.yml               # OpenSSL ↔ pqcrypto ML-KEM-768 interop
+    ├── ci.yml                    # analyze + format + unit/KAT suite + web (dart2js/dart2wasm)
+    └── interop.yml               # OpenSSL ↔ pqcrypto ML-KEM-512/768/1024 interop
 ```
 
 ---
@@ -212,8 +226,16 @@ void main() {
   final ssBob = kem.decapsulate(sk, ct);
 
   // Check that secrets match
-  assert(ssAlice.toString() == ssBob.toString());
+  assert(_bytesEqual(ssAlice, ssBob));
   print('Shared Secret derived successfully!');
+}
+
+bool _bytesEqual(List<int> a, List<int> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
 ```
 
@@ -276,5 +298,6 @@ Add to `pubspec.yaml`:
 ```yaml
 dependencies:
   pqcrypto: ^0.2.1
-  pointycastle: ^4.0.0
 ```
+
+`pqcrypto` pulls in no third-party dependencies of its own.

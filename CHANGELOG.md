@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- Expanded the OpenSSL interoperability harness from ML-KEM-768 only to
+  **ML-KEM-512, ML-KEM-768, and ML-KEM-1024**.
+- Added stronger OpenSSL interop checks:
+  - Deterministic shared-seed key generation proves byte-identical public keys.
+  - Public-key import/export round-trip proves raw wire encoding compatibility.
+  - Invalid-ciphertext implicit rejection proves `J(z || c)` agreement.
+  - Negative coverage confirms truncated OpenSSL public keys are rejected.
+- Added VM + web round-trip tests so KEM keygen/encaps/decaps is exercised under
+  the Dart VM, `dart2js`, and `dart2wasm`.
+- Added FIPS 202 SHA-3/SHAKE known-answer coverage for the vendored Keccak
+  implementation.
+
+### Changed
+
+- Removed the `pointycastle` runtime dependency by vendoring the FIPS 202
+  SHA3-256, SHA3-512, SHAKE128, and SHAKE256 implementation in-tree.
+- Updated the README and OpenSSL interop documentation to describe the
+  all-parameter-set A-G interop suite, OpenSSL >= 3.5 requirement, and
+  zero-dependency pure-Dart package boundary.
+- Updated CI to include web compiler testing and the expanded OpenSSL
+  interoperability suite.
+
 ## 0.2.0
 
 ### Added

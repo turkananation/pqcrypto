@@ -1,3 +1,6 @@
+@TestOn('vm') // Reads the .rsp KAT corpus from disk (dart:io); VM-only.
+library;
+
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:test/test.dart';
