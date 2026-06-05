@@ -7,6 +7,10 @@
 - [Cryptographic Algorithms](Cryptographic-Algorithms)
 - [Security Posture & Compliance](Security-Posture)
 
+### Integration & Frameworks
+- [Serverpod & Flutter Integration](Serverpod-Integration)
+- [Multi-Agent PQC Framework](Multi-Agent-Framework)
+
 ### Community
 - [Discussions](https://github.com/turkananation/pqcrypto/discussions)
 - [Issue Board](https://github.com/turkananation/pqcrypto/issues)
