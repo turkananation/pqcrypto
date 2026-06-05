@@ -14,7 +14,7 @@ Canonical files:
 Run the setup check before committing framework changes:
 
 ```bash
-bash tool/agent_framework/check_setup.sh
+dart run tool/agent_framework/check_setup.dart
 ```
 
 This setup is intentionally documentation and manifest only. It does not install

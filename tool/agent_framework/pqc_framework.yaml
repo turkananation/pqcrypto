@@ -150,7 +150,7 @@ lifecycle_contract:
 
 validation_gates:
   docs_setup:
-    - bash tool/agent_framework/check_setup.sh
+    - dart run tool/agent_framework/check_setup.dart
   implementation_readiness:
     - tested Serverpod generated model round trip
     - tested endpoint byte-length rejection

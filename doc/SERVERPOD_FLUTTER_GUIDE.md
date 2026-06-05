@@ -682,7 +682,7 @@ dart run example/main.dart
 dart analyze
 dart test test/kat_evaluator_test.dart
 dart test test/mldsa_kat_test.dart
-bash tool/agent_framework/check_setup.sh
+dart run tool/agent_framework/check_setup.dart
 npx markdownlint-cli2 "**/*.md"
 ```
 
