@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.1
+
+### Changed
+
+- Updated package description to highlight zero-dependency, byte-exact FIPS 203 ML-KEM, and full FIPS 204 ML-DSA support, removing the "experimental" label.
+
 ## 0.3.0
 
 ### Added
