@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 @TestOn('vm') // Reads the .rsp KAT corpus from disk (dart:io); VM-only.
 library;
 
