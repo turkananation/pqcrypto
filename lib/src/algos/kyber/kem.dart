@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:pointycastle/export.dart'; // For SHA3Digest
+import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
 
 import 'indcpa.dart';
@@ -39,15 +39,9 @@ class KyberKem {
   }
 
   // Helpers for FIPS 203
-  static Uint8List _h(Uint8List data) {
-    final digest = SHA3Digest(256);
-    return digest.process(data);
-  }
+  static Uint8List _h(Uint8List data) => sha3256(data);
 
-  static Uint8List _g(Uint8List data) {
-    final digest = SHA3Digest(512);
-    return digest.process(data);
-  }
+  static Uint8List _g(Uint8List data) => sha3512(data);
 
   static Uint8List _j(Uint8List z, Uint8List c, int len) {
     final input = Uint8List(z.length + c.length);
@@ -79,8 +73,11 @@ class KyberKem {
       z = _randomBytes(32);
     }
 
-    // (rho, sigma) := G(d)
-    final rhoSigma = _g(d);
+    // (rho, sigma) := G(d || k)  — FIPS 203 §5.1 Algorithm 13
+    final Uint8List dk = Uint8List(33)
+      ..setAll(0, d)
+      ..[32] = params.k;
+    final rhoSigma = _g(dk);
 
     // Indcpa KeyGen
     return Indcpa.generateKeyPair(rhoSigma, z, params);
@@ -88,11 +85,8 @@ class KyberKem {
 
   /// Encapsulate: Client generates shared secret from pk.
   (Uint8List ct, Uint8List ss) encapsulate(Uint8List pk, [Uint8List? nonce]) {
-    if (pk.length != params.publicKeyBytes) {
-      throw ArgumentError(
-        'Invalid public key length: ${pk.length}, expected ${params.publicKeyBytes}',
-      );
-    }
+    _validatePublicKey(pk);
+
     // 1. m <- Random(32)
     final m = nonce ?? _randomBytes(32);
 
@@ -101,32 +95,25 @@ class KyberKem {
     final input = Uint8List(32 + 32);
     input.setAll(0, m);
     input.setAll(32, hPk);
-    final kR = _g(input);
+    final kr = _g(input);
 
-    final K = kR.sublist(0, 32);
-    final r = kR.sublist(32, 64);
+    final k = kr.sublist(0, 32);
+    final r = kr.sublist(32, 64);
 
     // 3. c := Encrypt(pk, m, r)
     final ct = Indcpa.encrypt(pk, m, r, params);
 
     // 4. return (c, K)
-    return (ct, K);
+    return (ct, k);
   }
 
   /// Decapsulate: Server recovers ss from ct.
   Uint8List decapsulate(Uint8List sk, Uint8List ct) {
-    if (sk.length != params.secretKeyBytes) {
-      throw ArgumentError(
-        'Invalid secret key length: ${sk.length}, expected ${params.secretKeyBytes}',
-      );
-    }
-    if (ct.length != params.ciphertextBytes) {
-      throw ArgumentError(
-        'Invalid ciphertext length: ${ct.length}, expected ${params.ciphertextBytes}',
-      );
-    }
+    _validateSecretKey(sk);
+    _validateCiphertext(ct);
+
     // 1. (s, h, pk, z) := Decode(sk)
-    final (s, h, pk, z) = Pack.decodeSecretKey(sk, params);
+    final (_, h, pk, z) = Pack.decodeSecretKey(sk, params);
 
     // 2. m' := Decrypt(s, ct)
     final mPrime = Indcpa.decrypt(
@@ -143,10 +130,10 @@ class KyberKem {
     final input = Uint8List(32 + 32);
     input.setAll(0, mPrime);
     input.setAll(32, h);
-    final kRPrime = _g(input);
+    final krPrime = _g(input);
 
-    final kPrime = kRPrime.sublist(0, 32);
-    final rPrime = kRPrime.sublist(32, 64);
+    final kPrime = krPrime.sublist(0, 32);
+    final rPrime = krPrime.sublist(32, 64);
 
     // 4. c' := Encrypt(pk, m', r')
     final cPrime = Indcpa.encrypt(pk, mPrime, rPrime, params);
@@ -156,6 +143,64 @@ class KyberKem {
       return kPrime;
     } else {
       return _j(z, ct, 32);
+    }
+  }
+
+  void _validatePublicKey(Uint8List pk) {
+    if (pk.length != params.publicKeyBytes) {
+      throw ArgumentError(
+        'Invalid ML-KEM public key length: expected '
+        '${params.publicKeyBytes}, got ${pk.length}',
+      );
+    }
+
+    final packedPolyBytes = 384 * params.k;
+    for (var offset = 0; offset < packedPolyBytes; offset += 384) {
+      final encoded = Uint8List.sublistView(pk, offset, offset + 384);
+      final decoded = Pack.byteDecode12(encoded);
+
+      // FIPS 203 §7.2 Step 2 (Modulus check): verify that ByteEncode12(ByteDecode12(ek)) == ek.
+      // Note: Pack.byteDecode12 already performs a strict bounds check throwing if any coefficient >= q.
+      // Since all decoded coefficients are in [0, q-1] (< 2^12), the 12-bit encoding is a bijection, making
+      // this round-trip mathematically redundant. We retain it here as a spec-literal implementation of the
+      // modulus check, providing defense-in-depth against any future changes to Pack.byteDecode12's checks.
+      final reencoded = Pack.byteEncode12(decoded);
+      if (!_constantTimeEq(encoded, reencoded)) {
+        throw ArgumentError('Invalid ML-KEM public key encoding');
+      }
+    }
+  }
+
+  void _validateSecretKey(Uint8List sk) {
+    if (sk.length != params.secretKeyBytes) {
+      throw ArgumentError(
+        'Invalid ML-KEM secret key length: expected '
+        '${params.secretKeyBytes}, got ${sk.length}',
+      );
+    }
+
+    final sBytes = 384 * params.k;
+    final pkStart = sBytes;
+    final pkEnd = pkStart + params.publicKeyBytes;
+    final hStart = pkEnd;
+    final hEnd = hStart + 32;
+
+    final pk = Uint8List.sublistView(sk, pkStart, pkEnd);
+    _validatePublicKey(pk);
+
+    final expectedHash = _h(pk);
+    final storedHash = Uint8List.sublistView(sk, hStart, hEnd);
+    if (!_constantTimeEq(expectedHash, storedHash)) {
+      throw ArgumentError('Invalid ML-KEM secret key hash');
+    }
+  }
+
+  void _validateCiphertext(Uint8List ct) {
+    if (ct.length != params.ciphertextBytes) {
+      throw ArgumentError(
+        'Invalid ML-KEM ciphertext length: expected '
+        '${params.ciphertextBytes}, got ${ct.length}',
+      );
     }
   }
 

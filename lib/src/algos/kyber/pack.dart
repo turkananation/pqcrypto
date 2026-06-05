@@ -21,9 +21,9 @@ class Pack {
     final denominator = 2 * q;
     final result = numerator ~/ denominator;
 
-    // Clamp to [0, 2^d - 1] to handle edge cases where rounding gives 2^d
+    // Wrap to [0, 2^d - 1] per FIPS 203 — mod 2^d
     final maxVal = (1 << d) - 1;
-    return result > maxVal ? maxVal : result;
+    return result & maxVal;
   }
 
   /// Decompress d-bit value to field element per FIPS 203 Definition 4.8
@@ -99,14 +99,15 @@ class Pack {
       final c2 = compress(poly.coeffs[i + 2], 10);
       final c3 = compress(poly.coeffs[i + 3], 10);
 
-      // Pack 4 × 10-bit values into 5 bytes
-      final x = c0 | (c1 << 10) | (c2 << 20) | (c3 << 30);
-
-      result[outIdx++] = x & 0xFF;
-      result[outIdx++] = (x >> 8) & 0xFF;
-      result[outIdx++] = (x >> 16) & 0xFF;
-      result[outIdx++] = (x >> 24) & 0xFF;
-      result[outIdx++] = (x >> 32) & 0xFF;
+      // Pack 4 × 10-bit values into 5 bytes byte-wise, so no intermediate
+      // exceeds 32 bits. (A 40-bit `c0 | c1<<10 | c2<<20 | c3<<30` is correct on
+      // the 64-bit VM but silently wrong under dart2js, where `<<` is a 32-bit
+      // operation — `c3 << 30` overflows and `>> 32` reads nothing.)
+      result[outIdx++] = c0 & 0xFF;
+      result[outIdx++] = ((c0 >> 8) & 0x03) | ((c1 & 0x3F) << 2);
+      result[outIdx++] = ((c1 >> 6) & 0x0F) | ((c2 & 0x0F) << 4);
+      result[outIdx++] = ((c2 >> 4) & 0x3F) | ((c3 & 0x03) << 6);
+      result[outIdx++] = (c3 >> 2) & 0xFF;
     }
 
     return result;
@@ -128,12 +129,13 @@ class Pack {
       final b3 = bytes[inIdx++];
       final b4 = bytes[inIdx++];
 
-      final x = b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | (b4 << 32);
-
-      coeffs[i] = decompress((x >> 0) & 0x3FF, 10); // 10 bits
-      coeffs[i + 1] = decompress((x >> 10) & 0x3FF, 10);
-      coeffs[i + 2] = decompress((x >> 20) & 0x3FF, 10);
-      coeffs[i + 3] = decompress((x >> 30) & 0x3FF, 10);
+      // Unpack 5 bytes → 4 × 10-bit values byte-wise. The previous 40-bit
+      // `b0 | b1<<8 | … | b4<<32` is correct on the 64-bit VM but broken under
+      // dart2js (32-bit shifts): `b4 << 32` wraps and `x >> 32` reads nothing.
+      coeffs[i] = decompress(b0 | ((b1 & 0x03) << 8), 10);
+      coeffs[i + 1] = decompress((b1 >> 2) | ((b2 & 0x0F) << 6), 10);
+      coeffs[i + 2] = decompress((b2 >> 4) | ((b3 & 0x3F) << 4), 10);
+      coeffs[i + 3] = decompress((b3 >> 6) | (b4 << 2), 10);
     }
 
     return Poly(coeffs);
@@ -374,6 +376,13 @@ class Pack {
     Uint8List sk,
     KyberParams params,
   ) {
+    if (sk.length != params.secretKeyBytes) {
+      throw ArgumentError(
+        'Invalid secret key length for ML-KEM decode: expected '
+        '${params.secretKeyBytes}, got ${sk.length}',
+      );
+    }
+
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 

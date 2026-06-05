@@ -1,0 +1,72 @@
+name: CI
+
+# Run on every branch push and every pull request so the full test suite
+# (which includes the checked-in 3000-vector ML-KEM KAT corpus) is exercised
+# on each change.
+on:
+  push:
+  pull_request:
+
+# Least privilege: this workflow only reads the repository.
+permissions:
+  contents: read
+
+# If a newer commit is pushed to the same ref, cancel the in-progress run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-and-test:
+    name: Analyze & test (Dart stable)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Print Dart version
+        run: dart --version
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze source
+        run: dart analyze
+
+      - name: Run tests (unit suite + ML-KEM KAT corpus)
+        run: dart test
+
+  web-test:
+    name: Web test (dart2js + dart2wasm)
+    runs-on: ubuntu-latest
+    # The library targets the web (dart2js/dart2wasm), where `int` is 53-bit and
+    # bitwise ops are 32-bit — a different arithmetic backend from the VM. This
+    # job runs the portable (non-dart:io) tests under both web compilers in a
+    # headless browser, so platform-specific defects in the Keccak/compression
+    # code are caught. The file-based KAT test is `@TestOn('vm')` and is skipped
+    # here automatically.
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run tests under dart2js (Chrome)
+        run: dart test -p chrome
+
+      - name: Run tests under dart2wasm (Chrome)
+        run: dart test -p chrome --compiler dart2wasm

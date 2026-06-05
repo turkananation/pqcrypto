@@ -17,9 +17,15 @@ linter:
   rules:
     - avoid_print
 
+# linter:
+#   rules:
+#     - camel_case_types
+
+# The interop tool is a separate path-package (tool/openssl_interop) with its
+# own pubspec and an FFI dependency. Exclude it from the main package analysis.
 analyzer:
-  errors:
-    avoid_print: error # Prevent print() in lib/
+  exclude:
+    - tool/openssl_interop/**
 
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints

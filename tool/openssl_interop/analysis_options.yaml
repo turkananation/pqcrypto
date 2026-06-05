@@ -1,0 +1,7 @@
+# Standalone developer tool (separate path-package; see ./pubspec.yaml).
+#
+# Intentionally does NOT `include: package:lints/...`: this sub-package has no
+# `lints` dev-dependency, and a bare `dart format .` run from the repo root
+# would otherwise fail to resolve that package URI in this directory's context
+# and emit a warning. The parent package excludes this directory from its own
+# analysis (see ../../analysis_options.yaml).

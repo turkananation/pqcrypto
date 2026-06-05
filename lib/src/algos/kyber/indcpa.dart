@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:pointycastle/export.dart';
+import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
 import 'package:pqcrypto/src/common/poly.dart';
 // ignore: unused_import
@@ -186,16 +186,13 @@ class Indcpa {
   }
 
   static Poly _genMatrixPoly(Uint8List rho, int i, int j) {
-    // Input for XOF: rho || j || i (Note: indices are 0 to 255?, no 0 to k-1)
-    // Actually indices are stored as bytes: i and j.
-    // Spec: XOF(rho || j || i) where j and i are byte-encoded.
-    // "j" is the column index?
-    // FIPS 203: A[i][j] <- SampleNTT(XOF(rho, j, i))
-
+    // FIPS 203 Algorithm 13 (KeyGen): A[i][j] = SampleNTT(XOF(rho, j, i))
+    // Callers pass (rho, j, i) so formal `i` is column, formal `j` is row.
+    // XOF input is rho || col || row, i.e. rho || i || j here.
     final input = Uint8List(32 + 2);
     input.setAll(0, rho);
-    input[32] = j;
-    input[33] = i;
+    input[32] = i;
+    input[33] = j;
 
     // Request enough bytes (SHAKE-128 rate is 168. 3 blocks = 504.
     // 256 coeffs * 12 bits = 384 bytes (dense).
@@ -234,6 +231,19 @@ class Indcpa {
     // With 672 bytes, failing is extremely unlikely.
     return Poly(coeffs);
   }
+
+  // ===== Test-only accessors =====
+  // `Indcpa` lives under `lib/src/` and is not exported from `pqcrypto.dart`,
+  // so these do not widen the public package API. They let unit tests pin the
+  // matrix-expansion behavior (FIPS 203 Algorithm 13: A[i][j] generated from
+  // XOF(rho, col, row)) without re-running the full KAT corpus.
+
+  /// Test hook: generates the matrix entry whose XOF input is `rho || col || row`.
+  static Poly genMatrixEntryForTest(Uint8List rho, int col, int row) =>
+      _genMatrixPoly(rho, col, row);
+
+  /// Test hook: runs FIPS 203 SampleNTT rejection sampling over [stream].
+  static Poly sampleNttForTest(Uint8List stream) => _sampleNTT(stream);
 
   static (Uint8List, Uint8List) generateKeyPair(
     Uint8List rhoSigma,
@@ -295,7 +305,7 @@ class Indcpa {
 
     // 6. Pack sk = s_hat
     // H(pk) needed for sk
-    final h = SHA3Digest(256).process(pk);
+    final h = sha3256(pk);
     final sFlat = _flattenPolyVec(sHat); // Secret Key stores s_hat
     final sk = Pack.encodeSecretKey(sFlat, h, pk, z, params);
 
