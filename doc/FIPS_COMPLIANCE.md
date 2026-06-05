@@ -4,17 +4,18 @@ Last updated: 2026-06-05
 
 This document records standards alignment evidence for the current repository.
 It is not a CMVP/FIPS 140 validation certificate, and it must not be cited as
-one.
+one. For the full explanation of why algorithm conformance is not module
+validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
 ## Summary
 
-| Standard | Scope in repo                   | Current status                                                                  |
-| -------- | ------------------------------- | ------------------------------------------------------------------------------- |
-| FIPS 203 | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop. |
-| FIPS 202 | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                |
-| FIPS 204 | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
-| FIPS 180-4 | SHA-256/384/512               | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                |
-| FIPS 140 | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                     |
+| Standard   | Scope in repo                   | Current status                                                                                                                                 |
+| ---------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIPS 203   | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                |
+| FIPS 202   | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                                                                               |
+| FIPS 204   | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
+| FIPS 180-4 | SHA-256/384/512                 | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                               |
+| FIPS 140   | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                                                                                    |
 
 ## FIPS 203 - ML-KEM
 
@@ -76,12 +77,12 @@ Current ML-DSA evidence:
 - `test/mldsa_kat_test.dart` reproduces every vector **byte-for-byte** and
   verifies every signature, across the full matrix:
 
-| Dimension      | Values                                                          |
-| -------------- | --------------------------------------------------------------- |
-| Parameter set  | ML-DSA-44, ML-DSA-65, ML-DSA-87                                  |
-| Signing mode   | deterministic (`rnd = 0`), hedged (`rnd` from vector)           |
-| Flavour        | raw (Alg 6/7/8), pure (Alg 1/2/3 + context), hashed (Alg 1/4/5) |
-| Per file       | 100 vectors → 300 key generations + 1800 signatures total       |
+| Dimension     | Values                                                          |
+| ------------- | --------------------------------------------------------------- |
+| Parameter set | ML-DSA-44, ML-DSA-65, ML-DSA-87                                 |
+| Signing mode  | deterministic (`rnd = 0`), hedged (`rnd` from vector)           |
+| Flavour       | raw (Alg 6/7/8), pure (Alg 1/2/3 + context), hashed (Alg 1/4/5) |
+| Per file      | 100 vectors → 300 key generations + 1800 signatures total       |
 
 - Algorithm-level regression tests: `dsa_zetas_test.dart` (Appendix B zetas +
   negacyclic NTT), `dsa_rounding_test.dart` (Power2Round/Decompose/MakeHint/

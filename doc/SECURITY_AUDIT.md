@@ -11,9 +11,9 @@ pass, it is marked as open or needs verification.
 | Component | Current security posture                                                                 |
 | --------- | ---------------------------------------------------------------------------------------- |
 | ML-KEM    | Supported surface with KAT, input-validation, Keccak, web, and OpenSSL interop evidence. |
-| ML-DSA    | FIPS 204-aligned surface, byte-exact on the checked-in KAT corpus; best-effort side-channel hardening. |
-| Common    | Vendored FIPS 202 + FIPS 180-4 SHA-2; no runtime dependencies.                            |
-| Package   | Not FIPS 140/CMVP validated.                                                             |
+| ML-DSA    | FIPS 204-aligned; byte-exact on the checked-in KAT corpus; best-effort hardening.        |
+| Common    | Vendored FIPS 202 + FIPS 180-4 SHA-2; no runtime dependencies.                           |
+| Package   | Not FIPS 140/CMVP validated (see FIPS_140_BOUNDARY.md); zero runtime deps.               |
 
 ## Current Verification Snapshot
 
@@ -36,21 +36,24 @@ pass, it is marked as open or needs verification.
 | DSA-01     | Per-level `tau` values     | `DilithiumParams` contains 39/49/60 for ML-DSA-44/65/87.                      |
 | DSA-02     | Production `print` leakage | `rg "print\\(" lib` shows no production-library `print()` calls.              |
 | DSA-10     | ML-DSA correctness         | `mldsa_kat_test.dart`: 300 keygens + 1800 signatures byte-exact, all verify.  |
-| DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner; no machine paths. |
+| DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner.            |
 | DSA-12     | Norm-check side channel    | `_checkNorm` replaced by no-early-exit `_normExceeds` (all 256 coeffs).       |
-| DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` use an unbounded incremental XOF. |
+| DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` squeeze an incremental XOF.      |
 | SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`; applied in keygen/sign `finally` blocks.       |
 | SHA2-01    | HashML-DSA pre-hash        | `sha2_test.dart` pins SHA-256/384/512 against direct NIST vectors.            |
+| KEM-10     | Decapsulation selection    | Constant-time branchless select of K' vs implicit-rejection; 3000 KATs exact. |
+| KEM-11     | RNG allocation             | `_secureRng` is a cached `Random.secure()` reused across calls.               |
 
 ## Open Findings
 
-| ID     | Severity | Area                    | Finding                                                                      | Evidence                                        | Required action                               |
-| ------ | -------- | ----------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
-| DSA-20 | Medium   | ML-DSA side channels    | `_normExceeds` and rejection loops have no early exit, but per-iteration branch directions are not provably constant-time in pure Dart. | `lib/src/algos/dilithium/dsa.dart`.             | Deeper review; accept best-effort posture for a pure-Dart lib and document it. |
-| DSA-21 | Low      | HashML-DSA coverage     | Only the level-bound SHA-2 pre-hash is exposed; other approved pre-hashes (e.g. SHAKE) are not surfaced. | `lib/src/algos/dilithium/dsa.dart`.             | Add SHAKE pre-hash paths if broader HashML-DSA support is required. |
-| KEM-10 | Medium   | Decapsulation selection | `decapsulate` branches on constant-time comparison result.                   | `lib/src/algos/kyber/kem.dart`.                 | Consider constant-time select for K/J output. |
-| KEM-11 | Medium   | RNG allocation          | `_randomBytes` creates `Random.secure()` per call.                           | `lib/src/algos/kyber/kem.dart`.                 | Cache or inject RNG if measurement warrants.  |
-| DOC-01 | Medium   | Assurance wording       | Any broad "FIPS validated" claim would exceed current evidence.              | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md).       | Keep claim wording evidence-scoped.           |
+| ID     | Severity | Area                 | Finding                                                | Required action                      |
+| ------ | -------- | -------------------- | ------------------------------------------------------ | ------------------------------------ |
+| DSA-20 | Medium   | ML-DSA side channels | No early exit, but not provably constant-time in Dart. | Deeper review; document best-effort. |
+| DSA-21 | Low      | HashML-DSA coverage  | Only the level-bound SHA-2 pre-hash is exposed.        | Add SHAKE pre-hash paths if needed.  |
+| DOC-01 | Medium   | Assurance wording    | Any broad "FIPS validated" claim exceeds the evidence. | Keep wording evidence-scoped.        |
+
+DOC-01 detail: the acceptable/unacceptable wording list is in
+[FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
 ## ML-KEM Security Boundary
 

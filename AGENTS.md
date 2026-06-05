@@ -8,7 +8,7 @@ documentation root [doc/](doc/).
 
 ## Current Truth
 
-- Package version: `0.2.1`.
+- Package version: `0.3.0`.
 - Runtime dependencies: none. FIPS 202 SHA3/SHAKE is vendored in
   `lib/src/common/keccak.dart`.
 - ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,
@@ -32,7 +32,10 @@ Start here:
    [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md).
 6. For ML-DSA work, read
    [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
-7. Inspect `lib/src/`, `test/`, and `tool/openssl_interop/`.
+7. For multi-agent Serverpod/Flutter or tool-native workflow planning, read
+   [doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)
+   and [tool/agent_framework/pqc_framework.yaml](tool/agent_framework/pqc_framework.yaml).
+8. Inspect `lib/src/`, `test/`, and `tool/openssl_interop/`.
 
 Run:
 
@@ -119,6 +122,22 @@ Keep assurance wording scoped:
 - Good: "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
 - Good: "ML-DSA is byte-exact on the checked-in FIPS 204 KAT corpus."
 - Bad: "fully FIPS validated" / "CMVP validated" / "certified" without a record.
+- See [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for the precise claim
+  boundary and the acceptable/unacceptable wording list.
+
+## Universal PQC Agent Framework
+
+Project-level native wrappers are committed for Codex, Claude Code, and
+Antigravity:
+
+- `.codex/skills/universal-pqc-framework/SKILL.md`
+- `.claude/skills/universal-pqc-framework/SKILL.md`
+- `.gemini/antigravity/skills/universal-pqc-framework/SKILL.md`
+
+These wrappers are thin. The canonical source is
+[doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)
+plus [tool/agent_framework/pqc_framework.yaml](tool/agent_framework/pqc_framework.yaml).
+Keep role output and implementation plans inside that evidence boundary.
 
 ## Security Auditing Phase
 

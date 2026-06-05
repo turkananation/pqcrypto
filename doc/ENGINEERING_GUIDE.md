@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-05
 
-This guide is for contributors working on the current `0.2.1` repository.
+This guide is for contributors working on the current `0.3.0` repository.
 
 ## Setup
 
@@ -33,29 +33,34 @@ dart pub get
 | OpenSSL interop       | `cd tool/openssl_interop && dart test` with OpenSSL >= 3.5                                                                                                                                     |
 | Example/rough timings | `dart run example/main.dart`                                                                                                                                                                   |
 
-The full VM suite currently fails in ML-DSA/debug tests. Do not use a passing
-ML-KEM focused set as evidence that ML-DSA is ready.
+The full VM suite is green, as are the `dart2js`/`dart2wasm` web gates. Both the
+ML-KEM (3000 vectors) and ML-DSA (18-file) KAT runners are byte-exact. Still keep
+ML-KEM and ML-DSA evidence separate: a passing ML-KEM set is not ML-DSA evidence.
 
 ## Documentation Rules
 
 - Use `doc/` as the only documentation root.
 - Start readers at [INDEX.md](INDEX.md).
 - Keep all readiness claims tied to current test evidence.
-- Mention ML-DSA as exported but experimental until the full suite and KATs pass.
-- Do not claim CMVP/FIPS 140 validation.
+- ML-DSA is FIPS 204-aligned and byte-exact on the checked-in KAT corpus; keep
+  any change byte-exact via `dart test test/mldsa_kat_test.dart`.
+- Do not claim CMVP/FIPS 140 validation (see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md)).
 
 ## Code Organization
 
-| Path                         | Responsibility                        |
-| ---------------------------- | ------------------------------------- |
-| `lib/pqcrypto.dart`          | Public exports.                       |
-| `lib/src/common/keccak.dart` | Vendored FIPS 202 implementation.     |
-| `lib/src/common/shake.dart`  | SHAKE wrappers.                       |
-| `lib/src/common/poly.dart`   | ML-KEM polynomial/NTT arithmetic.     |
-| `lib/src/algos/kyber/`       | ML-KEM implementation.                |
-| `lib/src/algos/dilithium/`   | Experimental ML-DSA implementation.   |
-| `test/data/kat_MLKEM_*.rsp`  | Checked-in ML-KEM KAT corpus.         |
-| `tool/openssl_interop/`      | Unpublished OpenSSL FFI interop tool. |
+| Path                          | Responsibility                        |
+| ----------------------------- | ------------------------------------- |
+| `lib/pqcrypto.dart`           | Public exports.                       |
+| `lib/src/common/keccak.dart`  | Vendored FIPS 202 (SHA3/SHAKE + XOF). |
+| `lib/src/common/shake.dart`   | SHAKE wrappers + incremental XOF.     |
+| `lib/src/common/sha2.dart`    | Vendored FIPS 180-4 SHA-256/384/512.  |
+| `lib/src/common/zeroize.dart` | Best-effort secret zeroization.       |
+| `lib/src/common/poly.dart`    | ML-KEM polynomial/NTT arithmetic.     |
+| `lib/src/algos/kyber/`        | ML-KEM (FIPS 203) implementation.     |
+| `lib/src/algos/dilithium/`    | ML-DSA (FIPS 204) implementation.     |
+| `test/data/MLKEM/`            | Checked-in ML-KEM KAT corpus.         |
+| `test/data/MLDSA/`            | Checked-in ML-DSA KAT corpus.         |
+| `tool/openssl_interop/`       | Unpublished OpenSSL FFI interop tool. |
 
 ## Security Practices
 

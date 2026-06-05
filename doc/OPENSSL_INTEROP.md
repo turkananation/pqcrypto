@@ -32,7 +32,7 @@ implementations must agree on the wire formats and the derived secret. All
 sizes are in bytes:
 
 | Artifact                            | ML-KEM-512 | ML-KEM-768 | ML-KEM-1024 |
-| :---------------------------------- | :--------: | :--------: | :---------: |
+| ----------------------------------- | ---------- | ---------- | ----------- |
 | Encapsulation key (public key) `ek` | **800**    | **1184**   | **1568**    |
 | Ciphertext `c`                      | **768**    | **1088**   | **1568**    |
 | Decapsulation key (secret key) `dk` | **1632**   | **2400**   | **3168**    |
@@ -63,7 +63,7 @@ following for **each** of ML-KEM-512, ML-KEM-768, and ML-KEM-1024. Tests A and B
 are self-consistency sanity checks; C–G are cross-implementation proofs.
 
 | Test           | KeyGen                               | Encaps          | Decaps          | What it proves                                                                   |
-| :------------: | :----------------------------------- | :-------------- | :-------------- | :------------------------------------------------------------------------------- |
+| -------------- | ------------------------------------ | --------------- | --------------- | -------------------------------------------------------------------------------- |
 | **sizes**      | —                                    | —               | —               | OpenSSL & `pqcrypto` outputs match the FIPS 203 size constants                   |
 | **A**          | OpenSSL                              | OpenSSL         | OpenSSL         | Sanity: OpenSSL is internally consistent                                         |
 | **B**          | pqcrypto                             | pqcrypto        | pqcrypto        | Sanity: `pqcrypto` is internally consistent                                      |
@@ -154,7 +154,7 @@ high-level **EVP** API. No `openssl` CLI and no build step at runtime — it
 `dlopen`s the shared library and calls:
 
 | EVP function                                                                      | Purpose                                                                |
-| :-------------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `EVP_PKEY_CTX_new_from_name(NULL, "ML-KEM-<lvl>", NULL)`                          | Create a context for the chosen level                                  |
 | `EVP_PKEY_keygen_init` / `EVP_PKEY_keygen`                                        | Generate a keypair                                                     |
 | `EVP_PKEY_get1_encoded_public_key`                                                | Export the raw public key                                              |
@@ -201,7 +201,7 @@ FIPS 203 conformance defects, tracked here by stable Evidence-Ledger ID
 (E-numbers) and the fix commit:
 
 | Defect                                                                | Ledger | Effect if wrong                                                         | Fix commit   |
-| :-------------------------------------------------------------------- | :----: | :---------------------------------------------------------------------- | :----------- |
+| --------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------- | ------------ |
 | `Compress` must wrap to `[0, 2^d−1]` (mod 2^d), not clamp             | E2     | Ciphertext bytes diverge → C/D fail                                     | `aeae275`    |
 | KeyGen seed expansion must be `G(d ‖ k)` (domain-separation byte `k`) | E7     | Different `ρ`/keys → public keys never match                            | `fb2e8cc`    |
 | Matrix `Â[i][j] = SampleNTT(XOF(ρ, j, i))` — correct `i/j` order      | E8     | Generates `Aᵀ` → ciphertext diverges → C/D fail                         | `4572b3b`    |
@@ -221,7 +221,7 @@ changes regressed interop.
 ### 5.1 Linux (verified in this repository)
 
 | Component | Version / detail                                                                                                  |
-| :-------- | :---------------------------------------------------------------------------------------------------------------- |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
 | OS        | Linux x86_64                                                                                                      |
 | OpenSSL   | **3.5.4** (30 Sep 2025) and **3.5.6** (7 Apr 2026), default provider (`libcrypto.so.3`); CI also builds **4.0.0** |
 | Dart SDK  | **3.12.0** (stable)                                                                                               |
@@ -275,7 +275,7 @@ was authored and validated on macOS. The vendored harness here runs there
 unchanged (it auto-detects the Homebrew `libcrypto`).
 
 | Component | Version / detail                                                           |
-| :-------- | :------------------------------------------------------------------------- |
+| --------- | -------------------------------------------------------------------------- |
 | OS        | macOS (Apple Silicon)                                                      |
 | OpenSSL   | **3.5+** via Homebrew (e.g. `brew install openssl@3.5`), `libcrypto.dylib` |
 | Dart SDK  | **≥ 3.11**                                                                 |

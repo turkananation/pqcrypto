@@ -4,6 +4,21 @@
 
 ### Added
 
+- Project-level Universal Multi-Agent PQC Framework setup:
+  - canonical framework guide in `doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md`;
+  - machine-readable manifest in `tool/agent_framework/pqc_framework.yaml`;
+  - native thin wrappers for Codex, Claude Code, and Antigravity.
+- `example/main.dart` now demonstrates ML-KEM shared-secret agreement,
+  ML-DSA signing/verification, and an ML-DSA-signed ML-KEM-768 handshake
+  transcript.
+- `doc/SERVERPOD_FLUTTER_GUIDE.md` now covers ML-KEM + ML-DSA Serverpod/Flutter
+  integration, strict byte contracts, generated model sketches, Flutter isolate
+  guidance, and framework-driven implementation prompts.
+
+## 0.3.0
+
+### Added
+
 - **ML-DSA (FIPS 204) is now byte-exact against the official KAT corpus** for
   ML-DSA-44, ML-DSA-65, and ML-DSA-87 across the full matrix of signing mode
   (`deterministic`, `hedged`) × implementation flavour (`raw`/internal,
@@ -24,8 +39,19 @@
 - New focused tests: Appendix B zetas + negacyclic NTT property, rounding
   boundary cases, malformed-input/negative verification, external-API behavior,
   and direct SHA-2 vectors. All run on the VM, `dart2js`, and `dart2wasm`.
+- `SECURITY.md` (vulnerability reporting / coordinated disclosure policy) and
+  `doc/FIPS_140_BOUNDARY.md` (why algorithm conformance is not CMVP/FIPS 140
+  module validation), linked from every place the claim boundary is raised.
 
 ### Changed
+
+- **ML-KEM decapsulation hardening**: the FIPS 203 output is now selected with a
+  constant-time branchless mask — both `K'` and `J(z || c)` are always computed,
+  so success vs. implicit-rejection no longer differs in control flow. Secret
+  intermediates (`m'`, `K' || r'`, `J(z || c)`, `c'`, `z`) are zeroized in a
+  `finally` block, and the KEM now reuses a cached `Random.secure()`. The
+  3000-vector ML-KEM KAT corpus (including invalid-ciphertext vectors) remains
+  byte-exact.
 
 - ML-DSA rejection samplers (`RejNTTPoly`, `RejBoundedPoly`, `SampleInBall`) now
   use an **incremental SHAKE XOF** (`KeccakXof`) instead of fixed buffers, so

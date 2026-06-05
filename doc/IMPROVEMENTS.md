@@ -11,39 +11,39 @@ guardrails.
 | ID     | Improvement                                       | Status | Files                                                   |
 | ------ | ------------------------------------------------- | ------ | ------------------------------------------------------- |
 | IMP-01 | Keep documentation under canonical `doc/`.        | Done   | `doc/`, README, AGENTS, CLAUDE                          |
-| IMP-02 | State ML-DSA as exported but experimental.        | Done   | README, `doc/*.md`, package metadata updated.           |
+| IMP-02 | State ML-DSA validation status accurately.        | Done   | FIPS 204-aligned, byte-exact KATs; docs updated.        |
 | IMP-03 | Remove old `pointycastle` dependency claims.      | Done   | Only historical/replacement references remain.          |
 | IMP-04 | Replace old non-discovered KAT runner references. | Done   | Current runner is `test/kat_evaluator_test.dart`.       |
-| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.2.1`. |
+| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.3.0`. |
 
-## P0 - ML-DSA Correctness
+## P0 - ML-DSA Correctness (complete)
 
-| ID     | Improvement                           | Status | Rationale                                                                |
-| ------ | ------------------------------------- | ------ | ------------------------------------------------------------------------ |
-| DSA-01 | Fix centered-value packing/unpacking. | Open   | Current `dsa_pack_test.dart` failures.                                   |
-| DSA-02 | Fix `ExpandS` bounded sampling.       | Open   | Current `dsa_symmetric_test.dart` failures.                              |
-| DSA-03 | Replace hardcoded ML-DSA KAT paths.   | Open   | Current `mldsa_debug_test.dart` failure and `mldsa_kat_test.dart` skips. |
-| DSA-04 | Add repo-local ML-DSA KAT corpus.     | Open   | Required before readiness claims.                                        |
-| DSA-05 | Add discovered ML-DSA KAT runner.     | Open   | Must run under `dart test`.                                              |
+| ID     | Improvement                           | Status | Rationale                                          |
+| ------ | ------------------------------------- | ------ | -------------------------------------------------- |
+| DSA-01 | Fix centered-value packing/unpacking. | Done   | Signed-domain packing; `dsa_pack_test.dart` green. |
+| DSA-02 | Fix `ExpandS` bounded sampling.       | Done   | η=2 `RejBoundedPoly` fix; symmetric tests green.   |
+| DSA-03 | Replace hardcoded ML-DSA KAT paths.   | Done   | Discovered runner over `test/data/MLDSA`.          |
+| DSA-04 | Add repo-local ML-DSA KAT corpus.     | Done   | `test/data/MLDSA` (18 files).                      |
+| DSA-05 | Add discovered ML-DSA KAT runner.     | Done   | `test/mldsa_kat_test.dart` under `dart test`.      |
 
-## P1 - Security Hardening
+## P1 - Security Hardening (complete)
 
-| ID     | Improvement                                        | Status | Notes                                             |
-| ------ | -------------------------------------------------- | ------ | ------------------------------------------------- |
-| SEC-01 | Add `secureZero(Uint8List)` and `secureZeroInt32`. | Open   | Apply in `finally` blocks.                        |
-| SEC-02 | Make ML-DSA `_checkNorm` constant-time.            | Open   | Avoid early return on secret-derived values.      |
-| SEC-03 | Review KEM decapsulation branch/select behavior.   | Open   | Consider constant-time output select.             |
-| SEC-04 | Add ML-DSA public input validation.                | Open   | Key, message, signature, parameter length checks. |
-| SEC-05 | Add malformed DSA signature/key negative tests.    | Open   | Prevent API foot-guns.                            |
+| ID     | Improvement                                        | Status | Notes                                          |
+| ------ | -------------------------------------------------- | ------ | ---------------------------------------------- |
+| SEC-01 | Add `secureZero(Uint8List)` and `secureZeroInt32`. | Done   | `lib/src/common/zeroize.dart`; `finally` use.  |
+| SEC-02 | Make ML-DSA `_checkNorm` constant-time.            | Done   | No-early-exit `_normExceeds` over 256 coeffs.  |
+| SEC-03 | Review KEM decapsulation branch/select behavior.   | Done   | Constant-time branchless output select.        |
+| SEC-04 | Add ML-DSA public input validation.                | Done   | `dsa_negative_test.dart`, `dsa_api_test.dart`. |
+| SEC-05 | Add malformed DSA signature/key negative tests.    | Done   | `dsa_negative_test.dart`.                      |
 
 ## P2 - API and Package Boundary
 
 | ID     | Improvement                                       | Status | Notes                                                  |
 | ------ | ------------------------------------------------- | ------ | ------------------------------------------------------ |
-| API-01 | Decide ML-DSA export policy before 1.0.           | Review | Keep, gate, or mark experimental explicitly.           |
+| API-01 | Decide ML-DSA export policy before 1.0.           | Done   | ML-DSA is KAT-validated and exported as supported.     |
 | API-02 | Consider FIPS-name aliases for KEM levels.        | Review | `PqcKem.mlKem768` alias may reduce Kyber naming drift. |
 | API-03 | Add Dartdoc to all public API members.            | Open   | Required for stable API.                               |
-| API-04 | Fix example byte equality in `example/main.dart`. | Open   | Use a byte-wise helper, not `toString()`.              |
+| API-04 | Fix example byte equality in `example/main.dart`. | Done   | Uses byte-wise equality in the ML-KEM examples.        |
 
 ## P3 - Performance and Tooling
 

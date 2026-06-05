@@ -81,7 +81,8 @@ FIPS 204 algorithm conformance and FIPS 140 module validation are different
 claims. This package can provide implementation evidence. It cannot claim FIPS
 140 validation unless a cryptographic module is separately validated through
 CMVP with an approved operational environment, entropy source, DRBG story,
-security policy, and certificate.
+security policy, and certificate. The full rationale is in
+[FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
 ## FIPS 204 Standard Shape
 
@@ -110,7 +111,7 @@ Every value below must be represented in code and covered by a size/parameter
 test.
 
 | Parameter        | ML-DSA-44 | ML-DSA-65 | ML-DSA-87 | Current repo note                                           |
-| ---------------- | --------: | --------: | --------: | ----------------------------------------------------------- |
+| ---------------- | --------- | --------- | --------- | ----------------------------------------------------------- |
 | `q`              | 8380417   | 8380417   | 8380417   | Present in `params.dart`.                                   |
 | `zeta`           | 1753      | 1753      | 1753      | NTT uses Appendix B zetas; keep index semantics documented. |
 | `d`              | 13        | 13        | 13        | Present in `params.dart`.                                   |

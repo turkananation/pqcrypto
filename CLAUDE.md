@@ -15,7 +15,7 @@ Last updated: 2026-06-05
   byte-for-byte, all verifying. External API is hedged-by-default with context
   strings and HashML-DSA (SHA-256/384/512 pre-hash). This is KAT/regression
   evidence, NOT a CMVP/FIPS 140 validation claim.
-- **Version:** 0.2.1 (ML-DSA validation work pending release tag).
+- **Version:** 0.3.0.
 - **Runtime dependencies:** none. FIPS 202 SHA3/SHAKE is vendored in
   `lib/src/common/keccak.dart`.
 - **Canonical documentation root:** `doc/`.
@@ -76,11 +76,15 @@ Expected as of this update:
 - OpenSSL interop: [doc/OPENSSL_INTEROP.md](doc/OPENSSL_INTEROP.md).
 - Architecture: [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md).
 - Security posture: [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md).
-- Standards claim boundary: [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md).
+- Standards claim boundary: [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md) and
+  [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md).
 - Work tracker: [doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md).
 - ML-DSA release plan:
   [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
 - Roadmap: [doc/ROADMAP.md](doc/ROADMAP.md).
+- Universal PQC agent framework:
+  [doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)
+  and [tool/agent_framework/pqc_framework.yaml](tool/agent_framework/pqc_framework.yaml).
 
 ## Development Rules
 
@@ -91,8 +95,12 @@ Expected as of this update:
 - Keep runtime package dependencies at zero unless the package boundary is
   deliberately changed.
 - Do not add `print()` to `lib/`.
-- Do not claim CMVP/FIPS 140 validation.
+- Do not claim CMVP/FIPS 140 validation. The rationale and the exact acceptable
+  wording live in [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md).
 - Update docs when public APIs, validation evidence, or security posture change.
+- For multi-agent PQC workflows, use the committed Claude wrapper at
+  `.claude/skills/universal-pqc-framework/SKILL.md`; it is a thin wrapper over
+  the canonical framework doc and manifest.
 
 ## Known High-Priority Work
 

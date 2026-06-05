@@ -15,28 +15,27 @@ For security prioritization, also read [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ## Open Bugs
 
-| ID     | Status | Severity | Component | Summary                                                                                | Evidence                               |
-| ------ | ------ | -------- | --------- | -------------------------------------------------------------------------------------- | -------------------------------------- |
-| BUG-01 | Open   | High     | ML-DSA    | `bitPack`/`bitUnpack` and `packSK` fail centered-value round-trips.                    | `dart test`, `dsa_pack_test.dart`      |
-| BUG-02 | Open   | High     | ML-DSA    | `ExpandS` bounded sampling can throw `Bad state: Too few elements`.                    | `dart test`, `dsa_symmetric_test.dart` |
-| BUG-03 | Open   | Medium   | ML-DSA    | `mldsa_debug_test.dart` and `mldsa_kat_test.dart` use `C:\Dev\Research\KAT\MLDSA\...`. | Current test files                     |
-| BUG-04 | Open   | High     | ML-DSA    | No repo-local ML-DSA KAT corpus is checked in.                                         | File inventory                         |
-| BUG-05 | Open   | High     | ML-DSA    | `_checkNorm` returns early and can leak first failing coefficient timing.              | `lib/src/algos/dilithium/dsa.dart`     |
-| BUG-06 | Open   | High     | All       | No shared zeroization helpers or systematic `finally` zeroization.                     | `rg secureZero` in `lib/`              |
-| BUG-07 | Review | Medium   | ML-KEM    | `Random.secure()` is instantiated per `_randomBytes` call.                             | `lib/src/algos/kyber/kem.dart`         |
-| BUG-08 | Review | Medium   | ML-KEM    | Decapsulation branches after constant-time ciphertext comparison.                      | `lib/src/algos/kyber/kem.dart`         |
-| BUG-09 | Review | Low      | Example   | `example/main.dart` compares `Uint8List.toString()` for shared secrets.                | `example/main.dart`                    |
+No open bugs currently affect the documented release claims.
 
 ## Fixed or Superseded Bugs
 
-| ID     | Status | Component | Summary                                                  | Current evidence                                                |
-| ------ | ------ | --------- | -------------------------------------------------------- | --------------------------------------------------------------- |
-| FIX-01 | Fixed  | ML-KEM    | Old KAT runner was not discovered by `dart test`.        | Runner is now `test/kat_evaluator_test.dart`.                   |
-| FIX-02 | Fixed  | ML-KEM    | ML-KEM public/secret/ciphertext input validation gaps.   | `test/kem_validation_test.dart`.                                |
-| FIX-03 | Fixed  | ML-KEM    | `Poly.barrettReduce` could return non-canonical residue. | `test/poly_test.dart`.                                          |
-| FIX-04 | Fixed  | Common    | Runtime dependency on `pointycastle`.                    | `pubspec.yaml` has no runtime dependencies; Keccak is vendored. |
-| FIX-05 | Fixed  | ML-DSA    | Per-level `tau` was not encoded in params.               | `DilithiumParams` contains 39, 49, 60.                          |
-| FIX-06 | Fixed  | ML-DSA    | Production-library debug `print()` leakage.              | `rg "print\\(" lib` returns no production matches.              |
+| ID     | Status | Component | Summary                                                    | Current evidence                                                   |
+| ------ | ------ | --------- | ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| FIX-01 | Fixed  | ML-KEM    | Old KAT runner was not discovered by `dart test`.          | Runner is now `test/kat_evaluator_test.dart`.                      |
+| FIX-02 | Fixed  | ML-KEM    | ML-KEM public/secret/ciphertext input validation gaps.     | `test/kem_validation_test.dart`.                                   |
+| FIX-03 | Fixed  | ML-KEM    | `Poly.barrettReduce` could return non-canonical residue.   | `test/poly_test.dart`.                                             |
+| FIX-04 | Fixed  | Common    | Runtime dependency on `pointycastle`.                      | `pubspec.yaml` has no runtime dependencies; Keccak is vendored.    |
+| FIX-05 | Fixed  | ML-DSA    | Per-level `tau` was not encoded in params.                 | `DilithiumParams` contains 39, 49, 60.                             |
+| FIX-06 | Fixed  | ML-DSA    | Production-library debug `print()` leakage.                | `rg "print\\(" lib` returns no production matches.                 |
+| FIX-07 | Fixed  | ML-DSA    | `bitPack`/`bitUnpack`/`packSK` centered-value round-trips. | Signed-domain packing; `dsa_pack_test.dart` green.                 |
+| FIX-08 | Fixed  | ML-DSA    | `ExpandS` (η=2) threw / diverged from FIPS 204.            | `RejBoundedPoly` η=2 fix; `dsa_symmetric_test.dart` green.         |
+| FIX-09 | Fixed  | ML-DSA    | Windows KAT root in ML-DSA tests.                          | Debug test removed; `mldsa_kat_test.dart` reads `test/data/MLDSA`. |
+| FIX-10 | Fixed  | ML-DSA    | No repo-local ML-DSA KAT corpus.                           | `test/data/MLDSA` (18 files); 300 keygens + 1800 sigs byte-exact.  |
+| FIX-11 | Fixed  | ML-DSA    | `_checkNorm` early-exit timing leak.                       | Replaced by no-early-exit `_normExceeds`.                          |
+| FIX-12 | Fixed  | All       | No shared zeroization helpers.                             | `lib/src/common/zeroize.dart`; used in KEM/DSA `finally` blocks.   |
+| FIX-13 | Fixed  | ML-KEM    | `Random.secure()` per call.                                | Cached `_secureRng`.                                               |
+| FIX-14 | Fixed  | ML-KEM    | Decapsulation branched after the ciphertext comparison.    | Constant-time branchless output select; 3000 KATs byte-exact.      |
+| FIX-15 | Fixed  | Example   | Shared-secret equality used `Uint8List.toString()`.        | Byte-wise equality in `example/main.dart`.                         |
 
 ## How to Retire an Open Bug
 
@@ -46,5 +45,6 @@ For security prioritization, also read [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 4. Update this file, [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md), and any affected
    readiness wording in README or [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md).
 
-Do not mark ML-DSA production-ready until all ML-DSA blockers above are closed
-and backed by repo-local KAT evidence.
+Keep ML-KEM and ML-DSA evidence separate, and keep all claims scoped to KAT/
+regression evidence (no CMVP/FIPS 140 claim; see
+[FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md)).

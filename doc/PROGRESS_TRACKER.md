@@ -3,20 +3,20 @@
 Last updated: 2026-06-05
 
 This tracker reconciles the current codebase, changelog, and local verification
-snapshot. It deliberately separates ML-KEM release evidence from ML-DSA
-experimental work.
+snapshot. It deliberately separates ML-KEM evidence, ML-DSA evidence, and the
+claim boundary for both algorithms.
 
 ## Current State
 
-| Area              | Status         | Evidence                                                        |
-| ----------------- | -------------- | --------------------------------------------------------------- |
-| Version           | 0.2.1          | `pubspec.yaml`, `CHANGELOG.md`.                                 |
-| Runtime deps      | Complete       | No runtime dependencies; FIPS 202 vendored.                     |
-| ML-KEM            | Supported      | Checked-in KAT corpus, unit tests, OpenSSL interop.             |
-| OpenSSL interop   | Supported      | A-G suite for ML-KEM-512/768/1024.                              |
-| Web support       | Tested surface | CI has `dart2js` and `dart2wasm` test jobs.                     |
+| Area              | Status           | Evidence                                                                                  |
+| ----------------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| Version           | 0.3.0            | `pubspec.yaml`, `CHANGELOG.md`.                                                           |
+| Runtime deps      | Complete         | No runtime dependencies; FIPS 202 and FIPS 180-4 primitives vendored.                     |
+| ML-KEM            | Supported        | Checked-in KAT corpus, unit tests, OpenSSL interop.                                       |
+| OpenSSL interop   | Supported        | A-G suite for ML-KEM-512/768/1024.                                                        |
+| Web support       | Tested surface   | CI has `dart2js` and `dart2wasm` test jobs.                                               |
 | ML-DSA            | FIPS 204-aligned | Byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged); full suite green. |
-| Formal validation | Not claimed    | No CMVP/FIPS 140 validation record.                             |
+| Formal validation | Not claimed      | No CMVP/FIPS 140 validation record.                                                       |
 
 ## Phase 0 - Documentation Consolidation
 
@@ -25,7 +25,7 @@ experimental work.
 | Move remaining old documentation files into `doc/`. | Done   | `doc/` is the canonical documentation root. |
 | Update root README documentation links.             | Done   | Serverpod link and doc references updated.  |
 | Update AGENTS/CLAUDE assistant docs.                | Done   | Old path and dependency facts removed.      |
-| Rewrite stale 0.1.0-era docs.                       | Done   | Evidence-scoped 0.2.1 docs.                 |
+| Rewrite stale 0.1.0-era docs.                       | Done   | Evidence-scoped 0.3.0 docs.                 |
 | Preserve Conclave verdict.                          | Done   | `verdicts/verdict-20260605T081457Z.md`.     |
 
 ## Phase 1 - ML-KEM Maintenance
@@ -36,45 +36,44 @@ experimental work.
 | Maintain FIPS 202 vendored Keccak tests.         | Open   | `dart test test/keccak_test.dart`.                          |
 | Maintain input-validation regressions.           | Open   | `dart test test/kem_validation_test.dart`.                  |
 | Maintain OpenSSL interop on ML-KEM 512/768/1024. | Open   | `cd tool/openssl_interop && dart test` with OpenSSL >= 3.5. |
-| Consider constant-time output select in decaps.  | Open   | New regression/audit needed.                                |
-| Consider RNG allocation refactor.                | Review | Measure before changing.                                    |
+| Add constant-time output select in decaps.       | Done   | Branchless select; ML-KEM KAT corpus remains byte-exact.    |
+| Avoid per-call `Random.secure()` construction.   | Done   | Cached `_secureRng` in KEM.                                 |
 
 ## Phase 2 - ML-DSA Correctness and Validation
 
 Complete per the Definition of Done in the release guide.
 
-| Task                                                            | Status | Evidence or blocker                                               |
-| --------------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
-| Publish FIPS 204 ML-DSA release guide.                          | Done   | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). |
-| Fix `dsa_pack_test.dart` centered-value failures.               | Done   | Signed-domain packing; `dsa_pack_test.dart` green.               |
-| Fix `dsa_symmetric_test.dart` `ExpandS` failure.                | Done   | η=2 `RejBoundedPoly` fix; `dsa_symmetric_test.dart` green.       |
-| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests.  | Done   | Debug test removed; runner uses `test/data/MLDSA`.               |
-| Add repo-local ML-DSA KAT corpus.                               | Done   | `test/data/MLDSA` (18 files).                                    |
-| Add ML-DSA KAT evaluator discovered by `dart test`.             | Done   | `test/mldsa_kat_test.dart`; 300 keygens + 1800 sigs byte-exact. |
-| Make `_checkNorm` constant-time.                                | Done   | Replaced by no-early-exit `_normExceeds`.                       |
-| Add ML-DSA public input validation.                             | Done   | `dsa_negative_test.dart`, `dsa_api_test.dart`.                  |
-| External API: hedged default, context, HashML-DSA.              | Done   | `dsa_api_test.dart`; pure+hashed KATs byte-exact.              |
+| Task                                                           | Status | Evidence or blocker                                               |
+| -------------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
+| Publish FIPS 204 ML-DSA release guide.                         | Done   | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). |
+| Fix `dsa_pack_test.dart` centered-value failures.              | Done   | Signed-domain packing; `dsa_pack_test.dart` green.                |
+| Fix `dsa_symmetric_test.dart` `ExpandS` failure.               | Done   | η=2 `RejBoundedPoly` fix; `dsa_symmetric_test.dart` green.        |
+| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests. | Done   | Debug test removed; runner uses `test/data/MLDSA`.                |
+| Add repo-local ML-DSA KAT corpus.                              | Done   | `test/data/MLDSA` (18 files).                                     |
+| Add ML-DSA KAT evaluator discovered by `dart test`.            | Done   | `test/mldsa_kat_test.dart`; 300 keygens + 1800 sigs byte-exact.   |
+| Make `_checkNorm` constant-time.                               | Done   | Replaced by no-early-exit `_normExceeds`.                         |
+| Add ML-DSA public input validation.                            | Done   | `dsa_negative_test.dart`, `dsa_api_test.dart`.                    |
+| External API: hedged default, context, HashML-DSA.             | Done   | `dsa_api_test.dart`; pure+hashed KATs byte-exact.                 |
 
 ## Phase 3 - Security Hardening
 
-| Task                            | Status | Notes                                                       |
-| ------------------------------- | ------ | ----------------------------------------------------------- |
-| Implement `secureZero` helpers. | Done   | `lib/src/common/zeroize.dart`; applied in `finally` blocks. |
+| Task                            | Status | Notes                                                          |
+| ------------------------------- | ------ | -------------------------------------------------------------- |
+| Implement `secureZero` helpers. | Done   | `lib/src/common/zeroize.dart`; applied in `finally` blocks.    |
 | Review all rejection loops.     | Done   | Incremental XOF; no fixed-buffer exhaustion. Residual: DSA-20. |
-| Add adversarial negative tests. | Done   | `dsa_negative_test.dart` (malformed pk/sig/hint/context).   |
-| Deeper constant-time review.    | Open   | Best-effort posture in pure Dart; tracked as DSA-20.        |
-| Add security reporting process. | Open   | Consider `SECURITY.md`.                                     |
+| Add adversarial negative tests. | Done   | `dsa_negative_test.dart` (malformed pk/sig/hint/context).      |
+| Deeper constant-time review.    | Open   | Best-effort posture in pure Dart; tracked as DSA-20.           |
+| Add security reporting process. | Open   | Consider `SECURITY.md`.                                        |
 
 ## Phase 4 - Future Algorithms
 
-Future algorithm work should wait behind ML-DSA validation unless a specific
-research branch is created.
+ML-DSA is validated, so SLH-DSA (FIPS 205) is the next scheduled scheme (0.4.0).
 
-| Algorithm | Status      | Guidance                                     |
-| --------- | ----------- | -------------------------------------------- |
-| SLH-DSA   | Not started | Most practical next signature after ML-DSA.  |
-| HQC       | Not started | Wait for final parameter/spec stability.     |
-| FN-DSA    | Not started | High sampler/side-channel risk in pure Dart. |
+| Algorithm | Status       | Guidance                                     |
+| --------- | ------------ | -------------------------------------------- |
+| SLH-DSA   | 0.4.0 target | Hash-based; reuses vendored FIPS 202/180-4.  |
+| HQC       | Not started  | Wait for final parameter/spec stability.     |
+| FN-DSA    | Not started  | High sampler/side-channel risk in pure Dart. |
 
 See [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).
 

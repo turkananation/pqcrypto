@@ -11,9 +11,9 @@ The package is pure Dart and has no runtime dependencies. ML-KEM uses the
 vendored FIPS 202 implementation in `lib/src/common/keccak.dart`; OpenSSL FFI is
 confined to `tool/openssl_interop/` and is not part of runtime performance.
 
-`example/main.dart` provides a simple warmup and timing demo for ML-KEM-512,
-ML-KEM-768, and ML-KEM-1024. It is useful for local sanity checks, but it is not
-an automated benchmark suite.
+`example/main.dart` is a functional demo for ML-KEM, ML-DSA, and a signed
+ML-KEM-768 handshake transcript. It is useful for local sanity checks, but it is
+not an automated benchmark suite.
 
 ## Known Hotspots
 

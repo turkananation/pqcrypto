@@ -5,7 +5,7 @@ Compliant with FIPS-203, published on August 13, 2024.
 ## File format
 
 | Field     | Meaning                                                |
-|-----------|--------------------------------------------------------|
+| --------- | ------------------------------------------------------ |
 | ``count`` | Test number                                            |
 | ``z``     | Random 32-bytes ``z`` (Algorithm 15)                   |
 | ``d``     | Random 32-bytes ``d`` (Algorithm 12)                   |
