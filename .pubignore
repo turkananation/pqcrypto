@@ -5,3 +5,5 @@ doc/EVIDENCE_LEDGER.md
 .codex/
 .claude/
 .gemini/
+AGENTS.md
+CLAUDE.md

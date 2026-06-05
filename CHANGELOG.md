@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0
+
 ### Added
 
 - Project-level Universal Multi-Agent PQC Framework setup:
@@ -14,11 +16,6 @@
 - `doc/SERVERPOD_FLUTTER_GUIDE.md` now covers ML-KEM + ML-DSA Serverpod/Flutter
   integration, strict byte contracts, generated model sketches, Flutter isolate
   guidance, and framework-driven implementation prompts.
-
-## 0.3.0
-
-### Added
-
 - **ML-DSA (FIPS 204) is now byte-exact against the official KAT corpus** for
   ML-DSA-44, ML-DSA-65, and ML-DSA-87 across the full matrix of signing mode
   (`deterministic`, `hedged`) × implementation flavour (`raw`/internal,
