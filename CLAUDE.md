@@ -68,6 +68,8 @@ Expected as of this update:
 - Security posture: [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md).
 - Standards claim boundary: [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md).
 - Work tracker: [doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md).
+- ML-DSA release plan:
+  [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
 - Roadmap: [doc/ROADMAP.md](doc/ROADMAP.md).
 
 ## Development Rules
@@ -85,6 +87,8 @@ Expected as of this update:
 ## Known High-Priority Work
 
 - Fix ML-DSA packing and `ExpandS` failures.
+- Use [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+  as the controlling release checklist.
 - Remove or replace the hardcoded Windows KAT root in
   `test/mldsa_debug_test.dart` and `test/mldsa_kat_test.dart`.
 - Add repo-local ML-DSA KAT corpus and a discovered test runner.

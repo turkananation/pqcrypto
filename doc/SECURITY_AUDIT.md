@@ -75,6 +75,10 @@ not validated. Do not use ML-DSA for production signatures until:
 5. readiness wording is updated in README, [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md),
    [ROADMAP.md](ROADMAP.md), and [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md).
 
+The FIPS 204 implementation and release plan is
+[MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). Treat that
+document as the controlling checklist for closing ML-DSA findings.
+
 ## Audit Commands
 
 ```bash

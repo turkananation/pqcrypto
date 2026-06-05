@@ -43,16 +43,17 @@ experimental work.
 
 ML-DSA must stay labeled experimental until this phase is complete.
 
-| Task                                                            | Status | Evidence or blocker                     |
-| --------------------------------------------------------------- | ------ | --------------------------------------- |
-| Fix `dsa_pack_test.dart` centered-value failures.               | Open   | Current full suite failure.             |
-| Fix `dsa_symmetric_test.dart` `ExpandS` failure.                | Open   | Current full suite failure.             |
-| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests.  | Open   | Current full suite failure/skip.        |
-| Add repo-local ML-DSA KAT corpus.                               | Open   | No corpus under `test/data` for ML-DSA. |
-| Add ML-DSA KAT evaluator discovered by `dart test`.             | Open   | Needed for readiness claim.             |
-| Make `_checkNorm` constant-time.                                | Open   | Early return remains.                   |
-| Add ML-DSA public input validation.                             | Open   | Needs focused API tests.                |
-| Decide whether ML-DSA should remain exported before validation. | Review | Public API boundary risk.               |
+| Task                                                            | Status | Evidence or blocker                                               |
+| --------------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
+| Publish FIPS 204 ML-DSA release guide.                          | Done   | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). |
+| Fix `dsa_pack_test.dart` centered-value failures.               | Open   | Current full suite failure.                                       |
+| Fix `dsa_symmetric_test.dart` `ExpandS` failure.                | Open   | Current full suite failure.                                       |
+| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests.  | Open   | Current full suite failure/skip.                                  |
+| Add repo-local ML-DSA KAT corpus.                               | Open   | No corpus under `test/data` for ML-DSA.                           |
+| Add ML-DSA KAT evaluator discovered by `dart test`.             | Open   | Needed for readiness claim.                                       |
+| Make `_checkNorm` constant-time.                                | Open   | Early return remains.                                             |
+| Add ML-DSA public input validation.                             | Open   | Needs focused API tests.                                          |
+| Decide whether ML-DSA should remain exported before validation. | Review | Public API boundary risk.                                         |
 
 ## Phase 3 - Security Hardening
 

@@ -45,7 +45,8 @@ The package currently exports `MlDsa`, `DilithiumParams`, and
 suite fails in ML-DSA packing/symmetric/debug tests, and no repo-local ML-DSA
 KAT corpus is checked in. Do not use ML-DSA for production signatures until the
 blockers in [doc/BUGS.md](doc/BUGS.md) and
-[doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md) are closed and verified.
+[doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md) are closed and verified. The
+completion plan is [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
 
 ---
 

@@ -18,33 +18,35 @@ project documentation; the older documentation directory has been retired.
 
 ## Read This First
 
-| Need                         | Start here                                                   | Then read                                    |
-| ---------------------------- | ------------------------------------------------------------ | -------------------------------------------- |
-| Current assurance boundary   | [MLKEM_TESTING.md](MLKEM_TESTING.md)                         | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)     |
-| OpenSSL interoperability     | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                     | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md) |
-| Architecture and code layout | [ARCHITECTURE.md](ARCHITECTURE.md)                           | [PERFORMANCE.md](PERFORMANCE.md)             |
-| Security review              | [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                       | [BUGS.md](BUGS.md)                           |
-| Implementation planning      | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                   | [ROADMAP.md](ROADMAP.md)                     |
-| Future algorithms            | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md) | [IMPROVEMENTS.md](IMPROVEMENTS.md)           |
-| Serverpod/Flutter use        | [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)     | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)     |
+| Need                         | Start here                                                       | Then read                                    |
+| ---------------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| Current assurance boundary   | [MLKEM_TESTING.md](MLKEM_TESTING.md)                             | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)     |
+| ML-DSA release work          | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)   |
+| OpenSSL interoperability     | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                         | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md) |
+| Architecture and code layout | [ARCHITECTURE.md](ARCHITECTURE.md)                               | [PERFORMANCE.md](PERFORMANCE.md)             |
+| Security review              | [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                           | [BUGS.md](BUGS.md)                           |
+| Implementation planning      | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                       | [ROADMAP.md](ROADMAP.md)                     |
+| Future algorithms            | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)     | [IMPROVEMENTS.md](IMPROVEMENTS.md)           |
+| Serverpod/Flutter use        | [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)         | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)     |
 
 ## Documents
 
-| Document                                                     | Purpose                                                                            |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| [MLKEM_TESTING.md](MLKEM_TESTING.md)                         | Checked-in ML-KEM KAT corpus, hashes, coverage, release gates, and claim boundary. |
-| [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                     | OpenSSL ML-KEM interop matrix, harness, platform notes, and results.               |
-| [ARCHITECTURE.md](ARCHITECTURE.md)                           | Current module layout, API surface, data flow, and package boundaries.             |
-| [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)                     | Evidence-scoped FIPS 203/204/202 status.                                           |
-| [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                       | Current security posture, resolved issues, open risks, and audit priorities.       |
-| [BUGS.md](BUGS.md)                                           | Known bugs and regressions, especially ML-DSA blockers.                            |
-| [IMPROVEMENTS.md](IMPROVEMENTS.md)                           | Prioritized engineering improvements with current status.                          |
-| [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                   | Cross-document tracker for open work and validation gates.                         |
-| [ROADMAP.md](ROADMAP.md)                                     | Release direction after 0.2.1.                                                     |
-| [PERFORMANCE.md](PERFORMANCE.md)                             | Performance baseline, optimization ideas, and benchmark guidance.                  |
-| [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)                 | Contributor setup, test commands, coding conventions, and security practices.      |
-| [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md) | Guidance for SLH-DSA, HQC, FN-DSA, and future PQC work.                            |
-| [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)     | Example ML-KEM session establishment pattern for Serverpod and Flutter.            |
+| Document                                                         | Purpose                                                                            |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [MLKEM_TESTING.md](MLKEM_TESTING.md)                             | Checked-in ML-KEM KAT corpus, hashes, coverage, release gates, and claim boundary. |
+| [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) | FIPS 204 implementation, validation, hardening, and release guide for ML-DSA.      |
+| [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                         | OpenSSL ML-KEM interop matrix, harness, platform notes, and results.               |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                               | Current module layout, API surface, data flow, and package boundaries.             |
+| [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)                         | Evidence-scoped FIPS 203/204/202 status.                                           |
+| [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                           | Current security posture, resolved issues, open risks, and audit priorities.       |
+| [BUGS.md](BUGS.md)                                               | Known bugs and regressions, especially ML-DSA blockers.                            |
+| [IMPROVEMENTS.md](IMPROVEMENTS.md)                               | Prioritized engineering improvements with current status.                          |
+| [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                       | Cross-document tracker for open work and validation gates.                         |
+| [ROADMAP.md](ROADMAP.md)                                         | Release direction after 0.2.1.                                                     |
+| [PERFORMANCE.md](PERFORMANCE.md)                                 | Performance baseline, optimization ideas, and benchmark guidance.                  |
+| [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)                     | Contributor setup, test commands, coding conventions, and security practices.      |
+| [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)     | Guidance for SLH-DSA, HQC, FN-DSA, and future PQC work.                            |
+| [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)         | Example ML-KEM session establishment pattern for Serverpod and Flutter.            |
 
 ## Verification Snapshot
 

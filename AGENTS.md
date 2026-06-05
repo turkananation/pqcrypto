@@ -28,7 +28,9 @@ Start here:
    [doc/ROADMAP.md](doc/ROADMAP.md).
 5. Read [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md) and
    [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md).
-6. Inspect `lib/src/`, `test/`, and `tool/openssl_interop/`.
+6. For ML-DSA work, read
+   [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
+7. Inspect `lib/src/`, `test/`, and `tool/openssl_interop/`.
 
 Run:
 
@@ -50,7 +52,9 @@ Before editing:
 - For ML-KEM arithmetic/serialization, run the focused ML-KEM test set before
   and after the change.
 - For ML-DSA, assume the code is experimental and do not upgrade docs without
-  KAT-backed evidence.
+  KAT-backed evidence. Use
+  [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) as
+  the controlling implementation checklist.
 
 Conventions:
 

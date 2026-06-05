@@ -34,6 +34,7 @@ Release criteria:
 
 | Task                                                    | Priority | Status |
 | ------------------------------------------------------- | -------- | ------ |
+| Use the FIPS 204 release guide as the controlling plan. | P0       | Done   |
 | Fix ML-DSA packing round-trip failures.                 | P0       | Open   |
 | Fix ML-DSA `ExpandS` bounded sampling failure.          | P0       | Open   |
 | Remove hardcoded external ML-DSA KAT path.              | P0       | Open   |
@@ -44,6 +45,8 @@ Release criteria:
 
 Release criteria:
 
+- [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) checklist is
+  complete or explicitly scoped for a smaller release;
 - `dart test` passes on VM;
 - ML-DSA-44/65/87 KATs pass from checked-in corpus;
 - ML-DSA docs can be upgraded from experimental to validated-in-repo;

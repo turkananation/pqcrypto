@@ -91,6 +91,11 @@ Known blockers include:
 | Side-channel hardening | `_checkNorm` still returns early on first norm violation.                                           |
 | Zeroization            | No shared `secureZero` utility is implemented.                                                      |
 
+The canonical completion plan is
+[MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). Use that guide
+for the FIPS 204 source map, external/internal API requirements, HashML-DSA
+decision, KAT plan, side-channel work, and release gates.
+
 Do not describe ML-DSA as production-ready until all relevant tests pass, a
 repo-local KAT corpus exists, and the readiness language has been updated in
 [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md) and [ROADMAP.md](ROADMAP.md).
