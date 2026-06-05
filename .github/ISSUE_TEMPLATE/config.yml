@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a Question or get Help
+    url: https://github.com/turkananation/pqcrypto/discussions/new?category=q-a
+    about: Got a question about how to use the library or post-quantum cryptography in general? Ask the community here!
+  - name: 💡 Discuss Ideas
+    url: https://github.com/turkananation/pqcrypto/discussions/new?category=ideas
+    about: Want to propose a major change or discuss future algorithms? Let's talk about it here first.
