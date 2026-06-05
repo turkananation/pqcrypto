@@ -4,7 +4,7 @@ description: >-
   checks via FFI to libcrypto. Not published; depends on the parent package by
   path.
 publish_to: none
-version: 0.2.1
+version: 0.3.0
 
 environment:
   sdk: ^3.10.0

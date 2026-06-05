@@ -23,5 +23,3 @@ class KyberParams {
     return uBytes + vBytes;
   }
 }
-
-enum KyberLevel { kem512, kem768, kem1024 }

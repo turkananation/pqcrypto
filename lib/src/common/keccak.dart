@@ -236,6 +236,76 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
   return out;
 }
 
+/// Incremental Keccak sponge in XOF (squeeze) mode.
+///
+/// Absorbs the whole input and pads once at construction, then yields output
+/// bytes on demand via [squeeze]/[squeezeByte]. The byte stream is identical to
+/// the one-shot [_keccak] for the same input/rate/domain, so it is a drop-in
+/// for rejection samplers that must never exhaust a fixed buffer (FIPS 204
+/// `H.Squeeze`). Structurally constant-time like [_keccak].
+class KeccakXof {
+  final Uint32List _a = Uint32List(50);
+  final Uint32List _b = Uint32List(50);
+  final Uint32List _c = Uint32List(10);
+  final Uint32List _d = Uint32List(10);
+  final int _rate;
+  final Uint8List _buf;
+  int _pos = 0;
+
+  KeccakXof(Uint8List input, int rateBytes, int domain)
+    : _rate = rateBytes,
+      _buf = Uint8List(rateBytes) {
+    var offset = 0;
+    final n = input.length;
+    while (n - offset >= rateBytes) {
+      _xorBlock(_a, input, offset, rateBytes);
+      _permute(_a, _b, _c, _d);
+      offset += rateBytes;
+    }
+    final block = Uint8List(rateBytes);
+    final rem = n - offset;
+    block.setRange(0, rem, input, offset);
+    block[rem] = domain;
+    block[rateBytes - 1] ^= 0x80;
+    _xorBlock(_a, block, 0, rateBytes);
+    _permute(_a, _b, _c, _d);
+    _extractBlock(_a, _buf, 0, rateBytes);
+  }
+
+  void _refill() {
+    _permute(_a, _b, _c, _d);
+    _extractBlock(_a, _buf, 0, _rate);
+    _pos = 0;
+  }
+
+  /// Squeeze the next [len] output bytes.
+  Uint8List squeeze(int len) {
+    final out = Uint8List(len);
+    var got = 0;
+    while (got < len) {
+      if (_pos == _rate) _refill();
+      final avail = _rate - _pos;
+      final take = (len - got) < avail ? (len - got) : avail;
+      out.setRange(got, got + take, _buf, _pos);
+      got += take;
+      _pos += take;
+    }
+    return out;
+  }
+
+  /// Squeeze a single output byte.
+  int squeezeByte() {
+    if (_pos == _rate) _refill();
+    return _buf[_pos++];
+  }
+}
+
+/// SHAKE128 incremental XOF (rate 168 bytes, domain `0x1F`).
+KeccakXof shake128Xof(Uint8List input) => KeccakXof(input, 168, 0x1F);
+
+/// SHAKE256 incremental XOF (rate 136 bytes, domain `0x1F`).
+KeccakXof shake256Xof(Uint8List input) => KeccakXof(input, 136, 0x1F);
+
 /// SHA3-256 (FIPS 202): 32-byte digest, rate 136 bytes, domain `0x06`.
 Uint8List sha3256(Uint8List input) => _keccak(input, 136, 0x06, 32);
 

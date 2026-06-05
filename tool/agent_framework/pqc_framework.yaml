@@ -1,0 +1,164 @@
+schema_version: 1
+framework_id: universal-multi-agent-pqc-framework
+framework_version: 0.1.0
+canonical_doc: doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md
+generated_for_package:
+  name: pqcrypto
+  version: 0.3.0
+  runtime_dependencies: 0
+
+native_wrappers:
+  codex: .codex/skills/universal-pqc-framework/SKILL.md
+  claude: .claude/skills/universal-pqc-framework/SKILL.md
+  antigravity: .gemini/antigravity/skills/universal-pqc-framework/SKILL.md
+
+evidence_boundary:
+  no_cmvp_fips_140_claim: true
+  zeroization: best_effort_dart
+  side_channel_posture: best_effort_dart
+  allowed_claims:
+    - FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.
+    - OpenSSL interop A-G passes for ML-KEM-512/768/1024.
+    - FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.
+  forbidden_claims:
+    - fully FIPS validated
+    - CMVP validated
+    - certified
+    - hard constant-time Dart guarantee
+    - hard memory-erasure guarantee
+
+primitive_profile:
+  hybrid_required: true
+  classical_kex:
+    default: X25519
+    shared_secret_bytes: 32
+    supplied_by: application_stack
+  lattice_kem:
+    algorithm: ML-KEM-768
+    public_key_bytes: 1184
+    ciphertext_bytes: 1088
+    secret_key_bytes: 2400
+    shared_secret_bytes: 32
+  identity_signature:
+    algorithm: ML-DSA-65
+    public_key_bytes: 1952
+    secret_key_bytes: 4032
+    signature_bytes: 3309
+    context_max_bytes: 255
+  hkdf:
+    output_bytes: 32
+    ikm: "ss_classical || ss_lattice"
+    salt: "deployment_salt || transcript_hash"
+    info_prefix: "pqcrypto universal-pqc-framework v1"
+
+roles:
+  cryptographic_architect:
+    order: 1
+    owns:
+      - primitive selection
+      - byte alignment
+      - transcript binding
+      - HKDF input contract
+      - cryptographic misuse rules
+    must_not_own:
+      - Serverpod endpoint code
+      - Vault provider configuration
+      - Flutter UI code
+  secops_infrastructure_engineer:
+    order: 2
+    owns:
+      - KMS/HSM loading contract
+      - 14-day rotation policy
+      - break-glass eviction
+      - high-severity telemetry
+      - fail-secure ceiling
+    must_not_own:
+      - primitive changes
+      - endpoint serialization design
+  distinguished_engineer:
+    order: 3
+    owns:
+      - Serverpod model sketches
+      - endpoint and middleware placement
+      - immutable key bundle contract
+      - strict byte filters
+      - nonce replay defense
+      - circuit breaker and cache purge behavior
+    must_not_own:
+      - cryptographic claim upgrades
+      - provider-specific KMS secrets
+  client_integration_engineer:
+    order: 4
+    owns:
+      - Flutter isolate offload contract
+      - client handshake sequence
+      - secure local session handling
+      - re-handshake on eviction
+    must_not_own:
+      - server key lifecycle policy
+      - certification wording
+
+serverpod_contract:
+  status: contract_sketch_not_implemented
+  source_docs_required_before_code: true
+  models:
+    PqcPublicKeyBundle:
+      keyId: String
+      epoch: int
+      mlKem768PublicKey: ByteData
+      mlDsa65PublicKey: ByteData
+      notBefore: DateTime
+      expiresAt: DateTime
+      signature: ByteData
+    PqcHandshakeRequest:
+      keyId: String
+      clientNonce: ByteData
+      clientTimestampMs: int
+      clientX25519PublicKey: ByteData
+      mlKem768Ciphertext: ByteData
+      clientMlDsa65PublicKey: ByteData
+      clientSignature: ByteData
+      transcriptHash: ByteData
+    PqcHandshakeResponse:
+      accepted: bool
+      sessionId: String?
+      serverNonce: ByteData?
+      expiresAt: DateTime?
+      errorCode: String?
+  strict_filters:
+    mlKem768PublicKey: 1184
+    mlKem768Ciphertext: 1088
+    mlDsa65PublicKey: 1952
+    mlDsa65Signature: 3309
+    nonce: 32
+  replay_window_ms: 2000
+
+lifecycle_contract:
+  long_term_secret_disk_storage: forbidden
+  plaintext_env_secret_storage: forbidden
+  boot_token_ttl_max_minutes: 5
+  boot_token_max_uses: 1
+  scheduled_rotation_days: 14
+  metadata_poll_max_hours: 12
+  hard_validation_ceiling_days: 15
+  break_glass_required_actions:
+    - zeroize local key bundles best effort
+    - clear session mappings
+    - clear nonce replay windows
+    - purge local caches
+    - force client re-handshake
+
+validation_gates:
+  docs_setup:
+    - dart run tool/agent_framework/check_setup.dart
+  implementation_readiness:
+    - tested Serverpod generated model round trip
+    - tested endpoint byte-length rejection
+    - tested authenticated server-key bundle path
+    - tested nonce replay rejection
+    - tested key eviction and client re-handshake
+  pqcrypto_regression:
+    - dart analyze
+    - dart test test/kat_evaluator_test.dart
+    - dart test test/mldsa_kat_test.dart
+    - dart test

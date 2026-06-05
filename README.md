@@ -2,7 +2,7 @@
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
-The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** with checked-in known-answer tests and focused unit coverage for serialization, modular reduction, and input validation.
+The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation — see [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is not claimed.
 
 ---
 
@@ -16,6 +16,11 @@ The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kybe
   - **Key Encapsulation**: `(rho, sigma) := G(d || k)` derivation for K-PKE key generation.
   - **Fujisaki-Okamoto Transform**: Robust re-encryption check to prevent chosen-ciphertext attacks (IND-CCA2 security).
   - **Input Checks**: Public-key length/modulus checks, decapsulation-key length/hash checks, and ciphertext length checks.
+- **FIPS 204-aligned ML-DSA support**:
+  - **Algorithm Support**: ML-DSA-44, ML-DSA-65, ML-DSA-87 (internal, external, and HashML-DSA).
+  - **Hedged-by-default signing** with explicit deterministic and pre-hash paths and FIPS 204 context strings (≤ 255 bytes).
+  - **Byte-exact** against the official FIPS 204 KAT corpus (1800 signatures + 300 key generations) and **vendored SHA-2** (SHA-256/384/512) for HashML-DSA pre-hashing.
+  - **Defensive verification**: returns `false` (never throws) on malformed public keys, signatures, hints, or over-long contexts; unbounded XOF rejection sampling; best-effort secret zeroization.
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
   - **Zero dependencies.** No third-party packages at all: FIPS 202 (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`.
@@ -24,17 +29,58 @@ The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kybe
 
 ## 🛡️ ML-KEM Validation Status
 
-This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), but this repository does not claim CMVP/FIPS 140 module validation. The current evidence is the checked-in KAT corpus plus unit tests for the algorithm surfaces listed below.
+This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), but this repository does not claim CMVP/FIPS 140 module validation ([why?](doc/FIPS_140_BOUNDARY.md)). The current evidence is the checked-in KAT corpus plus unit tests for the algorithm surfaces listed below.
 
-| Algorithm | Status | Checked-in KAT Vectors | Security Level |
-| :--- | :---: | :---: | :---: |
-| **ML-KEM-512** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 1 (AES-128) |
-| **ML-KEM-768** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 3 (AES-192) |
-| **ML-KEM-1024** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 5 (AES-256) |
+| Algorithm       | Status       | Checked-in KAT Vectors | Security Level         |
+| --------------- | ------------ | ---------------------- | ---------------------- |
+| **ML-KEM-512**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 1 (AES-128) |
+| **ML-KEM-768**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 3 (AES-192) |
+| **ML-KEM-1024** | **KAT pass** | **1000/1000 PASS**     | NIST Level 5 (AES-256) |
 
 **Total checked-in vectors:** 3000/3000 pass locally as of June 3, 2026.
 
 See [doc/MLKEM_TESTING.md](doc/MLKEM_TESTING.md) for the KAT file hashes, coverage boundaries, and release-gate commands.
+
+---
+
+## 🛡️ ML-DSA Validation Status
+
+This implementation tracks [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final).
+As with ML-KEM, this repository does **not** claim CMVP/FIPS 140 module
+validation ([why?](doc/FIPS_140_BOUNDARY.md)); the evidence is the checked-in KAT
+corpus plus focused unit tests. The package exports `MlDsa`, `DilithiumParams`,
+and `DilithiumParameter`.
+
+Every signature in the official KAT corpus (`test/data/MLDSA`) is reproduced
+**byte-for-byte**, and every KAT signature **verifies**, across the full matrix
+of parameter set × signing mode × implementation flavour:
+
+| Parameter set | Security level | KeyGen (raw/det) | Sign + Verify (all flavours) |
+| ------------- | -------------- | ---------------- | ---------------------------- |
+| **ML-DSA-44** | NIST Level 2   | 100/100 PASS     | 600/600 PASS                 |
+| **ML-DSA-65** | NIST Level 3   | 100/100 PASS     | 600/600 PASS                 |
+| **ML-DSA-87** | NIST Level 5   | 100/100 PASS     | 600/600 PASS                 |
+
+- **Flavours:** `raw` (internal `*_internal`, Algorithms 6/7/8), `pure`
+  (external ML-DSA with a context string, Algorithms 1/2/3), and `hashed`
+  (HashML-DSA with SHA-256/384/512 pre-hash, Algorithms 1/4/5).
+- **Modes:** `deterministic` (`rnd = 0`) and `hedged` (`rnd` from the vector).
+- **Totals:** 300/300 byte-exact key generations and 1800/1800 byte-exact
+  signatures that all verify (3 levels × 2 modes × 3 flavours × 100 vectors).
+
+The public API is **hedged by default** (fresh `rnd` from `Random.secure()`),
+supports FIPS 204 context strings (≤ 255 bytes), exposes explicit deterministic
+and HashML-DSA paths, and returns `false` (never throws) for any malformed
+public key, signature, hint, or over-long context. See the controlling guide
+[doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) and the
+corpus description in [test/data/MLDSA/README.md](test/data/MLDSA/README.md).
+
+```dart
+final params = DilithiumParams.mlDsa65;
+final (pk, sk) = MlDsa.generateKeyPair(params);          // fresh randomness
+final sig = MlDsa.sign(sk, message, params, ctx: appCtx); // hedged by default
+final ok  = MlDsa.verify(pk, message, sig, params, ctx: appCtx);
+```
 
 ---
 
@@ -46,14 +92,14 @@ exposes those native ML-KEM algorithms in the 3.5 line and newer; the local
 interop harness ([`tool/openssl_interop/`](tool/openssl_interop/)) drives both
 implementations over `dart:ffi` and proves byte-level agreement on each:
 
-| Test | What it proves |
-| :--- | :--- |
-| **A / B** | each implementation is internally self-consistent (sanity) |
-| **C** | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed) |
-| **D** | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
-| **E** | same seed `(d‖z)` ⇒ **byte-identical public keys** |
-| **F** | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical |
-| **G** | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext |
+| Test      | What it proves                                                         |
+| --------- | ---------------------------------------------------------------------- |
+| **A / B** | each implementation is internally self-consistent (sanity)             |
+| **C**     | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)  |
+| **D**     | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
+| **E**     | same seed `(d‖z)` ⇒ **byte-identical public keys**                     |
+| **F**     | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical   |
+| **G**     | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext     |
 
 Shared secrets — including the FIPS 203 implicit-rejection branch — are
 **byte-identical** across implementations in both directions, at every level
@@ -89,9 +135,13 @@ cases (hybrid TLS `X25519MLKEM768`, Dart ↔ OpenSSL services, migration).
 
 ## 🛠️ Implementation Highlights
 
-This library follows the FIPS 203 specification structure where practical while keeping validation claims scoped to the tests in this repository.
+This library follows the FIPS 203 and FIPS 204 specification structures where
+practical while keeping validation claims scoped to the tests in this
+repository. ML-KEM and ML-DSA use separate polynomial types, moduli, NTTs,
+packing code, and parameter objects so the two lattice schemes do not share
+algorithm-specific arithmetic accidentally.
 
-### 1. Number Theoretic Transform (NTT)
+### 1. ML-KEM Number Theoretic Transform (NTT)
 
 Uses **pure modular arithmetic** (not Montgomery) matching the FIPS 203 Algorithms 8 and 9:
 
@@ -113,19 +163,82 @@ Compression functions follow FIPS 203 Definitions 4.7-4.8:
   - **4-bit**: ML-KEM-512/768 Ciphertext $v$ (`ByteEncode₄`)
   - **1-bit**: Messages (`ByteEncode₁`)
 
-### 3. Cryptographic Primitives
+### 3. ML-DSA Signature Architecture
 
-- **XOF**: SHAKE-128 for matrix generation (Algorithm 7).
-- **PRF**: SHAKE-256 for noise sampling.
-- **Hash Functions**: SHA3-256, SHA3-512 for key derivation.
-- **CBD Sampling**: Centered Binomial Distribution with $\eta \in \{2,3\}$.
+ML-DSA lives under `lib/src/algos/dilithium/` and tracks FIPS 204's external
+and internal function split:
+
+- **Public API layering**: `MlDsa.generateKeyPair`, `sign`, and `verify` expose
+  external ML-DSA Algorithms 1-3; `hashSign` and `hashVerify` expose HashML-DSA
+  Algorithms 4-5; `generateKeyPairSeeded`, `signInternal`, and `verifyInternal`
+  remain available for deterministic KAT/CAVP-style vectors.
+- **Parameter sets**: `DilithiumParams` carries ML-DSA-44/65/87 parameters,
+  FIPS 204 Table 2 public-key, secret-key, and signature sizes, and the
+  per-level `tau`, `gamma1`, `gamma2`, `omega`, and challenge length values.
+- **Hedged-by-default signing**: external signing draws a fresh 32-byte `rnd`
+  from `Random.secure`; deterministic signing is explicit through
+  `signDeterministic` or a supplied KAT `rnd`.
+- **FIPS 204 message domains**: external ML-DSA signs
+  `0x00 || len(ctx) || ctx || M`; HashML-DSA signs
+  `0x01 || len(ctx) || ctx || DER(OID(PH)) || PH(M)`.
+- **Signing core**: key generation expands `xi` into `rho`, `rho'`, and `K`,
+  builds `A`, samples `s1/s2`, applies `Power2Round`, and packs `pk/sk`;
+  signing derives `mu`, samples `y`, computes the challenge, applies
+  rejection checks, builds hints, and packs `(c_tilde, z, h)`.
+- **Verification core**: verification reconstructs `w1'`, re-hashes
+  `mu || w1Encode(w1')`, and compares challenge hashes without early exit.
+
+### 4. ML-DSA Arithmetic, Sampling & Encoding
+
+ML-DSA uses a different ring from ML-KEM:
+
+- **Polynomial Ring**: operations in $\mathbb{Z}_q[X]/(X^{256}+1)$ where
+  $q = 8380417$.
+- **Complete NTT**: `DilithiumNTT` uses the FIPS 204 Appendix B zeta table and a
+  complete coefficient-wise NTT shape, separate from ML-KEM's incomplete NTT and
+  base-multiplication path.
+- **Sampling**: `ExpandA` uses SHAKE-128 rejection sampling for NTT-domain matrix
+  coefficients; `ExpandS`, `ExpandMask`, and `SampleInBall` use SHAKE-256 with
+  unbounded XOF squeezing so the samplers do not exhaust fixed buffers.
+- **Signed-domain packing**: `packing.dart` handles public keys, secret keys,
+  signatures, `t0/t1`, `z`, and sparse hints with FIPS 204-derived sizes.
+- **HashML-DSA pre-hash**: vendored SHA-256/384/512 are selected by level
+  (ML-DSA-44/65/87) and paired with the DER OID bytes required by FIPS 204
+  domain separation.
+
+### 5. Cryptographic Primitives
+
+- **ML-KEM XOF/PRF**: SHAKE-128 for FIPS 203 matrix/sample generation and
+  SHAKE-256 for noise sampling.
+- **ML-KEM hash functions**: SHA3-256 and SHA3-512 for FIPS 203 key derivation,
+  ciphertext binding, and implicit rejection.
+- **ML-KEM CBD Sampling**: Centered Binomial Distribution with
+  $\eta \in \{2,3\}$.
+- **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
+  bounded sampling, mask expansion, and challenge sampling.
 - **Vendored FIPS 202**: SHA-3 and SHAKE are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`.
+- **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
+  (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
+  pairs for SHA-384/512 portability across the VM and web compilers.
 
-### 4. Security Hardening
+### 6. Security Hardening
 
 - **Implicit Rejection**: Implementation of the modified Fujisaki-Okamoto transform guarantees that invalid ciphertexts produce a pseudo-random shared secret (derived from internal secret $z$) rather than failing. This prevents chosen-ciphertext timing attacks.
-- **Domain Separation**: All hash calls include the standardized domain separation bytes.
-- **Input Validation**: `encapsulate` rejects malformed public keys, and `decapsulate` rejects malformed secret keys or ciphertext lengths before running decapsulation.
+- **Constant-time output selection**: ML-KEM decapsulation always computes both the re-encryption secret `K'` and the implicit-rejection secret `J(z‖c)` and selects between them with a branchless mask, so success vs. rejection does not leak through control flow.
+- **Best-effort zeroization**: secret intermediates in ML-KEM decapsulation and ML-DSA key generation / signing are overwritten in `finally` blocks (`lib/src/common/zeroize.dart`); see [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md) for the Dart limitations.
+- **ML-DSA norm checks**: `_normExceeds` scans all 256 coefficients with no
+  early exit; residual branch-direction timing remains documented as
+  best-effort Dart hardening, not a constant-time proof.
+- **Domain Separation**: ML-KEM uses the standardized FIPS 203 hash/XOF inputs;
+  ML-DSA and HashML-DSA include FIPS 204 domain bytes, context length, context,
+  and HashML-DSA OID/domain material.
+- **Input Validation**: `encapsulate` rejects malformed public keys, and
+  `decapsulate` rejects malformed secret keys or ciphertext lengths before
+  running decapsulation. ML-DSA verification returns `false` for malformed
+  public keys, signatures, hints, norm violations, or over-long contexts.
+- **Validation evidence**: `test/kat_evaluator_test.dart` covers the checked-in
+  ML-KEM corpus; `test/mldsa_kat_test.dart` covers all 18 ML-DSA KAT files
+  across raw/pure/hashed and deterministic/hedged signing.
 
 ---
 
@@ -136,40 +249,49 @@ lib/
 ├── pqcrypto.dart                 # 📦 Library Entrypoint
 └── src/
     ├── algos/
-    │   └── kyber/
-    │       ├── kem.dart          # 🚀 ML-KEM High-Level API (Algorithms 16-19)
-    │       │                     # - KeyGen_internal (Algorithm 15)
-    │       │                     # - ML-KEM.KeyGen (Algorithm 16)
-    │       │                     # - ML-KEM.Encaps (Algorithm 17)
-    │       │                     # - ML-KEM.Decaps (Algorithm 18)
-    │       │
-    │       ├── indcpa.dart       # 🔐 IND-CPA Encryption K-PKE (Algorithms 12-14)
-    │       │                     # - K-PKE.KeyGen (Algorithm 12)
-    │       │                     # - K-PKE.Encrypt (Algorithm 13)
-    │       │                     # - K-PKE.Decrypt (Algorithm 14)
-    │       │
-    │       ├── pack.dart         # 💾 Serialization & Compression (Defs 4.7-4.8)
-    │       │                     # - ByteEncode/ByteDecode (Algorithms 4-5)
-    │       │                     # - Compress/Decompress (d=1,4,5,10,11,12)
-    │       │
-    │       └── params.dart       # 📏 Security Parameters
-    │                             # - Constants for k, eta1, eta2, du, dv
+    │   ├── kyber/                # 🔑 ML-KEM (FIPS 203) implementation
+    │   │   ├── kem.dart          # 🚀 High-level API + KeyGen/Encaps/Decaps (Alg 15-18)
+    │   │   ├── indcpa.dart       # 🔐 IND-CPA K-PKE core (Algorithms 12-14)
+    │   │   ├── pack.dart         # 💾 ByteEncode/Decode + Compress (Algs 4-5)
+    │   │   └── params.dart       # 📏 ML-KEM params (k, eta1, eta2, du, dv)
+    │   │
+    │   └── dilithium/            # ✍️ ML-DSA (FIPS 204) implementation
+    │       ├── dsa.dart          # 🖊️ MlDsa: external + internal + HashML-DSA
+    │       │                     #    KeyGen/Sign/Verify (Algs 1-3), *_internal
+    │       │                     #    (Algs 6-8), HashML-DSA sign/verify (Algs 4-5)
+    │       ├── params.dart       # 📏 ML-DSA-44/65/87 params + Table 2 sizes
+    │       ├── poly.dart         # 🧮 DilithiumPoly / vector types (q=8380417)
+    │       ├── ntt.dart          # 🔁 Complete NTT + Appendix B zetas
+    │       ├── packing.dart      # 💾 pk/sk/sig encode/decode (signed domains)
+    │       ├── rounding.dart     # 📐 Power2Round/Decompose/MakeHint/UseHint
+    │       └── symmetric.dart    # 🎲 ExpandA/S, ExpandMask, SampleInBall, pre-hash
     │
     └── common/
-        ├── poly.dart             # 🧮 Polynomial Arithmetic & NTT
+        ├── poly.dart             # 🧮 ML-KEM Polynomial Arithmetic & NTT
         │                         # - NTT / InvNTT (Algorithms 8-9)
         │                         # - BaseMul [MultiplyNTTs] (Algorithm 10)
         │                         # - SampleNTT [Parse] (Algorithm 7)
         │                         # - PolyAdd, PolySub, PolyReduce
         │
-        ├── shake.dart            # 🎲 SHAKE-128 / SHAKE-256 wrappers
+        ├── shake.dart            # 🎲 SHAKE-128/256 wrappers + incremental XOF
         │
-        └── keccak.dart           # 🧱 Vendored FIPS 202 (zero-dependency)
-                                  # - SHA3-256/512, SHAKE128/256
-                                  # - web-safe 32-bit lanes (dart2js/dart2wasm)
+        ├── keccak.dart           # 🧱 Vendored FIPS 202 (zero-dependency)
+        │                         # - SHA3-256/512, SHAKE128/256, KeccakXof
+        │                         # - web-safe 32-bit lanes (dart2js/dart2wasm)
+        │
+        ├── sha2.dart             # #️⃣ Vendored FIPS 180-4 SHA-256/384/512
+        │                         # - HashML-DSA pre-hash; web-safe 64-bit pairs
+        │
+        └── zeroize.dart          # 🧹 Best-effort secret zeroization helpers
 
 test/
 ├── kat_evaluator_test.dart       # 🧪 Checked-in ML-KEM KAT runner (3000 vectors, VM-only)
+├── mldsa_kat_test.dart           # 🧪 Discovered ML-DSA KAT runner (18 files, all flavours, VM-only)
+├── dsa_zetas_test.dart           # 🧮 FIPS 204 Appendix B zetas + negacyclic NTT property
+├── dsa_rounding_test.dart        # 📐 Power2Round/Decompose/MakeHint/UseHint boundaries
+├── dsa_negative_test.dart        # 🚫 Malformed pk/sig/hint/context: verify returns false
+├── dsa_api_test.dart             # 🔐 Context binding, hedged vs deterministic, domain separation
+├── sha2_test.dart                # #️⃣ SHA-256/384/512 (FIPS 180-4) for HashML-DSA pre-hash
 ├── keccak_test.dart              # 🧱 FIPS 202 (SHA3/SHAKE) known-answer tests
 ├── roundtrip_test.dart           # 🔁 End-to-end KEM round-trip (runs on VM + web)
 ├── kem_validation_test.dart      # 🔎 Public key, secret key, and ciphertext checks
@@ -178,9 +300,10 @@ test/
 ├── poly_test.dart                # 🧮 Modular reduction properties
 ├── cbd_test.dart                 # 📊 Statistical distribution checks
 └── data/
-    ├── kat_MLKEM_512.rsp         # ML-KEM-512 checked-in KAT corpus
-    ├── kat_MLKEM_768.rsp         # ML-KEM-768 checked-in KAT corpus
-    └── kat_MLKEM_1024.rsp        # ML-KEM-1024 checked-in KAT corpus
+    ├── MLKEM/                    # ML-KEM KAT corpus (512/768/1024) + README
+    │   └── kat_MLKEM_*.rsp
+    └── MLDSA/                    # ML-DSA KAT corpus + README
+        └── kat_MLDSA_{44,65,87}_{det,hedged}_{raw,pure,hashed}.rsp
 
 tool/
 └── openssl_interop/              # 🔗 OpenSSL FFI interop harness (dev tool, separate package)
@@ -200,7 +323,11 @@ tool/
 
 ### Quick Start
 
-> **Serverpod Users:** Check out the [Full Stack Integration Guide](SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
+> **Serverpod Users:** Check out the [Full Stack Integration Guide](doc/SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
+> **Agent Workflows:** The project-level
+> [Universal Multi-Agent PQC Framework](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)
+> provides Codex, Claude Code, and Antigravity wrappers plus an LLM-readable
+> manifest for evidence-scoped Serverpod/Flutter PQC planning.
 
 ```dart
 import 'package:pqcrypto/pqcrypto.dart';
@@ -272,11 +399,11 @@ Validates against the `.rsp` files checked into `test/data`.
 
 Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 
-| Algorithm | Key Generation | Encapsulation | Decapsulation | Security Level |
-| :--- | :--- | :--- | :--- | :--- |
-| **ML-KEM-512** | ~0.7 ms | ~0.7 ms | ~0.6 ms | 128-bit security |
-| **ML-KEM-768** | ~1.3 ms | ~1.4 ms | ~1.0 ms | 192-bit security |
-| **ML-KEM-1024** | ~1.8 ms | ~1.8 ms | ~1.7 ms | 256-bit security |
+| Algorithm       | Key Generation | Encapsulation | Decapsulation | Security Level   |
+| --------------- | -------------- | ------------- | ------------- | ---------------- |
+| **ML-KEM-512**  | ~0.7 ms        | ~0.7 ms       | ~0.6 ms       | 128-bit security |
+| **ML-KEM-768**  | ~1.3 ms        | ~1.4 ms       | ~1.0 ms       | 192-bit security |
+| **ML-KEM-1024** | ~1.8 ms        | ~1.8 ms       | ~1.7 ms       | 256-bit security |
 
 ---
 
@@ -286,8 +413,10 @@ Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 - ✅ **Phase 2: Correctness** (GenMatrix, CBD, FO Transform)
 - ✅ **Phase 3: FIPS 203 Alignment** (NTT, Compression, ByteEncode)
 - ✅ **Phase 4: Full Suite** (ML-KEM-512/768/1024 support)
-- ⬜ **Phase 5: Optimization** (SIMD, WASM via `dart:wasm`)
-- ⬜ **Phase 6: Expansion** (ML-DSA / Dilithium signatures)
+- ✅ **Phase 5: ML-DSA validation** (byte-exact FIPS 204 KATs for 44/65/87 across raw/pure/hashed × det/hedged; external hedged API; HashML-DSA; repo-local corpus)
+- 🔄 **Phase 6: Hardening and expansion** (best-effort zeroization and constant-time review landed; ongoing side-channel review, SLH-DSA/HQC research)
+
+See [doc/ROADMAP.md](doc/ROADMAP.md) for the evidence-scoped roadmap.
 
 ---
 
@@ -297,7 +426,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.2.1
+  pqcrypto: ^0.3.0
 ```
 
 `pqcrypto` pulls in no third-party dependencies of its own.

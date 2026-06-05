@@ -2,3 +2,4 @@
 # .pubignore uses .gitignore syntax (# = comment), not Markdown headings.
 .pubignore
 .dart_tool/
+verdicts/

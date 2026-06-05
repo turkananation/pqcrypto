@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
+import 'package:pqcrypto/src/common/zeroize.dart';
 
 import 'indcpa.dart';
 import 'pack.dart';
@@ -108,41 +109,63 @@ class KyberKem {
   }
 
   /// Decapsulate: Server recovers ss from ct.
+  ///
+  /// Implements the FIPS 203 §6.3 modified Fujisaki-Okamoto transform with a
+  /// constant-time output selection: both the re-encryption secret `K'` and the
+  /// implicit-rejection secret `K_bar = J(z || c)` are always computed, and the
+  /// result is chosen with a branchless mask so the success/failure path does
+  /// not leak through control flow. Sensitive intermediates are zeroized
+  /// (best-effort) in a `finally` block.
   Uint8List decapsulate(Uint8List sk, Uint8List ct) {
     _validateSecretKey(sk);
     _validateCiphertext(ct);
 
-    // 1. (s, h, pk, z) := Decode(sk)
+    // 1. (s, h, pk, z) := Decode(sk). decodeSecretKey returns copies, so z/h
+    //    can be zeroized without touching the caller's sk.
     final (_, h, pk, z) = Pack.decodeSecretKey(sk, params);
 
-    // 2. m' := Decrypt(s, ct)
-    final mPrime = Indcpa.decrypt(
-      sk,
-      ct,
-      params,
-    ); // Indcpa.decrypt decodes s internally from sk.
-    // Wait, Indcpa.decrypt takes SK (encoded).
-    // And unpacks it.
-    // My previous Indcpa.decrypt unpacking was ignoring z.
-    // That's fine, it ignores suffix.
+    Uint8List? mPrime, krPrime, kBar, cPrime;
+    try {
+      // 2. m' := Decrypt(s, ct)
+      mPrime = Indcpa.decrypt(sk, ct, params);
 
-    // 3. (K', r') := G(m' || h)
-    final input = Uint8List(32 + 32);
-    input.setAll(0, mPrime);
-    input.setAll(32, h);
-    final krPrime = _g(input);
+      // 3. (K', r') := G(m' || h)
+      final input = Uint8List(64)
+        ..setAll(0, mPrime)
+        ..setAll(32, h);
+      krPrime = _g(input);
+      secureZero(input);
+      final kPrime = Uint8List.sublistView(krPrime, 0, 32);
+      final rPrime = Uint8List.sublistView(krPrime, 32, 64);
 
-    final kPrime = krPrime.sublist(0, 32);
-    final rPrime = krPrime.sublist(32, 64);
+      // 4. c' := Encrypt(pk, m', r') and 5. K_bar := J(z || c)
+      cPrime = Indcpa.encrypt(pk, mPrime, rPrime, params);
+      kBar = _j(z, ct, 32);
 
-    // 4. c' := Encrypt(pk, m', r')
-    final cPrime = Indcpa.encrypt(pk, mPrime, rPrime, params);
+      // 6. Constant-time select: out = (c == c') ? K' : K_bar.
+      // diff is the OR of byte/length differences, so diff == 0 iff the
+      // ciphertexts match. eqMask = 0xFF when equal, 0x00 otherwise; the mask
+      // construction is robust to non-zero diff values larger than one byte.
+      int diff = 0;
+      final n = ct.length < cPrime.length ? ct.length : cPrime.length;
+      for (int i = 0; i < n; i++) {
+        diff |= ct[i] ^ cPrime[i];
+      }
+      diff |= ct.length ^ cPrime.length;
+      final eqMask = (((diff | -diff) >> 31) & 0xFF) ^ 0xFF;
+      final neMask = eqMask ^ 0xFF;
 
-    // 5. if c == c' return K', else return K_bar = J(z || c, 32)
-    if (_constantTimeEq(ct, cPrime)) {
-      return kPrime;
-    } else {
-      return _j(z, ct, 32);
+      final out = Uint8List(32);
+      for (int i = 0; i < 32; i++) {
+        out[i] = (kPrime[i] & eqMask) | (kBar[i] & neMask);
+      }
+      return out;
+    } finally {
+      secureZero(mPrime);
+      secureZero(krPrime); // backs kPrime and rPrime
+      secureZero(kBar);
+      secureZero(cPrime);
+      secureZero(z);
     }
   }
 
@@ -204,9 +227,14 @@ class KyberKem {
     }
   }
 
+  static final Random _secureRng = Random.secure();
+
   Uint8List _randomBytes(int len) {
-    final rng = Random.secure();
-    return Uint8List.fromList(List.generate(len, (_) => rng.nextInt(256)));
+    final b = Uint8List(len);
+    for (int i = 0; i < len; i++) {
+      b[i] = _secureRng.nextInt(256);
+    }
+    return b;
   }
 
   bool _constantTimeEq(Uint8List a, Uint8List b) {

@@ -31,12 +31,12 @@ ML-KEM (FIPS 203) is fully specified down to the byte. Two conformant
 implementations must agree on the wire formats and the derived secret. All
 sizes are in bytes:
 
-| Artifact | ML-KEM-512 | ML-KEM-768 | ML-KEM-1024 |
-| :--- | :---: | :---: | :---: |
-| Encapsulation key (public key) `ek` | **800** | **1184** | **1568** |
-| Ciphertext `c` | **768** | **1088** | **1568** |
-| Decapsulation key (secret key) `dk` | **1632** | **2400** | **3168** |
-| Shared secret `K` | **32** | **32** | **32** |
+| Artifact                            | ML-KEM-512 | ML-KEM-768 | ML-KEM-1024 |
+| ----------------------------------- | ---------- | ---------- | ----------- |
+| Encapsulation key (public key) `ek` | **800**    | **1184**   | **1568**    |
+| Ciphertext `c`                      | **768**    | **1088**   | **1568**    |
+| Decapsulation key (secret key) `dk` | **1632**   | **2400**   | **3168**    |
+| Shared secret `K`                   | **32**     | **32**     | **32**      |
 
 These follow directly from the parameter sets (`k` = 2 / 3 / 4):
 
@@ -62,18 +62,18 @@ The harness ([`tool/openssl_interop/`](../tool/openssl_interop/)) runs the
 following for **each** of ML-KEM-512, ML-KEM-768, and ML-KEM-1024. Tests A and B
 are self-consistency sanity checks; C–G are cross-implementation proofs.
 
-| Test | KeyGen | Encaps | Decaps | What it proves |
-| :--: | :--- | :--- | :--- | :--- |
-| **sizes** | — | — | — | OpenSSL & `pqcrypto` outputs match the FIPS 203 size constants |
-| **A** | OpenSSL | OpenSSL | OpenSSL | Sanity: OpenSSL is internally consistent |
-| **B** | pqcrypto | pqcrypto | pqcrypto | Sanity: `pqcrypto` is internally consistent |
-| **C** | **OpenSSL** | **pqcrypto** | **OpenSSL** | OpenSSL can decapsulate a **pqcrypto** ciphertext (×fuzz) |
-| **D** | **pqcrypto** | **OpenSSL** | **pqcrypto** | `pqcrypto` can decapsulate an **OpenSSL** ciphertext (×fuzz) |
-| **E** | both, from a **shared seed** `(d‖z)` | — | — | Same seed ⇒ **byte-identical public keys** |
-| **E-exchange** | both, from a shared seed | both directions | both directions | The seed-derived keypair interoperates both ways |
-| **F** | pqcrypto | — | — | **Public-key wire round-trip**: pqcrypto → OpenSSL → re-export is byte-identical |
-| **G** | both, from a shared seed | — | both | **Implicit-rejection** secret `K̄ = J(z‖c)` agrees on an invalid ciphertext |
-| **negative** | OpenSSL | — | — | `pqcrypto` rejects a truncated OpenSSL public key |
+| Test           | KeyGen                               | Encaps          | Decaps          | What it proves                                                                   |
+| -------------- | ------------------------------------ | --------------- | --------------- | -------------------------------------------------------------------------------- |
+| **sizes**      | —                                    | —               | —               | OpenSSL & `pqcrypto` outputs match the FIPS 203 size constants                   |
+| **A**          | OpenSSL                              | OpenSSL         | OpenSSL         | Sanity: OpenSSL is internally consistent                                         |
+| **B**          | pqcrypto                             | pqcrypto        | pqcrypto        | Sanity: `pqcrypto` is internally consistent                                      |
+| **C**          | **OpenSSL**                          | **pqcrypto**    | **OpenSSL**     | OpenSSL can decapsulate a **pqcrypto** ciphertext (×fuzz)                        |
+| **D**          | **pqcrypto**                         | **OpenSSL**     | **pqcrypto**    | `pqcrypto` can decapsulate an **OpenSSL** ciphertext (×fuzz)                     |
+| **E**          | both, from a **shared seed** `(d‖z)` | —               | —               | Same seed ⇒ **byte-identical public keys**                                       |
+| **E-exchange** | both, from a shared seed             | both directions | both directions | The seed-derived keypair interoperates both ways                                 |
+| **F**          | pqcrypto                             | —               | —               | **Public-key wire round-trip**: pqcrypto → OpenSSL → re-export is byte-identical |
+| **G**          | both, from a shared seed             | —               | both            | **Implicit-rejection** secret `Kbar = J(z‖c)` agrees on an invalid ciphertext    |
+| **negative**   | OpenSSL                              | —               | —               | `pqcrypto` rejects a truncated OpenSSL public key                                |
 
 A round-trip test **passes** when `encapsulate`'s shared secret equals
 `decapsulate`'s shared secret (byte-for-byte). C and D are run over many random
@@ -153,17 +153,17 @@ The harness binds directly to `libcrypto` using `dart:ffi` and the OpenSSL
 high-level **EVP** API. No `openssl` CLI and no build step at runtime — it
 `dlopen`s the shared library and calls:
 
-| EVP function | Purpose |
-| :--- | :--- |
-| `EVP_PKEY_CTX_new_from_name(NULL, "ML-KEM-<lvl>", NULL)` | Create a context for the chosen level |
-| `EVP_PKEY_keygen_init` / `EVP_PKEY_keygen` | Generate a keypair |
-| `EVP_PKEY_get1_encoded_public_key` | Export the raw public key |
-| `EVP_PKEY_fromdata_init` / `EVP_PKEY_fromdata` (param `"pub"`, sel. `PUBLIC_KEY`) | Import a raw public key (for encaps) |
-| `EVP_PKEY_fromdata_init` / `EVP_PKEY_fromdata` (param `"seed"`, sel. `KEYPAIR`) | **Deterministically derive a keypair from a 64-byte seed** (tests E/G) |
-| `EVP_PKEY_encapsulate_init` / `EVP_PKEY_encapsulate` | Encapsulate |
-| `EVP_PKEY_decapsulate_init` / `EVP_PKEY_decapsulate` | Decapsulate |
-| `OSSL_PARAM_BLD_*` | Build the `OSSL_PARAM` carrying the imported octet string |
-| `OpenSSL_version(0)` | Report the loaded library version (for the banner) |
+| EVP function                                                                      | Purpose                                                                |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `EVP_PKEY_CTX_new_from_name(NULL, "ML-KEM-<lvl>", NULL)`                          | Create a context for the chosen level                                  |
+| `EVP_PKEY_keygen_init` / `EVP_PKEY_keygen`                                        | Generate a keypair                                                     |
+| `EVP_PKEY_get1_encoded_public_key`                                                | Export the raw public key                                              |
+| `EVP_PKEY_fromdata_init` / `EVP_PKEY_fromdata` (param `"pub"`, sel. `PUBLIC_KEY`) | Import a raw public key (for encaps)                                   |
+| `EVP_PKEY_fromdata_init` / `EVP_PKEY_fromdata` (param `"seed"`, sel. `KEYPAIR`)   | **Deterministically derive a keypair from a 64-byte seed** (tests E/G) |
+| `EVP_PKEY_encapsulate_init` / `EVP_PKEY_encapsulate`                              | Encapsulate                                                            |
+| `EVP_PKEY_decapsulate_init` / `EVP_PKEY_decapsulate`                              | Decapsulate                                                            |
+| `OSSL_PARAM_BLD_*`                                                                | Build the `OSSL_PARAM` carrying the imported octet string              |
+| `OpenSSL_version(0)`                                                              | Report the loaded library version (for the banner)                     |
 
 ML-KEM ships in OpenSSL's **default provider** (built into `libcrypto`) since
 OpenSSL 3.5, so no provider configuration or `openssl.cnf` is required — opening
@@ -200,12 +200,12 @@ or ciphertext breaks tests C–G. Reaching all-green required correcting specifi
 FIPS 203 conformance defects, tracked here by stable Evidence-Ledger ID
 (E-numbers) and the fix commit:
 
-| Defect | Ledger | Effect if wrong | Fix commit |
-| :--- | :---: | :--- | :--- |
-| `Compress` must wrap to `[0, 2^d−1]` (mod 2^d), not clamp | E2 | Ciphertext bytes diverge → C/D fail | `aeae275` |
-| KeyGen seed expansion must be `G(d ‖ k)` (domain-separation byte `k`) | E7 | Different `ρ`/keys → public keys never match | `fb2e8cc` |
-| Matrix `Â[i][j] = SampleNTT(XOF(ρ, j, i))` — correct `i/j` order | E8 | Generates `Aᵀ` → ciphertext diverges → C/D fail | `4572b3b` |
-| `barrettReduce` must return canonical `[0, q−1]` | E5/E6 | Contract/edge-case hardening (KATs already passed; removes latent risk) | this session |
+| Defect                                                                | Ledger | Effect if wrong                                                         | Fix commit   |
+| --------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------- | ------------ |
+| `Compress` must wrap to `[0, 2^d−1]` (mod 2^d), not clamp             | E2     | Ciphertext bytes diverge → C/D fail                                     | `aeae275`    |
+| KeyGen seed expansion must be `G(d ‖ k)` (domain-separation byte `k`) | E7     | Different `ρ`/keys → public keys never match                            | `fb2e8cc`    |
+| Matrix `Â[i][j] = SampleNTT(XOF(ρ, j, i))` — correct `i/j` order      | E8     | Generates `Aᵀ` → ciphertext diverges → C/D fail                         | `4572b3b`    |
+| `barrettReduce` must return canonical `[0, q−1]`                      | E5/E6  | Contract/edge-case hardening (KATs already passed; removes latent risk) | this session |
 
 The upstream interop demo pins commit **`4572b3b`** — the point at which the
 public-key and ciphertext encodings became byte-compatible with OpenSSL. The
@@ -220,13 +220,13 @@ changes regressed interop.
 
 ### 5.1 Linux (verified in this repository)
 
-| Component | Version / detail |
-| :--- | :--- |
-| OS | Linux x86_64 |
-| OpenSSL | **3.5.4** (30 Sep 2025) and **3.5.6** (7 Apr 2026), default provider (`libcrypto.so.3`); CI also builds **4.0.0** |
-| Dart SDK | **3.12.0** (stable) |
-| pqcrypto | working tree (path override), ahead of `4572b3b` |
-| Date | 2026-06-03 |
+| Component | Version / detail                                                                                                  |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| OS        | Linux x86_64                                                                                                      |
+| OpenSSL   | **3.5.4** (30 Sep 2025) and **3.5.6** (7 Apr 2026), default provider (`libcrypto.so.3`); CI also builds **4.0.0** |
+| Dart SDK  | **3.12.0** (stable)                                                                                               |
+| pqcrypto  | working tree (path override), ahead of `4572b3b`                                                                  |
+| Date      | 2026-06-03                                                                                                        |
 
 Harness output (`dart run bin/openssl_pqcrypto_interop.dart`, truncated paths;
 all 24 checks across the three levels passed):
@@ -274,12 +274,12 @@ The original interoperability demo
 was authored and validated on macOS. The vendored harness here runs there
 unchanged (it auto-detects the Homebrew `libcrypto`).
 
-| Component | Version / detail |
-| :--- | :--- |
-| OS | macOS (Apple Silicon) |
-| OpenSSL | **3.5+** via Homebrew (e.g. `brew install openssl@3.5`), `libcrypto.dylib` |
-| Dart SDK | **≥ 3.11** |
-| pqcrypto | this working tree |
+| Component | Version / detail                                                           |
+| --------- | -------------------------------------------------------------------------- |
+| OS        | macOS (Apple Silicon)                                                      |
+| OpenSSL   | **3.5+** via Homebrew (e.g. `brew install openssl@3.5`), `libcrypto.dylib` |
+| Dart SDK  | **≥ 3.11**                                                                 |
+| pqcrypto  | this working tree                                                          |
 
 Expected output is the same all-`[PASS]` summary as Linux. The harness banner
 prints the actual loaded version and the `libcrypto` path it resolved.
