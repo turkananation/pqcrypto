@@ -1,16 +1,78 @@
 import 'dart:typed_data';
 import '../../common/shake.dart';
+import '../../common/sha2.dart';
 import 'poly.dart';
 import 'params.dart';
 import 'packing.dart';
-
-// Import rounding? maybe for some checks.
 
 class DilithiumSymmetric {
   /// CRH(seed): variable output bytes from SHAKE-256 (default 64)
   static Uint8List crh(Uint8List seed, [int length = 64]) {
     // FIPS 204: H produces 2*lambda output.
     return Shake256.shake(seed, length);
+  }
+
+  /// HashML-DSA pre-hash (FIPS 204 §5.4).
+  ///
+  /// Returns `(DER(OID), PH(M))` for the approved pre-hash bound to the
+  /// security level (selected by [cTildeSize] = lambda/4):
+  /// SHA-256 (ML-DSA-44), SHA-384 (ML-DSA-65), SHA-512 (ML-DSA-87).
+  static (Uint8List, Uint8List) preHash(Uint8List m, int cTildeSize) {
+    switch (cTildeSize) {
+      case 32: // ML-DSA-44 -> SHA-256, OID 2.16.840.1.101.3.4.2.1
+        return (
+          Uint8List.fromList(const [
+            0x06,
+            0x09,
+            0x60,
+            0x86,
+            0x48,
+            0x01,
+            0x65,
+            0x03,
+            0x04,
+            0x02,
+            0x01,
+          ]),
+          sha256(m),
+        );
+      case 48: // ML-DSA-65 -> SHA-384, OID 2.16.840.1.101.3.4.2.2
+        return (
+          Uint8List.fromList(const [
+            0x06,
+            0x09,
+            0x60,
+            0x86,
+            0x48,
+            0x01,
+            0x65,
+            0x03,
+            0x04,
+            0x02,
+            0x02,
+          ]),
+          sha384(m),
+        );
+      case 64: // ML-DSA-87 -> SHA-512, OID 2.16.840.1.101.3.4.2.3
+        return (
+          Uint8List.fromList(const [
+            0x06,
+            0x09,
+            0x60,
+            0x86,
+            0x48,
+            0x01,
+            0x65,
+            0x03,
+            0x04,
+            0x02,
+            0x03,
+          ]),
+          sha512(m),
+        );
+      default:
+        throw ArgumentError('Unsupported cTildeSize: $cTildeSize');
+    }
   }
 
   /// ExpandA(rho) -> Matrix A (k x l) of DilithiumPoly in NTT domain.
@@ -58,36 +120,20 @@ class DilithiumSymmetric {
     inputStrict[32] = s & 0xFF;
     inputStrict[33] = r & 0xFF;
 
-    // SHAKE-128
-    // We squeeze enough blocks.
-    // Spec suggests separate calls, but Shake128.shake does strict output length.
-    // SHAKE128 rate = 168 bytes.
-    // Need approx. 12 bits * 256 = 3072 bits = 384 bytes.
-    // Rejection rate analysis: need ~5 blocks (840 bytes) to be safe.
-
-    final stream = Shake128.shake(inputStrict, 840);
-
+    // FIPS 204 Algorithm 30 RejNTTPoly: incremental SHAKE128 squeeze, three
+    // bytes per candidate, accept when the 23-bit value is < q. Using the XOF
+    // means the sampler can never exhaust a fixed buffer.
+    final xof = Shake128.xof(inputStrict);
     final coeffs = Int32List(n);
     int ctr = 0;
-    int offset = 0;
-
-    while (ctr < n && offset + 3 <= stream.length) {
-      int b0 = stream[offset];
-      int b1 = stream[offset + 1];
-      int b2 = stream[offset + 2];
-      offset += 3;
-
-      // Coeff = b0 + (b1 << 8) + (b2 << 16) & 0x7FFFFF
-      int t = b0 | (b1 << 8) | (b2 << 16);
-      t &= 0x7FFFFF; // 23 bits
-
+    while (ctr < n) {
+      final b0 = xof.squeezeByte();
+      final b1 = xof.squeezeByte();
+      final b2 = xof.squeezeByte();
+      final t = (b0 | (b1 << 8) | (b2 << 16)) & 0x7FFFFF; // 23 bits
       if (t < q) {
         coeffs[ctr++] = t;
       }
-    }
-
-    if (ctr < n) {
-      throw Exception("RejNTTPoly failed to generate enough coefficients");
     }
 
     return DilithiumPoly(coeffs);
@@ -101,74 +147,28 @@ class DilithiumSymmetric {
     input[64] = kappa & 0xFF;
     input[65] = (kappa >> 8) & 0xFF;
 
-    // SHAKE-256 (Uses PRF logic usually)
-    // Length depends on eta.
-
-    // We implement specific logic per eta because packing differs.
-    // But FIPS 204 RejBoundedPoly(rho) logic:
-    // Parse stream into coefficients in range [-eta, eta].
-
-    final stream = Shake256.shake(input, 1008); // Large buffer
-
+    // FIPS 204 Algorithm 31 RejBoundedPoly + Algorithm 15 CoeffFromHalfByte:
+    // incremental SHAKE256 squeeze, one byte (two half-bytes) per step.
+    //   eta=2: accept half-byte b<15, value = 2 - (b mod 5); reject b==15.
+    //   eta=4: accept half-byte b<9,  value = 4 - b;        reject b>=9.
+    final xof = Shake256.xof(input);
     final coeffs = Int32List(n);
     int ctr = 0;
-    int offset = 0;
-
-    // Loop based on eta?
-    // "Sample from [-eta, eta]"
-    // Uses Rejection Sampling on specific bits?
-
-    /* 
-       For eta=2:
-       Read byte. t0 = b & 0x0F, t1 = b >> 4.
-       If t0 < 15, then t0 = t0 - (15-4)/2 ? No.
-       Spec:
-       if t0 <= 15 - 5 (??)
-       
-       Correct logic:
-       We want uniform in [-2, 2]. Size 5.
-       Closest power of 2 is 8 (3 bits) or 16 (4 bits).
-       Using 4 bits (nibble):
-       If nibble < 5: take it? range 0..4 map to -2..2?
-       t = nibble.
-       If t < 5 return 2 - t.
-       (2, 1, 0, -1, -2)
-    */
-
     if (eta == 2) {
-      while (ctr < n && offset < stream.length) {
-        int b = stream[offset++];
-        int t0 = b & 0x0F;
-        int t1 = b >> 4;
-
-        if (t0 < 5) {
-          coeffs[ctr++] = 2 - t0;
-        }
-        if (ctr < n && t1 < 5) {
-          coeffs[ctr++] = 2 - t1;
-        }
+      while (ctr < n) {
+        final b = xof.squeezeByte();
+        final t0 = b & 0x0F, t1 = b >> 4;
+        if (t0 < 15) coeffs[ctr++] = 2 - (t0 % 5);
+        if (ctr < n && t1 < 15) coeffs[ctr++] = 2 - (t1 % 5);
       }
-    } else if (eta == 4) {
-      // eta=4. Range [-4, 4]. Size 9.
-      // Byte maps to 0..255.
-      // Need 9.
-      // 4 bits gives 0..15.
-      // if t < 9: return 4 - t.
-      while (ctr < n && offset < stream.length) {
-        int b = stream[offset++];
-        int t0 = b & 0x0F;
-        int t1 = b >> 4;
-
-        if (t0 < 9) {
-          coeffs[ctr++] = 4 - t0;
-        }
-        if (ctr < n && t1 < 9) {
-          coeffs[ctr++] = 4 - t1;
-        }
+    } else {
+      while (ctr < n) {
+        final b = xof.squeezeByte();
+        final t0 = b & 0x0F, t1 = b >> 4;
+        if (t0 < 9) coeffs[ctr++] = 4 - t0;
+        if (ctr < n && t1 < 9) coeffs[ctr++] = 4 - t1;
       }
     }
-
-    if (ctr < n) throw Exception("RejBoundedPoly failed");
     return DilithiumPoly(coeffs);
   }
 
@@ -243,44 +243,23 @@ class DilithiumSymmetric {
     //   c[i] = c[j]
     //   c[j] = (-1)^bit * 1
 
+    // FIPS 204 Algorithm 29 SampleInBall: the first 8 squeezed bytes provide
+    // the 64 sign bits; subsequent bytes drive a Fisher-Yates placement of the
+    // tau non-zero entries. Incremental squeeze => no buffer-exhaustion path.
     final c = DilithiumPoly.zero();
-    // 8 bytes for signs.
-    // Sample tau positions in [0, 255].
-    // Note: FIPS 204 Alg is slightly different from old Dilithium.
+    final xof = Shake256.xof(rho);
+    final signs = xof.squeeze(8);
 
-    // Alg 9 (SampleInBall):
-    // k = 256
-    // S = Shake256(rho, 860?)? Rate is 136. Getting enough bytes.
-    // signs = S[0..7] (64 bits used)
-
-    // Implementation:
-    final stream = Shake256.shake(rho, 840); // 6 SHAKE-256 blocks, safe for tau=60
-
-    int offset = 8;
     int k = 0;
-
     for (int i = 256 - tau; i < 256; i++) {
       int j;
-      while (true) {
-        if (offset >= stream.length) {
-          // Should verify needed length or expand stream
-          throw Exception("SampleInBall stream exhausted");
-        }
-        int byte = stream[offset++];
-        if (byte <= i) {
-          j = byte;
-          break;
-        }
-      }
+      do {
+        j = xof.squeezeByte();
+      } while (j > i);
 
       c.coeffs[i] = c.coeffs[j];
-      // Set c[j] to +/- 1 based on sign bit k
-      // Need k-th bit of 'signs'.
-      // Or simpler: access stream[k/8] >> (k%8).
-      int signByte = stream[k >> 3];
-      int signBit = (signByte >> (k & 7)) & 1;
+      final signBit = (signs[k >> 3] >> (k & 7)) & 1;
       c.coeffs[j] = (signBit == 1) ? -1 : 1;
-
       k++;
     }
 

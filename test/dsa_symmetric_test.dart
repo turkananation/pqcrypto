@@ -35,7 +35,7 @@ void main() {
     });
 
     test('ExpandS generates bounded coefficients (eta=2)', () {
-      final rho = Uint8List(32); // Seed
+      final rho = Uint8List(64); // FIPS 204 ExpandS consumes rho' (64 bytes)
       final k = 4;
       final l = 4;
       final eta = 2;
@@ -69,7 +69,7 @@ void main() {
     });
 
     test('ExpandS generates bounded coefficients (eta=4)', () {
-      final rho = Uint8List(32);
+      final rho = Uint8List(64); // FIPS 204 ExpandS consumes rho' (64 bytes)
       final k = 6;
       final l = 5;
       final eta = 4;

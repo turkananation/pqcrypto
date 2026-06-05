@@ -34,7 +34,11 @@ void main() {
       for (int i = 0; i < 256; i++) {
         if (c.coeffs[i] != 0) nonZero++;
       }
-      expect(nonZero, 39, reason: 'Challenge poly must have exactly tau=39 non-zero coeffs');
+      expect(
+        nonZero,
+        39,
+        reason: 'Challenge poly must have exactly tau=39 non-zero coeffs',
+      );
     });
 
     test('SampleInBall produces correct Hamming weight for tau=49', () {
@@ -44,7 +48,11 @@ void main() {
       for (int i = 0; i < 256; i++) {
         if (c.coeffs[i] != 0) nonZero++;
       }
-      expect(nonZero, 49, reason: 'Challenge poly must have exactly tau=49 non-zero coeffs');
+      expect(
+        nonZero,
+        49,
+        reason: 'Challenge poly must have exactly tau=49 non-zero coeffs',
+      );
     });
 
     test('SampleInBall produces correct Hamming weight for tau=60', () {
@@ -54,7 +62,11 @@ void main() {
       for (int i = 0; i < 256; i++) {
         if (c.coeffs[i] != 0) nonZero++;
       }
-      expect(nonZero, 60, reason: 'Challenge poly must have exactly tau=60 non-zero coeffs');
+      expect(
+        nonZero,
+        60,
+        reason: 'Challenge poly must have exactly tau=60 non-zero coeffs',
+      );
     });
 
     test('SampleInBall coefficients are only +1 or -1', () {
@@ -149,10 +161,7 @@ void main() {
     test('encapsulate rejects wrong-size public key', () {
       final kem = KyberKem(KyberLevel.kem768);
       final badPk = Uint8List(100); // Wrong size
-      expect(
-        () => kem.encapsulate(badPk),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => kem.encapsulate(badPk), throwsA(isA<ArgumentError>()));
     });
 
     test('decapsulate rejects wrong-size secret key', () {
@@ -160,20 +169,14 @@ void main() {
       final (pk, _) = kem.generateKeyPair();
       final (ct, _) = kem.encapsulate(pk);
       final badSk = Uint8List(100);
-      expect(
-        () => kem.decapsulate(badSk, ct),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => kem.decapsulate(badSk, ct), throwsA(isA<ArgumentError>()));
     });
 
     test('decapsulate rejects wrong-size ciphertext', () {
       final kem = KyberKem(KyberLevel.kem768);
       final (_, sk) = kem.generateKeyPair();
       final badCt = Uint8List(100);
-      expect(
-        () => kem.decapsulate(sk, badCt),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => kem.decapsulate(sk, badCt), throwsA(isA<ArgumentError>()));
     });
 
     test('encapsulate accepts correct-size public key', () {
@@ -248,21 +251,30 @@ void main() {
   group('KeyGen sizes post-fix', () {
     test('ML-DSA-44 key sizes per FIPS 204 Table 2', () {
       final seed = Uint8List(32);
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa44, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa44,
+        seed,
+      );
       expect(pk.length, 1312);
       expect(sk.length, 2560);
     });
 
     test('ML-DSA-65 key sizes per FIPS 204 Table 2', () {
       final seed = Uint8List(32);
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa65, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa65,
+        seed,
+      );
       expect(pk.length, 1952);
       expect(sk.length, 4032);
     });
 
     test('ML-DSA-87 key sizes per FIPS 204 Table 2', () {
       final seed = Uint8List(32);
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa87, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa87,
+        seed,
+      );
       expect(pk.length, 2592);
       expect(sk.length, 4896);
     });

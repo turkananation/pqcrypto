@@ -1,4 +1,5 @@
-// ignore_for_file: avoid_print
+@TestOn('vm') // Reads the .rsp KAT corpus from disk (dart:io); VM-only.
+library;
 
 import 'dart:io';
 import 'dart:typed_data';
@@ -6,167 +7,135 @@ import 'package:test/test.dart';
 import 'package:pqcrypto/src/algos/dilithium/dsa.dart';
 import 'package:pqcrypto/src/algos/dilithium/params.dart';
 
-Uint8List fromHex(String s) {
+/// Discovered, repo-local ML-DSA (FIPS 204) known-answer-test runner.
+///
+/// Validates byte-exact conformance against the official KAT corpus in
+/// `test/data/MLDSA`, covering the full matrix:
+///   {ML-DSA-44, 65, 87} x {deterministic, hedged} x {raw, pure, hashed}
+/// where
+///   raw    = internal functions (Algorithms 6/7/8), M' = M
+///   pure   = external ML-DSA (Algorithms 1/2/3), 16-byte context
+///   hashed = HashML-DSA (Algorithms 1/4/5), SHA-256/384/512 pre-hash
+///
+/// See `test/data/MLDSA/README.md` for the corpus format.
+const String _katDir = 'test/data/MLDSA';
+
+/// Records-per-file cap. Override with `-D MLDSA_KAT_LIMIT=<n>` (default: all).
+const int _limit = int.fromEnvironment('MLDSA_KAT_LIMIT', defaultValue: 100);
+
+Uint8List _fromHex(String s) {
   s = s.replaceAll(RegExp(r'\s+'), '');
-  if (s.length % 2 != 0) throw FormatException('Invalid hex length');
-  final result = Uint8List(s.length ~/ 2);
+  if (s.length.isOdd) throw FormatException('odd-length hex');
+  final r = Uint8List(s.length ~/ 2);
   for (int i = 0; i < s.length; i += 2) {
-    result[i ~/ 2] = int.parse(s.substring(i, i + 2), radix: 16);
+    r[i ~/ 2] = int.parse(s.substring(i, i + 2), radix: 16);
   }
-  return result;
+  return r;
 }
 
-String toHex(Uint8List bytes) =>
-    bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join('');
-
-/// Parse a det_raw KAT .rsp file into test vectors.
-/// Fields: count, xi, seed, pk, sk, msg, mlen, sm, smlen
-List<Map<String, String>> parseKatFile(String path) {
-  final lines = File(path).readAsLinesSync();
-  final vectors = <Map<String, String>>[];
-  var current = <String, String>{};
-
-  for (var line in lines) {
+List<Map<String, String>> _parse(File f) {
+  final recs = <Map<String, String>>[];
+  Map<String, String>? cur;
+  for (var line in f.readAsLinesSync()) {
     line = line.trim();
     if (line.isEmpty || line.startsWith('#')) continue;
-
-    final eqIdx = line.indexOf('=');
-    if (eqIdx < 0) continue;
-    final key = line.substring(0, eqIdx).trim();
-    final val = line.substring(eqIdx + 1).trim();
-    current[key] = val;
-
-    // smlen is the last field in det_raw vectors
-    if (key == 'smlen') {
-      vectors.add(current);
-      current = <String, String>{};
+    final eq = line.indexOf('=');
+    if (eq < 0) continue;
+    final key = line.substring(0, eq).trim();
+    final val = line.substring(eq + 1).trim();
+    if (key == 'count') {
+      cur = <String, String>{};
+      recs.add(cur);
     }
+    cur?[key] = val;
   }
-  return vectors;
+  return recs;
 }
 
+DilithiumParams _paramsFor(String level) => switch (level) {
+  '44' => DilithiumParams.mlDsa44,
+  '65' => DilithiumParams.mlDsa65,
+  '87' => DilithiumParams.mlDsa87,
+  _ => throw ArgumentError('unknown level $level'),
+};
+
 void main() {
-  const katDir = r'C:\Dev\Research\KAT\MLDSA';
+  final dir = Directory(_katDir);
+  if (!dir.existsSync()) {
+    test('ML-DSA KAT corpus present', () {
+      fail('KAT directory not found: $_katDir');
+    });
+    return;
+  }
 
-  final testCases = [
-    ('kat_MLDSA_44_det_raw.rsp', DilithiumParams.mlDsa44, 2420),
-    ('kat_MLDSA_65_det_raw.rsp', DilithiumParams.mlDsa65, 3309),
-    ('kat_MLDSA_87_det_raw.rsp', DilithiumParams.mlDsa87, 4627),
-  ];
+  final files =
+      dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.rsp'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
-  for (final (filename, params, sigLen) in testCases) {
-    group('${params.name} det_raw KAT', () {
-      final path = '$katDir${Platform.pathSeparator}$filename';
-      if (!File(path).existsSync()) {
-        test('SKIPPED - KAT file not found: $path', () {
-          print('KAT file not found: $path');
-        });
-        return;
-      }
+  test('all 18 ML-DSA KAT files are present', () {
+    expect(
+      files.length,
+      18,
+      reason: 'expected 3 levels x 2 modes x 3 flavours',
+    );
+  });
 
-      final vectors = parseKatFile(path);
+  final re = RegExp(r'kat_MLDSA_(\d+)_(det|hedged)_(raw|pure|hashed)\.rsp$');
 
-      // Test first vector in detail for debugging
-      test('Vector 0 - KeyGen', () {
-        final v = vectors[0];
-        final xi = fromHex(v['xi']!);
-        final pkExpected = fromHex(v['pk']!);
-        final skExpected = fromHex(v['sk']!);
+  for (final file in files) {
+    final m = re.firstMatch(file.path);
+    if (m == null) continue;
+    final level = m.group(1)!, mode = m.group(2)!, flavour = m.group(3)!;
+    final params = _paramsFor(level);
+    final deterministic = mode == 'det';
 
-        final (pk, sk) = MlDsa.generateKeyPair(params, xi);
+    group('ML-DSA-$level $mode/$flavour', () {
+      final recs = _parse(file);
+      final count = recs.length < _limit ? recs.length : _limit;
 
-        expect(pk.length, pkExpected.length,
-            reason: 'PK length mismatch: got ${pk.length}, expected ${pkExpected.length}');
-        expect(sk.length, skExpected.length,
-            reason: 'SK length mismatch: got ${sk.length}, expected ${skExpected.length}');
+      test('$count vectors byte-exact (keygen/sign/verify)', () {
+        expect(recs.length, 100, reason: 'each KAT file has 100 vectors');
 
-        // Find first byte mismatch for debugging
-        for (int i = 0; i < pk.length; i++) {
-          if (pk[i] != pkExpected[i]) {
-            fail('PK mismatch at byte $i: got 0x${pk[i].toRadixString(16)}, '
-                'expected 0x${pkExpected[i].toRadixString(16)}');
-          }
-        }
-        for (int i = 0; i < sk.length; i++) {
-          if (sk[i] != skExpected[i]) {
-            fail('SK mismatch at byte $i: got 0x${sk[i].toRadixString(16)}, '
-                'expected 0x${skExpected[i].toRadixString(16)}');
-          }
-        }
-      });
-
-      test('Vector 0 - Sign', () {
-        final v = vectors[0];
-        final skExpected = fromHex(v['sk']!);
-        final msg = fromHex(v['msg']!);
-        final sm = fromHex(v['sm']!);
-        final smlen = int.parse(v['smlen']!);
-
-        // sm = sig || msg, so sig = sm[0 : smlen - mlen]
-        final mlen = int.parse(v['mlen']!);
-        final sigExpected = sm.sublist(0, smlen - mlen);
-
-        expect(sigExpected.length, sigLen,
-            reason: 'Expected sig length $sigLen, got ${sigExpected.length}');
-
-        final sig = MlDsa.sign(skExpected, msg, params);
-
-        expect(sig.length, sigLen, reason: 'Sig length mismatch');
-
-        for (int i = 0; i < sig.length; i++) {
-          if (sig[i] != sigExpected[i]) {
-            fail('Sig mismatch at byte $i: got 0x${sig[i].toRadixString(16)}, '
-                'expected 0x${sigExpected[i].toRadixString(16)}');
-          }
-        }
-      });
-
-      test('Vector 0 - Verify', () {
-        final v = vectors[0];
-        final pkExpected = fromHex(v['pk']!);
-        final msg = fromHex(v['msg']!);
-        final sm = fromHex(v['sm']!);
-        final smlen = int.parse(v['smlen']!);
-        final mlen = int.parse(v['mlen']!);
-        final sig = sm.sublist(0, smlen - mlen);
-
-        final valid = MlDsa.verify(pkExpected, msg, sig, params);
-        expect(valid, isTrue, reason: 'Verification of KAT signature failed');
-      });
-
-      // Test all 100 vectors
-      test('All 100 vectors - KeyGen + Sign + Verify', () {
-        expect(vectors.length, 100, reason: 'Expected 100 KAT vectors');
-
-        for (int idx = 0; idx < vectors.length; idx++) {
-          final v = vectors[idx];
-          final xi = fromHex(v['xi']!);
-          final pkExpected = fromHex(v['pk']!);
-          final skExpected = fromHex(v['sk']!);
-          final msg = fromHex(v['msg']!);
-          final sm = fromHex(v['sm']!);
+        for (int i = 0; i < count; i++) {
+          final v = recs[i];
+          final xi = _fromHex(v['xi']!);
+          final pkE = _fromHex(v['pk']!);
+          final skE = _fromHex(v['sk']!);
+          final msg = _fromHex(v['msg']!);
           final smlen = int.parse(v['smlen']!);
           final mlen = int.parse(v['mlen']!);
-          final sigExpected = sm.sublist(0, smlen - mlen);
+          final sigE = _fromHex(v['sm']!).sublist(0, smlen - mlen);
+          final rnd = deterministic ? Uint8List(32) : _fromHex(v['rng']!);
+          final ctx = v.containsKey('ctx') ? _fromHex(v['ctx']!) : Uint8List(0);
 
-          // KeyGen
-          final (pk, sk) = MlDsa.generateKeyPair(params, xi);
-          expect(pk, equals(pkExpected),
-              reason: 'Vector $idx: PK mismatch');
-          expect(sk, equals(skExpected),
-              reason: 'Vector $idx: SK mismatch');
+          // KeyGen byte-exactness (validated on the canonical raw/det files;
+          // the same keys recur across flavours).
+          if (flavour == 'raw' && deterministic) {
+            final (pk, sk) = MlDsa.generateKeyPairSeeded(params, xi);
+            expect(pk, equals(pkE), reason: 'vec $i: pk mismatch');
+            expect(sk, equals(skE), reason: 'vec $i: sk mismatch');
+          }
 
-          // Sign (deterministic)
-          final sig = MlDsa.sign(sk, msg, params);
-          expect(sig, equals(sigExpected),
-              reason: 'Vector $idx: Signature mismatch');
-
-          // Verify
-          final valid = MlDsa.verify(pk, msg, sig, params);
-          expect(valid, isTrue,
-              reason: 'Vector $idx: Verification failed');
+          final Uint8List sig;
+          final bool ok;
+          switch (flavour) {
+            case 'raw':
+              sig = MlDsa.signInternal(skE, msg, params, rnd: rnd);
+              ok = MlDsa.verifyInternal(pkE, msg, sig, params);
+            case 'pure':
+              sig = MlDsa.sign(skE, msg, params, ctx: ctx, rnd: rnd);
+              ok = MlDsa.verify(pkE, msg, sig, params, ctx: ctx);
+            default: // hashed
+              sig = MlDsa.hashSign(skE, msg, params, ctx: ctx, rnd: rnd);
+              ok = MlDsa.hashVerify(pkE, msg, sig, params, ctx: ctx);
+          }
+          expect(sig, equals(sigE), reason: 'vec $i: signature mismatch');
+          expect(ok, isTrue, reason: 'vec $i: verification failed');
         }
-        print('${params.name}: 100/100 KAT vectors PASSED');
       });
     });
   }

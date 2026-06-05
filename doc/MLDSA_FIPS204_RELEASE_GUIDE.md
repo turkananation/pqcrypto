@@ -11,6 +11,19 @@ This document is not a CMVP/FIPS 140 validation certificate. It is the release
 plan for algorithm conformance, security hardening, test evidence, and public
 claim discipline.
 
+## Completion Status (2026-06-05)
+
+The Definition of Done below is **complete**. ML-DSA-44/65/87 are byte-exact
+against the official KAT corpus in `test/data/MLDSA` across the full matrix of
+signing mode (deterministic, hedged) × implementation flavour (raw/internal,
+pure/external-with-context, hashed/HashML-DSA): **300/300 key generations** and
+**1800/1800 signatures** reproduced byte-for-byte, all verifying. `dart analyze`
+exits 0; `dart test` is green (160 tests); the `dart2js` and `dart2wasm` gates
+pass; `dart format` and `markdownlint` are clean. This remains algorithm/KAT
+conformance evidence — **not** a CMVP/FIPS 140 module validation. The remaining
+open items are the deeper side-channel review and the maintainer's release/tag
+decision (see the Definition of Done notes).
+
 ## Source Corpus
 
 | Source                          | URL                                                                                    | How this guide uses it                                                |
@@ -554,29 +567,38 @@ Before ML-DSA release:
 
 ML-DSA is releasable when this exact checklist is complete:
 
-- [ ] `DilithiumParams` values and sizes are generated from one source of truth.
-- [ ] External keygen uses fresh randomness by default.
-- [ ] Internal seeded keygen remains test-only.
-- [ ] Hedged signing is default.
-- [ ] Deterministic signing is explicit.
-- [ ] `context` is implemented and length-limited.
-- [ ] `M'` formatting is correct for ML-DSA.
-- [ ] HashML-DSA is implemented or explicitly out of scope.
-- [ ] Public verify has exact length checks for pk and signature.
-- [ ] `BitPack`/`BitUnpack` preserve signed domains.
-- [ ] `sigEncode` packs `z` from the centered range, not canonical residues.
-- [ ] `HintBitUnpack` malformed cases are fully tested.
-- [ ] `ExpandS`, `RejBoundedPoly`, `RejNTTPoly`, and `SampleInBall` cannot fail
-      due to an undersized fixed buffer in normal operation.
-- [ ] Appendix C loop-bound behavior is implemented or not bounded.
-- [ ] NTT zetas match Appendix B and have a regression test.
-- [ ] `Power2Round`, `Decompose`, `UseHint`, and edge cases are tested.
-- [ ] `_checkNorm` and rejection checks are side-channel reviewed.
-- [ ] Secret intermediate buffers are zeroized where possible.
-- [ ] Repo-local ML-DSA KAT corpus exists.
-- [ ] `dart test` passes.
-- [ ] Web JS and Wasm gates pass or limitations are explicit.
-- [ ] Markdown lint passes.
-- [ ] Docs and changelog are evidence-scoped.
+- [x] `DilithiumParams` values and sizes are generated from one source of truth.
+- [x] External keygen uses fresh randomness by default.
+- [x] Internal seeded keygen remains test-only (`generateKeyPairSeeded`).
+- [x] Hedged signing is default.
+- [x] Deterministic signing is explicit (`signDeterministic`).
+- [x] `context` is implemented and length-limited (≤ 255 bytes).
+- [x] `M'` formatting is correct for ML-DSA (and HashML-DSA).
+- [x] HashML-DSA is implemented (SHA-256/384/512 pre-hash + DER OID).
+- [x] Public verify has exact length checks for pk and signature.
+- [x] `BitPack`/`BitUnpack` preserve signed domains.
+- [x] `sigEncode` packs `z` from the centered range, not canonical residues.
+- [x] `HintBitUnpack` malformed cases are fully tested (`dsa_negative_test`).
+- [x] `ExpandS`, `RejBoundedPoly`, `RejNTTPoly`, and `SampleInBall` cannot fail
+      due to an undersized fixed buffer — they squeeze an incremental XOF.
+- [x] Appendix C loop-bound behavior: not bounded (unbounded incremental XOF).
+- [x] NTT zetas match Appendix B and have a regression test (`dsa_zetas_test`).
+- [x] `Power2Round`, `Decompose`, `UseHint`, and edge cases are tested
+      (`dsa_rounding_test`).
+- [x] `_checkNorm` replaced by no-early-exit `_normExceeds`; rejection checks
+      side-channel reviewed (best-effort; residuals documented below).
+- [x] Secret intermediate buffers are zeroized where possible (best-effort).
+- [x] Repo-local ML-DSA KAT corpus exists (`test/data/MLDSA`, 18 files).
+- [x] `dart test` passes (160 tests).
+- [x] Web JS and Wasm gates pass (file-based KAT runners are VM-only).
+- [x] Markdown lint passes.
+- [x] Docs and changelog are evidence-scoped.
 
-Until then, ML-DSA remains experimental.
+Residual / deferred (do not block KAT-conformance, tracked in SECURITY_AUDIT.md):
+
+- Per-iteration branch directions in `_normExceeds` and the rejection loops are
+  best-effort, not provably constant-time, in pure Dart (VM/dart2js/dart2wasm).
+- HashML-DSA surfaces only the level-bound SHA-2 pre-hash; other approved
+  pre-hash functions (e.g. SHAKE) are not yet exposed.
+- A CMVP/FIPS 140 module validation is out of scope and not claimed.
+- Tagging a release version and `dart pub publish` are maintainer decisions.

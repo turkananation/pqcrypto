@@ -2,7 +2,7 @@
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
-The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** with checked-in known-answer tests, OpenSSL interoperability evidence, and focused unit coverage for serialization, modular reduction, and input validation. ML-DSA APIs are exported for ongoing development, but they are not production validated yet.
+The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation.
 
 ---
 
@@ -16,6 +16,11 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
   - **Key Encapsulation**: `(rho, sigma) := G(d || k)` derivation for K-PKE key generation.
   - **Fujisaki-Okamoto Transform**: Robust re-encryption check to prevent chosen-ciphertext attacks (IND-CCA2 security).
   - **Input Checks**: Public-key length/modulus checks, decapsulation-key length/hash checks, and ciphertext length checks.
+- **FIPS 204-aligned ML-DSA support**:
+  - **Algorithm Support**: ML-DSA-44, ML-DSA-65, ML-DSA-87 (internal, external, and HashML-DSA).
+  - **Hedged-by-default signing** with explicit deterministic and pre-hash paths and FIPS 204 context strings (≤ 255 bytes).
+  - **Byte-exact** against the official FIPS 204 KAT corpus (1800 signatures + 300 key generations) and **vendored SHA-2** (SHA-256/384/512) for HashML-DSA pre-hashing.
+  - **Defensive verification**: returns `false` (never throws) on malformed public keys, signatures, hints, or over-long contexts; unbounded XOF rejection sampling; best-effort secret zeroization.
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
   - **Zero dependencies.** No third-party packages at all: FIPS 202 (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`.
@@ -38,15 +43,43 @@ See [doc/MLKEM_TESTING.md](doc/MLKEM_TESTING.md) for the KAT file hashes, covera
 
 ---
 
-## ML-DSA Experimental Status
+## 🛡️ ML-DSA Validation Status
 
-The package currently exports `MlDsa`, `DilithiumParams`, and
-`DilithiumParameter`, but ML-DSA remains experimental. The current full test
-suite fails in ML-DSA packing/symmetric/debug tests, and no repo-local ML-DSA
-KAT corpus is checked in. Do not use ML-DSA for production signatures until the
-blockers in [doc/BUGS.md](doc/BUGS.md) and
-[doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md) are closed and verified. The
-completion plan is [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md).
+This implementation tracks [FIPS 204](https://csrc.nist.gov/pubs/fips/204/final).
+As with ML-KEM, this repository does **not** claim CMVP/FIPS 140 module
+validation; the evidence is the checked-in KAT corpus plus focused unit tests.
+The package exports `MlDsa`, `DilithiumParams`, and `DilithiumParameter`.
+
+Every signature in the official KAT corpus (`test/data/MLDSA`) is reproduced
+**byte-for-byte**, and every KAT signature **verifies**, across the full matrix
+of parameter set × signing mode × implementation flavour:
+
+| Parameter set   | Security level         | KeyGen (raw/det) | Sign + Verify (all flavours)        |
+| :-------------- | :--------------------: | :--------------: | :---------------------------------- |
+| **ML-DSA-44**   | NIST Level 2           | 100/100 PASS     | 600/600 PASS                        |
+| **ML-DSA-65**   | NIST Level 3           | 100/100 PASS     | 600/600 PASS                        |
+| **ML-DSA-87**   | NIST Level 5           | 100/100 PASS     | 600/600 PASS                        |
+
+- **Flavours:** `raw` (internal `*_internal`, Algorithms 6/7/8), `pure`
+  (external ML-DSA with a context string, Algorithms 1/2/3), and `hashed`
+  (HashML-DSA with SHA-256/384/512 pre-hash, Algorithms 1/4/5).
+- **Modes:** `deterministic` (`rnd = 0`) and `hedged` (`rnd` from the vector).
+- **Totals:** 300/300 byte-exact key generations and 1800/1800 byte-exact
+  signatures that all verify (3 levels × 2 modes × 3 flavours × 100 vectors).
+
+The public API is **hedged by default** (fresh `rnd` from `Random.secure()`),
+supports FIPS 204 context strings (≤ 255 bytes), exposes explicit deterministic
+and HashML-DSA paths, and returns `false` (never throws) for any malformed
+public key, signature, hint, or over-long context. See the controlling guide
+[doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) and the
+corpus description in [test/data/MLDSA/README.md](test/data/MLDSA/README.md).
+
+```dart
+final params = DilithiumParams.mlDsa65;
+final (pk, sk) = MlDsa.generateKeyPair(params);          // fresh randomness
+final sig = MlDsa.sign(sk, message, params, ctx: appCtx); // hedged by default
+final ok  = MlDsa.verify(pk, message, sig, params, ctx: appCtx);
+```
 
 ---
 
@@ -182,6 +215,12 @@ lib/
 
 test/
 ├── kat_evaluator_test.dart       # 🧪 Checked-in ML-KEM KAT runner (3000 vectors, VM-only)
+├── mldsa_kat_test.dart           # 🧪 Discovered ML-DSA KAT runner (18 files, all flavours, VM-only)
+├── dsa_zetas_test.dart           # 🧮 FIPS 204 Appendix B zetas + negacyclic NTT property
+├── dsa_rounding_test.dart        # 📐 Power2Round/Decompose/MakeHint/UseHint boundaries
+├── dsa_negative_test.dart        # 🚫 Malformed pk/sig/hint/context: verify returns false
+├── dsa_api_test.dart             # 🔐 Context binding, hedged vs deterministic, domain separation
+├── sha2_test.dart                # #️⃣ SHA-256/384/512 (FIPS 180-4) for HashML-DSA pre-hash
 ├── keccak_test.dart              # 🧱 FIPS 202 (SHA3/SHAKE) known-answer tests
 ├── roundtrip_test.dart           # 🔁 End-to-end KEM round-trip (runs on VM + web)
 ├── kem_validation_test.dart      # 🔎 Public key, secret key, and ciphertext checks
@@ -190,9 +229,10 @@ test/
 ├── poly_test.dart                # 🧮 Modular reduction properties
 ├── cbd_test.dart                 # 📊 Statistical distribution checks
 └── data/
-    ├── kat_MLKEM_512.rsp         # ML-KEM-512 checked-in KAT corpus
-    ├── kat_MLKEM_768.rsp         # ML-KEM-768 checked-in KAT corpus
-    └── kat_MLKEM_1024.rsp        # ML-KEM-1024 checked-in KAT corpus
+    ├── MLKEM/                    # ML-KEM KAT corpus (512/768/1024) + README
+    │   └── kat_MLKEM_*.rsp
+    └── MLDSA/                    # ML-DSA KAT corpus + README
+        └── kat_MLDSA_{44,65,87}_{det,hedged}_{raw,pure,hashed}.rsp
 
 tool/
 └── openssl_interop/              # 🔗 OpenSSL FFI interop harness (dev tool, separate package)
@@ -298,8 +338,8 @@ Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 - ✅ **Phase 2: Correctness** (GenMatrix, CBD, FO Transform)
 - ✅ **Phase 3: FIPS 203 Alignment** (NTT, Compression, ByteEncode)
 - ✅ **Phase 4: Full Suite** (ML-KEM-512/768/1024 support)
-- ⬜ **Phase 5: ML-DSA validation** (fix current ML-DSA test failures, add repo-local KATs)
-- ⬜ **Phase 6: Hardening and expansion** (zeroization, side-channel review, SLH-DSA/HQC research)
+- ✅ **Phase 5: ML-DSA validation** (byte-exact FIPS 204 KATs for 44/65/87 across raw/pure/hashed × det/hedged; external hedged API; HashML-DSA; repo-local corpus)
+- 🔄 **Phase 6: Hardening and expansion** (best-effort zeroization and constant-time review landed; ongoing side-channel review, SLH-DSA/HQC research)
 
 See [doc/ROADMAP.md](doc/ROADMAP.md) for the evidence-scoped roadmap.
 

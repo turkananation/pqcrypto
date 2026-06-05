@@ -1,5 +1,65 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **ML-DSA (FIPS 204) is now byte-exact against the official KAT corpus** for
+  ML-DSA-44, ML-DSA-65, and ML-DSA-87 across the full matrix of signing mode
+  (`deterministic`, `hedged`) × implementation flavour (`raw`/internal,
+  `pure`/external-with-context, `hashed`/HashML-DSA): 300/300 key generations
+  and 1800/1800 signatures reproduced byte-for-byte, all verifying.
+- **External FIPS 204 API** on `MlDsa`: `generateKeyPair(params)` (fresh
+  randomness), `sign`/`verify` with a context string (≤ 255 bytes) and
+  **hedged-by-default** signing, `signDeterministic`, and the internal/CAVP
+  helpers `generateKeyPairSeeded`, `signInternal`, `verifyInternal`.
+- **HashML-DSA** (`hashSign`/`hashVerify`) with the FIPS 204 §5.4 pre-hash:
+  SHA-256 (ML-DSA-44), SHA-384 (ML-DSA-65), SHA-512 (ML-DSA-87), with DER OID
+  domain separation.
+- **Vendored FIPS 180-4 SHA-2** (`lib/src/common/sha2.dart`): SHA-256/384/512,
+  web-safe 64-bit (hi/lo pair) arithmetic, pinned by direct NIST vectors.
+- Repo-local ML-DSA KAT corpus under `test/data/MLDSA` (18 `.rsp` files) with a
+  discovered, deterministic runner `test/mldsa_kat_test.dart`; ML-KEM corpus
+  moved to `test/data/MLKEM`.
+- New focused tests: Appendix B zetas + negacyclic NTT property, rounding
+  boundary cases, malformed-input/negative verification, external-API behavior,
+  and direct SHA-2 vectors. All run on the VM, `dart2js`, and `dart2wasm`.
+
+### Changed
+
+- ML-DSA rejection samplers (`RejNTTPoly`, `RejBoundedPoly`, `SampleInBall`) now
+  use an **incremental SHAKE XOF** (`KeccakXof`) instead of fixed buffers, so
+  they cannot exhaust output during normal operation.
+- ML-DSA packing preserves **signed coefficient domains** for `s1`/`s2`/`t0`/`z`
+  instead of folding negatives into `[0, q-1]`.
+- `_normExceeds` (the ML-DSA norm gate) evaluates all 256 coefficients with no
+  secret-dependent early exit, and uses only VM/web-portable arithmetic.
+- Verification is **total**: `MlDsa.verify`/`verifyInternal` return `false`
+  (never throw) for wrong pk/sig lengths, malformed hints, or over-long context.
+- `DilithiumParams` exposes computed FIPS 204 Table 2 sizes
+  (`publicKeyBytes`, `secretKeyBytes`, `signatureBytes`, plus per-poly sizes,
+  `lambda`, `securityCategory`) as the single source of truth; the unused
+  `crhBytes` constant was removed.
+
+### Fixed
+
+- **`RejBoundedPoly` (`ExpandS`) for η=2**: now accepts half-bytes `< 15` mapping
+  to `2 − (b mod 5)` per FIPS 204, fixing the stream-consumption rate that made
+  key generation diverge from the standard. This was the sole core defect.
+- ML-DSA verification no longer used a 32-bit left shift (`<< d`) that overflowed
+  on `dart2js`; it multiplies by `2^d` so web results match the VM.
+
+### Security
+
+- Best-effort secret zeroization (`lib/src/common/zeroize.dart`) applied in
+  `finally` blocks around key generation and signing intermediates. Dart cannot
+  guarantee hard memory erasure; see `doc/SECURITY_AUDIT.md` for the boundary.
+
+### Notes
+
+- This repository continues to make **no CMVP/FIPS 140 module validation claim**.
+  ML-DSA conformance evidence is the checked-in KAT corpus and regression suite.
+
 ## 0.2.1
 
 ### Added

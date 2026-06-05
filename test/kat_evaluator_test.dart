@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:pqcrypto/pqcrypto.dart';
 
-const _katDir = 'test/data';
+const _katDir = 'test/data/MLKEM';
 
 // Helper to parse hex strings
 Uint8List fromHex(String s) {

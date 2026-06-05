@@ -13,8 +13,10 @@ documentation root [doc/](doc/).
   `lib/src/common/keccak.dart`.
 - ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,
   focused unit tests, web tests, and OpenSSL interop.
-- ML-DSA: exported but experimental. The current full suite fails in
-  ML-DSA/debug tests; do not call it production-ready.
+- ML-DSA: FIPS 204-aligned for ML-DSA-44/65/87 and byte-exact against the
+  checked-in KAT corpus (`test/data/MLDSA`) across raw/pure/hashed × det/hedged
+  (300 key generations + 1800 signatures). The full `dart test` suite is green.
+  This is KAT/regression evidence, not a CMVP/FIPS 140 validation claim.
 - Documentation root: `doc/`; the older documentation directory has been retired.
 
 ## Exploration Phase
@@ -37,11 +39,12 @@ Run:
 ```bash
 dart analyze
 dart test test/kat_evaluator_test.dart
+dart test test/mldsa_kat_test.dart
 dart test
 ```
 
-Expected current boundary: `dart analyze` succeeds, the ML-KEM KAT test passes,
-and the full suite fails until ML-DSA blockers are fixed.
+Expected current boundary: `dart analyze` exits 0, the ML-KEM and ML-DSA KAT
+runners pass, and the full suite is green (VM, plus `dart2js`/`dart2wasm`).
 
 ## Implementation Phase
 
@@ -51,10 +54,12 @@ Before editing:
   tests, tooling, or docs.
 - For ML-KEM arithmetic/serialization, run the focused ML-KEM test set before
   and after the change.
-- For ML-DSA, assume the code is experimental and do not upgrade docs without
-  KAT-backed evidence. Use
-  [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) as
-  the controlling implementation checklist.
+- For ML-DSA, the deterministic core and external/HashML-DSA APIs are
+  KAT-validated; keep any change byte-exact against `test/data/MLDSA` by running
+  `dart test test/mldsa_kat_test.dart`. Use
+  [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) as the
+  controlling implementation/Definition-of-Done checklist, and never upgrade
+  claim wording past KAT/regression evidence (no CMVP/FIPS 140 claims).
 
 Conventions:
 
@@ -112,8 +117,8 @@ Keep assurance wording scoped:
 
 - Good: "passes the checked-in ML-KEM KAT corpus."
 - Good: "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
-- Bad: "fully FIPS validated" without a validation record.
-- Bad: "ML-DSA production-ready" while full tests fail and no KAT corpus exists.
+- Good: "ML-DSA is byte-exact on the checked-in FIPS 204 KAT corpus."
+- Bad: "fully FIPS validated" / "CMVP validated" / "certified" without a record.
 
 ## Security Auditing Phase
 
@@ -126,16 +131,22 @@ Focus areas:
 - hardcoded local paths or secrets;
 - documentation that overstates evidence.
 
-Known current priorities:
+Resolved (regression-guarded; keep them closed):
 
-- ML-DSA packing failures;
-- ML-DSA `ExpandS` failure;
-- hardcoded Windows ML-DSA KAT paths in `test/mldsa_debug_test.dart` and
-  `test/mldsa_kat_test.dart`;
-- missing repo-local ML-DSA KAT corpus;
-- `_checkNorm` early return;
-- missing shared zeroization utilities;
+- ML-DSA packing and `ExpandS` (η=2) defects — fixed; covered by KATs.
+- Windows ML-DSA KAT paths and the debug-only test — removed; replaced by the
+  discovered runner `test/mldsa_kat_test.dart` over `test/data/MLDSA`.
+- Missing repo-local ML-DSA KAT corpus — vendored under `test/data/MLDSA`.
+- `_checkNorm` early return — replaced by the no-early-exit `_normExceeds`.
+- Missing shared zeroization utilities — added `lib/src/common/zeroize.dart`.
+
+Open priorities:
+
+- Deeper side-channel review (per-iteration branch directions in `_normExceeds`
+  and rejection loops remain a best-effort, not constant-time, posture in Dart).
 - KEM decapsulation output-selection review.
+- HashML-DSA currently exposes the level-bound SHA-2 pre-hash only; other
+  approved pre-hash functions (e.g. SHAKE) are not yet surfaced.
 
 ## Common Pitfalls
 

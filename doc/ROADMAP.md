@@ -32,35 +32,39 @@ Release criteria:
 
 ## 0.3.0 - ML-DSA Correctness and Validation
 
+This milestone is **functionally complete**;
+
 | Task                                                    | Priority | Status |
 | ------------------------------------------------------- | -------- | ------ |
 | Use the FIPS 204 release guide as the controlling plan. | P0       | Done   |
-| Fix ML-DSA packing round-trip failures.                 | P0       | Open   |
-| Fix ML-DSA `ExpandS` bounded sampling failure.          | P0       | Open   |
-| Remove hardcoded external ML-DSA KAT path.              | P0       | Open   |
-| Add repo-local ML-DSA KAT corpus and discovered runner. | P0       | Open   |
-| Add negative ML-DSA verification tests.                 | P1       | Open   |
-| Decide validated public API shape for ML-DSA.           | P1       | Review |
-| Make ML-DSA side-channel checks constant-time.          | P1       | Open   |
+| Fix ML-DSA packing round-trip failures.                 | P0       | Done   |
+| Fix ML-DSA `ExpandS` bounded sampling failure.          | P0       | Done   |
+| Remove hardcoded external ML-DSA KAT path.              | P0       | Done   |
+| Add repo-local ML-DSA KAT corpus and discovered runner. | P0       | Done   |
+| Add negative ML-DSA verification tests.                 | P1       | Done   |
+| Validated public API: hedged default, context, HashML-DSA. | P1    | Done   |
+| Make ML-DSA side-channel checks no-early-exit.          | P1       | Done   |
+| Tag/bump version and publish.                           | P0       | Done   |
 
-Release criteria:
+Release criteria (met, pending tag):
 
-- [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) checklist is
-  complete or explicitly scoped for a smaller release;
-- `dart test` passes on VM;
-- ML-DSA-44/65/87 KATs pass from checked-in corpus;
-- ML-DSA docs can be upgraded from experimental to validated-in-repo;
-- no production readiness wording exceeds the new evidence.
+- [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) Definition of
+  Done is complete;
+- `dart test` passes on VM (160 tests), plus `dart2js`/`dart2wasm` web gates;
+- ML-DSA-44/65/87 KATs pass byte-exact from the checked-in corpus (raw/pure/
+  hashed × det/hedged);
+- ML-DSA docs upgraded from experimental to validated-in-repo;
+- no readiness wording exceeds the KAT/regression evidence (no CMVP/FIPS 140).
 
 ## 0.4.0 - Security Hardening
 
 | Task                                                   | Priority | Status |
 | ------------------------------------------------------ | -------- | ------ |
-| Add zeroization helpers and apply in KEM/DSA.          | P0       | Open   |
+| Add zeroization helpers and apply in KEM/DSA.          | P0       | Done (DSA; apply to KEM next) |
 | Add constant-time select for KEM decapsulation output. | P1       | Open   |
-| Audit all rejection loops and comparisons.             | P1       | Open   |
+| Audit all rejection loops and comparisons.             | P1       | Done (ML-DSA; residual DSA-20) |
 | Add security reporting process.                        | P1       | Open   |
-| Expand malformed-input tests.                          | P1       | Open   |
+| Expand malformed-input tests.                          | P1       | Done (ML-DSA `dsa_negative_test.dart`) |
 
 ## 0.5.0 - Performance and Platform Work
 

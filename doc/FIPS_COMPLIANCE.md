@@ -12,15 +12,16 @@ one.
 | -------- | ------------------------------- | ------------------------------------------------------------------------------- |
 | FIPS 203 | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop. |
 | FIPS 202 | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                |
-| FIPS 204 | ML-DSA-44/65/87                 | Implemented/exported but not production validated; full suite currently fails.  |
+| FIPS 204 | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
+| FIPS 180-4 | SHA-256/384/512               | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                |
 | FIPS 140 | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                     |
 
 ## FIPS 203 - ML-KEM
 
 Current ML-KEM evidence:
 
-- `test/data/kat_MLKEM_512.rsp`, `kat_MLKEM_768.rsp`, and
-  `kat_MLKEM_1024.rsp` are checked in.
+- `test/data/MLKEM/kat_MLKEM_512.rsp`, `kat_MLKEM_768.rsp`, and
+  `kat_MLKEM_1024.rsp` are checked in (see `test/data/MLKEM/README.md`).
 - `test/kat_evaluator_test.dart` verifies key generation, encapsulation,
   decapsulation, and invalid decapsulation fields where present.
 - The latest local run used for this documentation pass completed 1000 vectors
@@ -65,40 +66,45 @@ evidence for this package's correctness boundary.
 
 ## FIPS 204 - ML-DSA
 
-ML-DSA is present and exported:
+ML-DSA is present and exported (`MlDsa`, `DilithiumParams`,
+`DilithiumParameter`) in `lib/src/algos/dilithium/`.
 
-- `lib/src/algos/dilithium/`
-- `MlDsa`
-- `DilithiumParams`
-- `DilithiumParameter`
+Current ML-DSA evidence:
 
-Current status is experimental. The full local `dart test` run used for this
-documentation pass fails in ML-DSA/debug tests:
+- The repo-local corpus `test/data/MLDSA` (18 `.rsp` files, see
+  `test/data/MLDSA/README.md`) is the official FIPS 204 KAT corpus.
+- `test/mldsa_kat_test.dart` reproduces every vector **byte-for-byte** and
+  verifies every signature, across the full matrix:
 
-- `test/dsa_pack_test.dart`
-- `test/dsa_symmetric_test.dart`
-- `test/mldsa_debug_test.dart`
-- `test/mldsa_kat_test.dart` skips when the same external KAT root is missing
+| Dimension      | Values                                                          |
+| -------------- | --------------------------------------------------------------- |
+| Parameter set  | ML-DSA-44, ML-DSA-65, ML-DSA-87                                  |
+| Signing mode   | deterministic (`rnd = 0`), hedged (`rnd` from vector)           |
+| Flavour        | raw (Alg 6/7/8), pure (Alg 1/2/3 + context), hashed (Alg 1/4/5) |
+| Per file       | 100 vectors → 300 key generations + 1800 signatures total       |
 
-Known blockers include:
+- Algorithm-level regression tests: `dsa_zetas_test.dart` (Appendix B zetas +
+  negacyclic NTT), `dsa_rounding_test.dart` (Power2Round/Decompose/MakeHint/
+  UseHint boundaries), `dsa_pack_test.dart`/`dsa_symmetric_test.dart` (packing
+  and sampling), `dsa_negative_test.dart` (malformed pk/sig/hint/context), and
+  `dsa_api_test.dart` (context binding, hedged vs deterministic, domain
+  separation). `sha2_test.dart` pins the HashML-DSA pre-hash (SHA-256/384/512).
+- All ML-DSA tests run on the Dart VM; the algorithm tests also run on `dart2js`
+  and `dart2wasm` (the file-based KAT runner is VM-only and auto-skips on web).
 
-| Area                   | Evidence or symptom                                                                                 |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| Packing round-trips    | Negative centered values unpack as field residues in current failures.                              |
-| ExpandS sampling       | `Bad state: Too few elements` in `dsa_symmetric_test.dart`.                                         |
-| Debug/KAT test paths   | `mldsa_debug_test.dart` fails and `mldsa_kat_test.dart` skips against a hardcoded Windows KAT root. |
-| KAT validation         | No repo-local ML-DSA KAT corpus is checked in.                                                      |
-| Side-channel hardening | `_checkNorm` still returns early on first norm violation.                                           |
-| Zeroization            | No shared `secureZero` utility is implemented.                                                      |
+Acceptable wording:
 
-The canonical completion plan is
-[MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). Use that guide
-for the FIPS 204 source map, external/internal API requirements, HashML-DSA
-decision, KAT plan, side-channel work, and release gates.
+> `pqcrypto` provides a FIPS 204-aligned ML-DSA implementation that passes the
+> checked-in ML-DSA KAT corpus and regression suite described in this repository.
 
-Do not describe ML-DSA as production-ready until all relevant tests pass, a
-repo-local KAT corpus exists, and the readiness language has been updated in
-[PROGRESS_TRACKER.md](PROGRESS_TRACKER.md) and [ROADMAP.md](ROADMAP.md).
+The same avoid-list as FIPS 203 applies ("FIPS validated", "CMVP validated",
+"FIPS 140 compliant module", "certified"). The canonical implementation and
+release record is [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md).
+
+Residual hardening (does not affect KAT conformance): the norm check and
+rejection loops are best-effort, not provably constant-time, in pure Dart; and
+HashML-DSA exposes only the level-bound SHA-2 pre-hash. See
+[SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ## RNG and Module Validation
 

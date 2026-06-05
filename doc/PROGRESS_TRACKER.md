@@ -15,7 +15,7 @@ experimental work.
 | ML-KEM            | Supported      | Checked-in KAT corpus, unit tests, OpenSSL interop.             |
 | OpenSSL interop   | Supported      | A-G suite for ML-KEM-512/768/1024.                              |
 | Web support       | Tested surface | CI has `dart2js` and `dart2wasm` test jobs.                     |
-| ML-DSA            | Experimental   | Exported, but full suite currently fails in ML-DSA/debug tests. |
+| ML-DSA            | FIPS 204-aligned | Byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged); full suite green. |
 | Formal validation | Not claimed    | No CMVP/FIPS 140 validation record.                             |
 
 ## Phase 0 - Documentation Consolidation
@@ -41,28 +41,29 @@ experimental work.
 
 ## Phase 2 - ML-DSA Correctness and Validation
 
-ML-DSA must stay labeled experimental until this phase is complete.
+Complete per the Definition of Done in the release guide.
 
 | Task                                                            | Status | Evidence or blocker                                               |
 | --------------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
 | Publish FIPS 204 ML-DSA release guide.                          | Done   | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md). |
-| Fix `dsa_pack_test.dart` centered-value failures.               | Open   | Current full suite failure.                                       |
-| Fix `dsa_symmetric_test.dart` `ExpandS` failure.                | Open   | Current full suite failure.                                       |
-| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests.  | Open   | Current full suite failure/skip.                                  |
-| Add repo-local ML-DSA KAT corpus.                               | Open   | No corpus under `test/data` for ML-DSA.                           |
-| Add ML-DSA KAT evaluator discovered by `dart test`.             | Open   | Needed for readiness claim.                                       |
-| Make `_checkNorm` constant-time.                                | Open   | Early return remains.                                             |
-| Add ML-DSA public input validation.                             | Open   | Needs focused API tests.                                          |
-| Decide whether ML-DSA should remain exported before validation. | Review | Public API boundary risk.                                         |
+| Fix `dsa_pack_test.dart` centered-value failures.               | Done   | Signed-domain packing; `dsa_pack_test.dart` green.               |
+| Fix `dsa_symmetric_test.dart` `ExpandS` failure.                | Done   | η=2 `RejBoundedPoly` fix; `dsa_symmetric_test.dart` green.       |
+| Remove hardcoded Windows KAT root from ML-DSA KAT/debug tests.  | Done   | Debug test removed; runner uses `test/data/MLDSA`.               |
+| Add repo-local ML-DSA KAT corpus.                               | Done   | `test/data/MLDSA` (18 files).                                    |
+| Add ML-DSA KAT evaluator discovered by `dart test`.             | Done   | `test/mldsa_kat_test.dart`; 300 keygens + 1800 sigs byte-exact. |
+| Make `_checkNorm` constant-time.                                | Done   | Replaced by no-early-exit `_normExceeds`.                       |
+| Add ML-DSA public input validation.                             | Done   | `dsa_negative_test.dart`, `dsa_api_test.dart`.                  |
+| External API: hedged default, context, HashML-DSA.              | Done   | `dsa_api_test.dart`; pure+hashed KATs byte-exact.              |
 
 ## Phase 3 - Security Hardening
 
-| Task                            | Status | Notes                                              |
-| ------------------------------- | ------ | -------------------------------------------------- |
-| Implement `secureZero` helpers. | Open   | Apply to KEM/DSA temporary secrets with `finally`. |
-| Review all rejection loops.     | Open   | Timing behavior and fixed-output XOF buffers.      |
-| Add adversarial negative tests. | Open   | Especially malformed DSA signatures/keys.          |
-| Add security reporting process. | Open   | Consider `SECURITY.md`.                            |
+| Task                            | Status | Notes                                                       |
+| ------------------------------- | ------ | ----------------------------------------------------------- |
+| Implement `secureZero` helpers. | Done   | `lib/src/common/zeroize.dart`; applied in `finally` blocks. |
+| Review all rejection loops.     | Done   | Incremental XOF; no fixed-buffer exhaustion. Residual: DSA-20. |
+| Add adversarial negative tests. | Done   | `dsa_negative_test.dart` (malformed pk/sig/hint/context).   |
+| Deeper constant-time review.    | Open   | Best-effort posture in pure Dart; tracked as DSA-20.        |
+| Add security reporting process. | Open   | Consider `SECURITY.md`.                                     |
 
 ## Phase 4 - Future Algorithms
 
@@ -88,4 +89,6 @@ See [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).
 | Web portable suite | `dart test -p chrome` and `dart test -p chrome --compiler dart2wasm`                                                                                                                           |
 | OpenSSL interop    | `cd tool/openssl_interop && dart test` with ML-KEM-capable OpenSSL                                                                                                                             |
 
-The full VM suite is currently expected to fail until ML-DSA blockers are fixed.
+The full VM suite is expected to be green (160 tests), as are the `dart2js` and
+`dart2wasm` web gates. Add `dart test test/mldsa_kat_test.dart` for the ML-DSA
+KAT runner.

@@ -279,12 +279,11 @@ unpackSK(Uint8List sk, int k, int l, int eta) {
   final t0Vec = DilithiumPolyVec.zero(k);
   for (int i = 0; i < k; i++) {
     t0Vec[i] = simpleBitUnpack(sk.sublist(offset, offset + t0Bytes), 13);
-    // FIPS 204 BitUnpack: val = (1 << (d-1)) - packed_val
-    // C ref: r->coeffs[i] = (1 << (D-1)) - r->coeffs[i]  (polyt0_unpack)
+    // FIPS 204 BitUnpack(v, 2^(d-1)-1, 2^(d-1)): coeff = 2^(d-1) - packed, in
+    // the signed domain [-2^(d-1)+1, 2^(d-1)]. Not folded into [0, q-1] (the
+    // value is only ever NTT-transformed downstream).
     for (int j = 0; j < n; j++) {
-      int val = (1 << (d - 1)) - t0Vec[i].coeffs[j]; // 4096 - packed
-      if (val < 0) val += q;
-      t0Vec[i].coeffs[j] = val;
+      t0Vec[i].coeffs[j] = (1 << (d - 1)) - t0Vec[i].coeffs[j];
     }
 
     offset += t0Bytes;
@@ -319,11 +318,12 @@ DilithiumPoly bitUnpack(Uint8List v, int eta) {
 
   final z = simpleBitUnpack(v, bits);
 
+  // FIPS 204 BitUnpack(v, eta, eta): w_i = eta - z_i, preserving the signed
+  // domain [-eta, eta]. Downstream consumers (NTT, centered-norm checks) are
+  // sign-agnostic, so values are NOT folded into [0, q-1] here.
   final w = DilithiumPoly.zero();
   for (int i = 0; i < n; i++) {
-    int val = eta - z.coeffs[i];
-    if (val < 0) val += q; // Normalize
-    w.coeffs[i] = val;
+    w.coeffs[i] = eta - z.coeffs[i];
   }
   return w;
 }
@@ -352,12 +352,11 @@ DilithiumPoly bitUnpackZ(Uint8List v, int gamma1) {
   final mapped = simpleBitUnpack(v, bits);
   final z = DilithiumPoly.zero();
 
-  // FIPS 204 BitUnpack(v, gamma1-1, gamma1): val = gamma1 - mapped
-  // C ref: r->coeffs[i] = GAMMA1 - r->coeffs[i]
+  // FIPS 204 BitUnpack(v, gamma1-1, gamma1): coeff = gamma1 - mapped, in the
+  // signed domain [-gamma1+1, gamma1]. Not folded into [0, q-1] (verification
+  // re-centers for the norm check and the NTT is mod-q either way).
   for (int i = 0; i < n; i++) {
-    int val = gamma1 - mapped.coeffs[i];
-    if (val < 0) val += q;
-    z.coeffs[i] = val;
+    z.coeffs[i] = gamma1 - mapped.coeffs[i];
   }
 
   return z;

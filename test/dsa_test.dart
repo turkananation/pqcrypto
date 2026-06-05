@@ -7,7 +7,10 @@ void main() {
   group('ML-DSA KeyGen', () {
     test('ML-DSA-44 Sizes', () {
       final seed = Uint8List(32); // Zero seed
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa44, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa44,
+        seed,
+      );
 
       // Expected Sizes (NIST FIPS 204 Table 2)
       // PK: 1312
@@ -19,7 +22,10 @@ void main() {
 
     test('ML-DSA-65 Sizes', () {
       final seed = Uint8List(32);
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa65, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa65,
+        seed,
+      );
 
       // PK: 1952
       // SK: 4032 (eta=4 for s1, s2? No eta=4 is for 87? 65 has eta=4?)
@@ -34,7 +40,10 @@ void main() {
 
     test('ML-DSA-87 Sizes', () {
       final seed = Uint8List(32);
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa87, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa87,
+        seed,
+      );
 
       // PK: 2592
       // SK: 4896
@@ -46,8 +55,14 @@ void main() {
     test('Determinism', () {
       final seed = Uint8List(32);
       seed[0] = 1;
-      final (pk1, sk1) = MlDsa.generateKeyPair(DilithiumParams.mlDsa44, seed);
-      final (pk2, sk2) = MlDsa.generateKeyPair(DilithiumParams.mlDsa44, seed);
+      final (pk1, sk1) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa44,
+        seed,
+      );
+      final (pk2, sk2) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa44,
+        seed,
+      );
 
       expect(pk1, equals(pk2));
       expect(sk1, equals(sk2));

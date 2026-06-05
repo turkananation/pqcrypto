@@ -10,7 +10,10 @@ void main() {
       seed[0] = 0x42;
 
       // KeyGen
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa44, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa44,
+        seed,
+      );
 
       final message = Uint8List.fromList('Hello ML-DSA'.codeUnits);
 
@@ -44,7 +47,10 @@ void main() {
       final seed = Uint8List(32);
       seed[1] = 0xAA;
 
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa65, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa65,
+        seed,
+      );
       final m = Uint8List(10);
 
       final sig = MlDsa.sign(sk, m, DilithiumParams.mlDsa65);
@@ -58,7 +64,10 @@ void main() {
       final seed = Uint8List(32);
       seed[2] = 0xBB;
 
-      final (pk, sk) = MlDsa.generateKeyPair(DilithiumParams.mlDsa87, seed);
+      final (pk, sk) = MlDsa.generateKeyPairSeeded(
+        DilithiumParams.mlDsa87,
+        seed,
+      );
       final m = Uint8List(50);
 
       final sig = MlDsa.sign(sk, m, DilithiumParams.mlDsa87);

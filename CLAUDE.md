@@ -9,10 +9,13 @@ Last updated: 2026-06-05
 - **ML-KEM (FIPS 203):** supported package surface for ML-KEM-512,
   ML-KEM-768, and ML-KEM-1024. Evidence includes checked-in KAT vectors,
   focused unit tests, web tests, and OpenSSL interop.
-- **ML-DSA (FIPS 204):** exported but experimental. Do not describe it as
-  production-ready; the current full suite fails in ML-DSA/debug tests and no
-  repo-local ML-DSA KAT corpus is checked in.
-- **Version:** 0.2.1.
+- **ML-DSA (FIPS 204):** FIPS 204-aligned for ML-DSA-44/65/87. Byte-exact
+  against the checked-in KAT corpus (`test/data/MLDSA`) across raw/pure/hashed ×
+  deterministic/hedged: 300 key generations and 1800 signatures reproduced
+  byte-for-byte, all verifying. External API is hedged-by-default with context
+  strings and HashML-DSA (SHA-256/384/512 pre-hash). This is KAT/regression
+  evidence, NOT a CMVP/FIPS 140 validation claim.
+- **Version:** 0.2.1 (ML-DSA validation work pending release tag).
 - **Runtime dependencies:** none. FIPS 202 SHA3/SHAKE is vendored in
   `lib/src/common/keccak.dart`.
 - **Canonical documentation root:** `doc/`.
@@ -31,14 +34,17 @@ lib/src/
       indcpa.dart        # K-PKE core
       pack.dart          # ML-KEM serialization/compression
       params.dart        # ML-KEM sizes
-    dilithium/           # experimental ML-DSA implementation
-      dsa.dart
-      params.dart
+    dilithium/           # FIPS 204-aligned ML-DSA implementation
+      dsa.dart           # external + internal + HashML-DSA APIs (Algs 1-8)
+      params.dart        # parameter sets + computed FIPS 204 Table 2 sizes
       poly.dart
       ntt.dart
       packing.dart
       rounding.dart
-      symmetric.dart
+      symmetric.dart     # ExpandA/S, sampling, SampleInBall, HashML-DSA pre-hash
+  common/
+    sha2.dart            # vendored FIPS 180-4 SHA-256/384/512 (HashML-DSA)
+    zeroize.dart         # best-effort secret zeroization helpers
 ```
 
 ## Current Verification Boundary
@@ -47,17 +53,21 @@ Use these commands to understand current state:
 
 ```bash
 dart analyze
-dart test test/kat_evaluator_test.dart
+dart test test/kat_evaluator_test.dart   # ML-KEM KAT (3000 vectors)
+dart test test/mldsa_kat_test.dart       # ML-DSA KAT (18 files, all flavours)
 dart test
+dart test -p chrome                       # dart2js
+dart test -p chrome --compiler dart2wasm  # dart2wasm
 ```
 
 Expected as of this update:
 
-- `dart analyze` succeeds with info-level `avoid_print` notes in
-  `test/kat_evaluator_test.dart`.
-- `dart test test/kat_evaluator_test.dart` passes and runs 1000 vectors for
-  each ML-KEM parameter set.
-- `dart test` fails until ML-DSA/debug blockers are fixed.
+- `dart analyze` exits 0 (info-level `avoid_print` notes remain in
+  `test/kat_evaluator_test.dart`).
+- The ML-KEM KAT runner passes 1000 vectors per parameter set; the ML-DSA KAT
+  runner is byte-exact (300 key generations + 1800 signatures, all verifying).
+- `dart test` is **green** (160 tests). The web JS and Wasm gates are green; the
+  file-based KAT runners are VM-only and auto-skip on web.
 
 ## Documentation Map
 
@@ -86,15 +96,18 @@ Expected as of this update:
 
 ## Known High-Priority Work
 
-- Fix ML-DSA packing and `ExpandS` failures.
-- Use [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
-  as the controlling release checklist.
-- Remove or replace the hardcoded Windows KAT root in
-  `test/mldsa_debug_test.dart` and `test/mldsa_kat_test.dart`.
-- Add repo-local ML-DSA KAT corpus and a discovered test runner.
-- Add secret-zeroization helpers and apply them in `finally` blocks.
-- Make ML-DSA `_checkNorm` constant-time.
-- Decide how explicitly the public API should label experimental ML-DSA.
+ML-DSA FIPS 204 alignment is complete per the Definition of Done in
+[doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) (packing
+and `ExpandS` fixed; repo-local corpus + discovered runner; zeroization helpers;
+no-early-exit norm check; HashML-DSA). Remaining work:
+
+- Deeper side-channel review: per-iteration branch directions in `_normExceeds`
+  and the rejection loops are best-effort, not constant-time, in pure Dart.
+- Surface additional approved HashML-DSA pre-hash functions (e.g. SHAKE) beyond
+  the level-bound SHA-2 default, if broader HashML-DSA support is desired.
+- KEM decapsulation output-selection side-channel review.
+- Release decision: tag/version bump and `dart pub publish` are deliberate,
+  outward-facing steps left to the maintainer.
 
 For details, use [doc/BUGS.md](doc/BUGS.md) and
 [doc/IMPROVEMENTS.md](doc/IMPROVEMENTS.md).

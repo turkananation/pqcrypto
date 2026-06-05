@@ -1,5 +1,6 @@
+import 'dart:math';
 import 'dart:typed_data';
-import '../../common/shake.dart';
+import '../../common/zeroize.dart';
 import 'poly.dart';
 import 'symmetric.dart';
 import 'params.dart';
@@ -7,107 +8,250 @@ import 'ntt.dart';
 import 'rounding.dart';
 import 'packing.dart';
 
+/// FIPS 204 (ML-DSA) Module-Lattice Digital Signature Algorithm.
+///
+/// This class exposes the FIPS 204 *external* functions
+/// ([generateKeyPair], [sign], [verify], and the HashML-DSA variants) as the
+/// recommended application surface, and the *internal* deterministic functions
+/// ([generateKeyPairSeeded], [signInternal], [verifyInternal]) for tests,
+/// CAVP-style known-answer vectors, and constrained deterministic use.
+///
+/// External signing is **hedged by default** (a fresh 32-byte `rnd` is drawn
+/// from [Random.secure]). Deterministic signing ([signDeterministic]) is an
+/// explicit, documented opt-in because it is harder to protect against
+/// side-channel and fault attacks.
 class MlDsa {
-  /// Generate Key Pair (pk, sk) for the given parameters.
-  /// [seed] must be exactly 32 bytes.
-  static (Uint8List, Uint8List) generateKeyPair(
-    DilithiumParams params,
-    Uint8List seed, // 32 bytes
-  ) {
-    if (seed.length != 32) throw ArgumentError("Seed must be 32 bytes");
+  MlDsa._();
 
-    // FIPS 204 Algorithm 6, Line 2:
+  static final Random _secureRng = Random.secure();
+  static final Uint8List _emptyCtx = Uint8List(0);
+
+  static Uint8List _randomBytes(int len) {
+    final b = Uint8List(len);
+    for (int i = 0; i < len; i++) {
+      b[i] = _secureRng.nextInt(256);
+    }
+    return b;
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 1 — ML-DSA.KeyGen (external)
+  // ===========================================================================
+
+  /// Generate a fresh key pair `(pk, sk)` for [params].
+  ///
+  /// Draws a fresh 32-byte seed `xi` from [Random.secure] and runs
+  /// `ML-DSA.KeyGen_internal`. The seed is zeroized after use (best-effort).
+  ///
+  /// NOTE: [Random.secure] is the platform CSPRNG; this package makes no
+  /// SP 800-90A/B validation claim about the entropy source.
+  static (Uint8List, Uint8List) generateKeyPair(DilithiumParams params) {
+    final xi = _randomBytes(32);
+    try {
+      return generateKeyPairSeeded(params, xi);
+    } finally {
+      secureZero(xi);
+    }
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 6 — ML-DSA.KeyGen_internal (deterministic)
+  // ===========================================================================
+
+  /// Deterministic key generation from a 32-byte seed [seed] (`xi`).
+  ///
+  /// This is `ML-DSA.KeyGen_internal`. It is intended for tests and KAT
+  /// fixtures; applications should prefer [generateKeyPair].
+  static (Uint8List, Uint8List) generateKeyPairSeeded(
+    DilithiumParams params,
+    Uint8List seed,
+  ) {
+    if (seed.length != 32) {
+      throw ArgumentError('Seed must be 32 bytes');
+    }
+
     // (rho, rho', K) <- H(xi || IntegerToBytes(k,1) || IntegerToBytes(l,1), 128)
     final seedInput = Uint8List(32 + 1 + 1);
     seedInput.setRange(0, 32, seed);
     seedInput[32] = params.k;
     seedInput[33] = params.l;
-    final expanded = Shake256.shake(seedInput, 32 + 64 + 32);
-    final rho = Uint8List(32);
-    rho.setRange(0, 32, expanded.sublist(0, 32));
+    final expanded = DilithiumSymmetric.crh(seedInput, 128);
+    final rho = Uint8List(32)..setRange(0, 32, expanded.sublist(0, 32));
+    final rhoPrime = Uint8List(64)..setRange(0, 64, expanded.sublist(32, 96));
+    final kKey = Uint8List(32)..setRange(0, 32, expanded.sublist(96, 128));
 
-    final rhoPrime = Uint8List(64);
-    rhoPrime.setRange(0, 64, expanded.sublist(32, 96));
+    DilithiumPolyVec? s1, s2;
+    try {
+      // 2. ExpandA(rho)
+      final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
 
-    final kKey = Uint8List(32);
-    kKey.setRange(0, 32, expanded.sublist(96, 128));
+      // 3. (s1, s2) <- ExpandS(rho')
+      final pair = DilithiumSymmetric.expandS(
+        rhoPrime,
+        params.k,
+        params.l,
+        params.eta,
+      );
+      s1 = pair.$1;
+      s2 = pair.$2;
 
-    // 2. ExpandA(rho)
-    final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
-
-    // 3. ExpandS(rho')
-    final (s1, s2) = DilithiumSymmetric.expandS(
-      rhoPrime,
-      params.k,
-      params.l,
-      params.eta,
-    );
-
-    // 4. NTT(s1), NTT(s2)
-    final s1Hat = DilithiumPolyVec.zero(params.l);
-    for (int i = 0; i < params.l; i++) {
-      s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
-      DilithiumNTT.ntt(s1Hat[i]);
-    }
-
-    final s2Hat = DilithiumPolyVec.zero(params.k);
-    for (int i = 0; i < params.k; i++) {
-      s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
-      DilithiumNTT.ntt(s2Hat[i]);
-    }
-
-    // 5. t_hat = A_hat * s1_hat + s2_hat
-    final tHat = DilithiumPolyVec.zero(params.k);
-    for (int i = 0; i < params.k; i++) {
-      for (int j = 0; j < params.l; j++) {
-        final prod = aHat[i][j].pointwiseMul(s1Hat[j]);
-        tHat[i] = tHat[i] + prod;
+      // 4. s1Hat = NTT(s1), s2Hat = NTT(s2) (s1/s2 retained for skEncode)
+      final s1Hat = DilithiumPolyVec.zero(params.l);
+      for (int i = 0; i < params.l; i++) {
+        s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
+        DilithiumNTT.ntt(s1Hat[i]);
       }
-      tHat[i] = tHat[i] + s2Hat[i];
-    }
-
-    // 6. t = InvNTT(t_hat)
-    // 7. t1, t0 = Power2Round(t, d=13)
-    final t1 = DilithiumPolyVec.zero(params.k);
-    final t0 = DilithiumPolyVec.zero(params.k);
-
-    for (int i = 0; i < params.k; i++) {
-      DilithiumNTT.invNtt(tHat[i]);
-
-      final polyT1 = DilithiumPoly.zero();
-      final polyT0 = DilithiumPoly.zero();
-
-      for (int c = 0; c < 256; c++) {
-        final (r1, r0) = power2Round(tHat[i].coeffs[c]);
-        polyT1.coeffs[c] = r1;
-        polyT0.coeffs[c] = r0;
+      final s2Hat = DilithiumPolyVec.zero(params.k);
+      for (int i = 0; i < params.k; i++) {
+        s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
+        DilithiumNTT.ntt(s2Hat[i]);
       }
-      t1[i] = polyT1;
-      t0[i] = polyT0;
+
+      // 5. t_hat = A_hat * s1_hat + s2_hat
+      final tHat = DilithiumPolyVec.zero(params.k);
+      for (int i = 0; i < params.k; i++) {
+        for (int j = 0; j < params.l; j++) {
+          tHat[i] = tHat[i] + aHat[i][j].pointwiseMul(s1Hat[j]);
+        }
+        tHat[i] = tHat[i] + s2Hat[i];
+      }
+
+      // 6. t = InvNTT(t_hat) ; 7. (t1, t0) = Power2Round(t)
+      final t1 = DilithiumPolyVec.zero(params.k);
+      final t0 = DilithiumPolyVec.zero(params.k);
+      for (int i = 0; i < params.k; i++) {
+        DilithiumNTT.invNtt(tHat[i]);
+        for (int c = 0; c < n; c++) {
+          final (r1, r0) = power2Round(tHat[i].coeffs[c]);
+          t1[i].coeffs[c] = r1;
+          t0[i].coeffs[c] = r0;
+        }
+      }
+
+      // 8. pk = pkEncode(rho, t1)
+      final pk = packPK(rho, t1);
+
+      // 9. tr = H(pk, 64)
+      final tr = DilithiumSymmetric.crh(pk, 64);
+
+      // 10. sk = skEncode(rho, K, tr, s1, s2, t0)
+      final sk = packSK(rho, kKey, tr, s1, s2, t0, params.eta);
+
+      return (pk, sk);
+    } finally {
+      secureZero(rhoPrime);
+      secureZero(kKey);
+      if (s1 != null) {
+        for (final p in s1.components) {
+          secureZeroInt32(p.coeffs);
+        }
+      }
+      if (s2 != null) {
+        for (final p in s2.components) {
+          secureZeroInt32(p.coeffs);
+        }
+      }
     }
-
-    // 8. pk = Pack(rho, t1)
-    final pk = packPK(rho, t1);
-
-    // 9. tr = CRH(pk)
-    final tr = Shake256.shake(pk, 64);
-
-    // 10. sk = Pack(rho, K, tr, s1, s2, t0)
-    final sk = packSK(rho, kKey, tr, s1, s2, t0, params.eta);
-
-    return (pk, sk);
   }
 
-  /// Sign message M using secret key sk.
-  /// [rnd] is 32 bytes: all zeros for deterministic, random for hedged.
+  // ===========================================================================
+  // FIPS 204 Algorithm 2 — ML-DSA.Sign (external, hedged by default)
+  // ===========================================================================
+
+  /// Sign [m] under secret key [sk].
+  ///
+  /// - [ctx] is the FIPS 204 context string (default empty); it must be at most
+  ///   255 bytes or an [ArgumentError] is thrown.
+  /// - [rnd] is the 32-byte hedging value. When omitted, a fresh value is drawn
+  ///   from [Random.secure] (hedged signing — the recommended default). Pass a
+  ///   value only for deterministic test vectors; see [signDeterministic].
   static Uint8List sign(
     Uint8List sk,
     Uint8List m,
     DilithiumParams params, {
+    Uint8List? ctx,
     Uint8List? rnd,
   }) {
-    rnd ??= Uint8List(32); // deterministic: all zeros
-    // 1. Unpack SK
+    ctx ??= _emptyCtx;
+    if (ctx.length > 255) {
+      throw ArgumentError('Context string must be at most 255 bytes');
+    }
+    if (rnd != null && rnd.length != 32) {
+      throw ArgumentError('rnd must be 32 bytes');
+    }
+    final hedge = rnd ?? _randomBytes(32);
+    final mPrime = _formatMessage(0x00, ctx, m, null);
+    try {
+      return signInternal(sk, mPrime, params, rnd: hedge);
+    } finally {
+      if (rnd == null) secureZero(hedge);
+    }
+  }
+
+  /// Deterministic signing (`rnd = 0^32`). Explicit, discouraged for general
+  /// use: deterministic ML-DSA is harder to protect against side-channel and
+  /// fault attacks than hedged signing. Prefer [sign].
+  static Uint8List signDeterministic(
+    Uint8List sk,
+    Uint8List m,
+    DilithiumParams params, {
+    Uint8List? ctx,
+  }) {
+    return sign(sk, m, params, ctx: ctx, rnd: Uint8List(32));
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 4 — HashML-DSA.Sign (external, pre-hashed)
+  // ===========================================================================
+
+  /// HashML-DSA signing: pre-hashes [m] with the approved hash for this
+  /// security level (SHA-256 for ML-DSA-44, SHA-384 for ML-DSA-65, SHA-512 for
+  /// ML-DSA-87) and signs the OID-domain-separated digest.
+  static Uint8List hashSign(
+    Uint8List sk,
+    Uint8List m,
+    DilithiumParams params, {
+    Uint8List? ctx,
+    Uint8List? rnd,
+  }) {
+    ctx ??= _emptyCtx;
+    if (ctx.length > 255) {
+      throw ArgumentError('Context string must be at most 255 bytes');
+    }
+    if (rnd != null && rnd.length != 32) {
+      throw ArgumentError('rnd must be 32 bytes');
+    }
+    final hedge = rnd ?? _randomBytes(32);
+    final ph = _preHash(m, params);
+    final mPrime = _formatMessage(0x01, ctx, ph.$2, ph.$1);
+    try {
+      return signInternal(sk, mPrime, params, rnd: hedge);
+    } finally {
+      if (rnd == null) secureZero(hedge);
+    }
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 7 — ML-DSA.Sign_internal (deterministic core)
+  // ===========================================================================
+
+  /// Internal signing over an already-formatted message `M'` ([mPrime]).
+  ///
+  /// This is `ML-DSA.Sign_internal`. Applications should call [sign]; this is
+  /// exposed for KAT/CAVP fixtures and the `raw` test flavour. [rnd] defaults
+  /// to 32 zero bytes (deterministic).
+  static Uint8List signInternal(
+    Uint8List sk,
+    Uint8List mPrime,
+    DilithiumParams params, {
+    Uint8List? rnd,
+  }) {
+    final rndBytes = rnd ?? Uint8List(32);
+    if (rndBytes.length != 32) {
+      throw ArgumentError('rnd must be 32 bytes');
+    }
+
+    // 1. Unpack sk.
     final (rho, kKey, tr, s1, s2, t0) = unpackSK(
       sk,
       params.k,
@@ -115,235 +259,256 @@ class MlDsa {
       params.eta,
     );
 
-    // 2. mu = CRH(tr || M)
-    final muInput = Uint8List(tr.length + m.length);
-    muInput.setRange(0, tr.length, tr);
-    muInput.setRange(tr.length, tr.length + m.length, m);
-    final mu = DilithiumSymmetric.crh(muInput);
+    Uint8List? rhoPrime;
+    try {
+      // mu = H(tr || M', 64)
+      final muInput = Uint8List(tr.length + mPrime.length);
+      muInput.setRange(0, tr.length, tr);
+      muInput.setRange(tr.length, muInput.length, mPrime);
+      final mu = DilithiumSymmetric.crh(muInput);
 
-    // FIPS 204 Algorithm 7, Line 5: rho' = H(K || rnd || mu, 64)
-    final rhoPrimeInput = Uint8List(32 + 32 + 64);
-    rhoPrimeInput.setRange(0, 32, kKey);
-    rhoPrimeInput.setRange(32, 64, rnd);
-    rhoPrimeInput.setRange(64, 128, mu);
-    final rhoPrime = DilithiumSymmetric.crh(rhoPrimeInput); // 64 bytes
+      // rho' = H(K || rnd || mu, 64)
+      final rhoPrimeInput = Uint8List(32 + 32 + 64);
+      rhoPrimeInput.setRange(0, 32, kKey);
+      rhoPrimeInput.setRange(32, 64, rndBytes);
+      rhoPrimeInput.setRange(64, 128, mu);
+      rhoPrime = DilithiumSymmetric.crh(rhoPrimeInput);
 
-    // Expand Matrix A
-    final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
+      final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
 
-    // Pre-computation: NTT(s1), NTT(s2), NTT(t0)
-    final s1Hat = DilithiumPolyVec.zero(params.l);
-    for (int i = 0; i < params.l; i++) {
-      s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
-      DilithiumNTT.ntt(s1Hat[i]);
-    }
-
-    final s2Hat = DilithiumPolyVec.zero(params.k);
-    for (int i = 0; i < params.k; i++) {
-      s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
-      DilithiumNTT.ntt(s2Hat[i]);
-    }
-
-    final t0Hat = DilithiumPolyVec.zero(params.k);
-    for (int i = 0; i < params.k; i++) {
-      t0Hat[i].coeffs.setAll(0, t0[i].coeffs);
-      DilithiumNTT.ntt(t0Hat[i]);
-    }
-
-    int kappa = 0;
-    DilithiumPolyVec? z;
-    DilithiumPolyVec? h;
-    Uint8List? cTilde;
-
-    // Rejection Loop
-    while (true) {
-      // 4. Sample y
-      final y = DilithiumSymmetric.expandMask(
-        rhoPrime,
-        kappa,
-        params.l,
-        params.gamma1,
-      );
-
-      // 5. w = A * y (via NTT)
-      final yHat = DilithiumPolyVec.zero(params.l);
+      final s1Hat = DilithiumPolyVec.zero(params.l);
       for (int i = 0; i < params.l; i++) {
-        yHat[i].coeffs.setAll(0, y[i].coeffs);
-        DilithiumNTT.ntt(yHat[i]);
+        s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
+        DilithiumNTT.ntt(s1Hat[i]);
       }
-
-      final wHat = DilithiumPolyVec.zero(params.k);
+      final s2Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
-        for (int j = 0; j < params.l; j++) {
-          wHat[i] = wHat[i] + aHat[i][j].pointwiseMul(yHat[j]);
-        }
-        DilithiumNTT.invNtt(wHat[i]); // w in Normal
+        s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
+        DilithiumNTT.ntt(s2Hat[i]);
+      }
+      final t0Hat = DilithiumPolyVec.zero(params.k);
+      for (int i = 0; i < params.k; i++) {
+        t0Hat[i].coeffs.setAll(0, t0[i].coeffs);
+        DilithiumNTT.ntt(t0Hat[i]);
       }
 
-      // 6. w1 = HighBits(w, 2*gamma2)
-      final w1 = DilithiumPolyVec.zero(params.k);
       final alpha = 2 * params.gamma2;
+      final w1Bits = (params.gamma2 == 95232) ? 6 : 4;
+      int kappa = 0;
 
-      for (int i = 0; i < params.k; i++) {
-        for (int j = 0; j < 256; j++) {
-          final (r1, _) = decompose(wHat[i].coeffs[j], alpha);
-          w1[i].coeffs[j] = r1;
+      while (true) {
+        // y <- ExpandMask(rho', kappa)
+        final y = DilithiumSymmetric.expandMask(
+          rhoPrime,
+          kappa,
+          params.l,
+          params.gamma1,
+        );
+
+        // w = A * y
+        final yHat = DilithiumPolyVec.zero(params.l);
+        for (int i = 0; i < params.l; i++) {
+          yHat[i].coeffs.setAll(0, y[i].coeffs);
+          DilithiumNTT.ntt(yHat[i]);
         }
-      }
-
-      // 7. c_tilde = CRH(mu || w1_encoded)
-      int w1Bits = (params.gamma2 == 95232) ? 6 : 4;
-
-      final w1Packed = Uint8List(params.k * 32 * w1Bits);
-      int w1Off = 0;
-      for (int i = 0; i < params.k; i++) {
-        final packed = simpleBitPack(w1[i], w1Bits);
-        w1Packed.setRange(w1Off, w1Off + packed.length, packed);
-        w1Off += packed.length;
-      }
-
-      final cInput = Uint8List(mu.length + w1Packed.length);
-      cInput.setRange(0, mu.length, mu);
-      cInput.setRange(mu.length, cInput.length, w1Packed);
-      cTilde = DilithiumSymmetric.crh(cInput, params.cTildeSize);
-
-      final cSeed = cTilde;
-
-      // 8. c = SampleInBall(c_tilde)
-      final c = DilithiumSymmetric.sampleInBall(cSeed, params.tau);
-
-      final cHat = DilithiumPoly.zero();
-      cHat.coeffs.setAll(0, c.coeffs);
-      DilithiumNTT.ntt(cHat);
-
-      // 9. z = y + c * s1
-      final cs1 = DilithiumPolyVec.zero(params.l);
-      for (int i = 0; i < params.l; i++) {
-        cs1[i] = cHat.pointwiseMul(s1Hat[i]);
-        DilithiumNTT.invNtt(cs1[i]);
-      }
-
-      final zCand = DilithiumPolyVec.zero(params.l);
-      bool rejectZ = false;
-      for (int i = 0; i < params.l; i++) {
-        zCand[i] = y[i] + cs1[i];
-        if (_checkNorm(zCand[i], params.gamma1 - params.beta)) {
-          rejectZ = true;
-          break;
-        }
-      }
-      if (rejectZ) {
-        kappa += params.l;
-        continue;
-      }
-
-      // 10. r0 = LowBits(w - cs2, 2*gamma2)
-      final cs2 = DilithiumPolyVec.zero(params.k);
-      for (int i = 0; i < params.k; i++) {
-        cs2[i] = cHat.pointwiseMul(s2Hat[i]);
-        DilithiumNTT.invNtt(cs2[i]);
-      }
-
-      final r0 = DilithiumPolyVec.zero(params.k);
-      bool rejectR0 = false;
-
-      for (int i = 0; i < params.k; i++) {
-        final diff = wHat[i] - cs2[i];
-
-        for (int j = 0; j < 256; j++) {
-          final (_, r0Val) = decompose(diff.coeffs[j], alpha);
-          r0[i].coeffs[j] = r0Val;
+        final w = DilithiumPolyVec.zero(params.k);
+        for (int i = 0; i < params.k; i++) {
+          for (int j = 0; j < params.l; j++) {
+            w[i] = w[i] + aHat[i][j].pointwiseMul(yHat[j]);
+          }
+          DilithiumNTT.invNtt(w[i]);
         }
 
-        if (_checkNorm(r0[i], params.gamma2 - params.beta)) {
-          rejectR0 = true;
-          break;
+        // w1 = HighBits(w)
+        final w1 = DilithiumPolyVec.zero(params.k);
+        for (int i = 0; i < params.k; i++) {
+          for (int j = 0; j < n; j++) {
+            final (r1, _) = decompose(w[i].coeffs[j], alpha);
+            w1[i].coeffs[j] = r1;
+          }
         }
-      }
-      if (rejectR0) {
-        kappa += params.l;
-        continue;
-      }
 
-      // 11. Check ||ct0|| >= gamma2
-      final ct0 = DilithiumPolyVec.zero(params.k);
-      bool rejectCT0 = false;
-      for (int i = 0; i < params.k; i++) {
-        ct0[i] = cHat.pointwiseMul(t0Hat[i]);
-        DilithiumNTT.invNtt(ct0[i]);
-
-        if (_checkNorm(ct0[i], params.gamma2)) {
-          rejectCT0 = true;
-          break;
+        // c~ = H(mu || w1Encode(w1), cTildeSize)
+        final w1Packed = Uint8List(params.k * 32 * w1Bits);
+        int w1Off = 0;
+        for (int i = 0; i < params.k; i++) {
+          final packed = simpleBitPack(w1[i], w1Bits);
+          w1Packed.setRange(w1Off, w1Off + packed.length, packed);
+          w1Off += packed.length;
         }
-      }
-      if (rejectCT0) {
-        kappa += params.l;
-        continue;
-      }
+        final cInput = Uint8List(mu.length + w1Packed.length);
+        cInput.setRange(0, mu.length, mu);
+        cInput.setRange(mu.length, cInput.length, w1Packed);
+        final cTilde = DilithiumSymmetric.crh(cInput, params.cTildeSize);
 
-      // 12. h = MakeHint(-ct0, w - cs2 + ct0, 2*gamma2)
-      final hCand = DilithiumPolyVec.zero(params.k);
-      int hintCount = 0;
+        // c = SampleInBall(c~); c_hat = NTT(c)
+        final c = DilithiumSymmetric.sampleInBall(cTilde, params.tau);
+        final cHat = DilithiumPoly.zero();
+        cHat.coeffs.setAll(0, c.coeffs);
+        DilithiumNTT.ntt(cHat);
 
-      for (int i = 0; i < params.k; i++) {
-        final diff = wHat[i] - cs2[i];
-        final val = diff + ct0[i];
-
-        for (int j = 0; j < 256; j++) {
-          int zVal = -ct0[i].coeffs[j];
-          int rVal = val.coeffs[j];
-
-          int hBit = makeHint(zVal, rVal, alpha);
-          hCand[i].coeffs[j] = hBit;
-          if (hBit != 0) hintCount++;
+        // z = y + c*s1
+        final z = DilithiumPolyVec.zero(params.l);
+        for (int i = 0; i < params.l; i++) {
+          final cs1 = cHat.pointwiseMul(s1Hat[i]);
+          DilithiumNTT.invNtt(cs1);
+          z[i] = y[i] + cs1;
         }
-      }
+        bool reject = false;
+        for (int i = 0; i < params.l; i++) {
+          if (_normExceeds(z[i], params.gamma1 - params.beta)) {
+            reject = true;
+            break;
+          }
+        }
+        if (reject) {
+          kappa += params.l;
+          continue;
+        }
 
-      // Check weight
-      if (hintCount > params.omega) {
-        kappa += params.l;
-        continue;
-      }
+        // r0 = LowBits(w - c*s2)
+        final cs2 = DilithiumPolyVec.zero(params.k);
+        for (int i = 0; i < params.k; i++) {
+          cs2[i] = cHat.pointwiseMul(s2Hat[i]);
+          DilithiumNTT.invNtt(cs2[i]);
+        }
+        final r0 = DilithiumPolyVec.zero(params.k);
+        for (int i = 0; i < params.k; i++) {
+          final diff = w[i] - cs2[i];
+          for (int j = 0; j < n; j++) {
+            final (_, r0Val) = decompose(diff.coeffs[j], alpha);
+            r0[i].coeffs[j] = r0Val;
+          }
+          if (_normExceeds(r0[i], params.gamma2 - params.beta)) {
+            reject = true;
+            break;
+          }
+        }
+        if (reject) {
+          kappa += params.l;
+          continue;
+        }
 
-      // Success
-      for (int i = 0; i < params.l; i++) {
-        zCand[i].reduce(); // Normalize z to [0, q-1]
-      }
-      z = zCand;
-      h = hCand;
+        // ct0 = c*t0; reject if ||ct0||_inf >= gamma2
+        final ct0 = DilithiumPolyVec.zero(params.k);
+        for (int i = 0; i < params.k; i++) {
+          ct0[i] = cHat.pointwiseMul(t0Hat[i]);
+          DilithiumNTT.invNtt(ct0[i]);
+          if (_normExceeds(ct0[i], params.gamma2)) {
+            reject = true;
+            break;
+          }
+        }
+        if (reject) {
+          kappa += params.l;
+          continue;
+        }
 
-      cTilde = cSeed;
-      break;
+        // h = MakeHint(-ct0, w - c*s2 + ct0)
+        final h = DilithiumPolyVec.zero(params.k);
+        int hintCount = 0;
+        for (int i = 0; i < params.k; i++) {
+          final r = (w[i] - cs2[i]) + ct0[i];
+          for (int j = 0; j < n; j++) {
+            final hBit = makeHint(-ct0[i].coeffs[j], r.coeffs[j], alpha);
+            h[i].coeffs[j] = hBit;
+            hintCount += hBit;
+          }
+        }
+        if (hintCount > params.omega) {
+          kappa += params.l;
+          continue;
+        }
+
+        for (int i = 0; i < params.l; i++) {
+          z[i].reduce();
+        }
+        return packSig(cTilde, z, h, params.gamma1, params.omega);
+      }
+    } finally {
+      secureZero(kKey);
+      secureZero(rhoPrime);
+      for (final p in s1.components) {
+        secureZeroInt32(p.coeffs);
+      }
+      for (final p in s2.components) {
+        secureZeroInt32(p.coeffs);
+      }
+      for (final p in t0.components) {
+        secureZeroInt32(p.coeffs);
+      }
     }
-
-    // Pack Sig
-    return packSig(cTilde, z, h, params.gamma1, params.omega);
   }
 
-  static bool _checkNorm(DilithiumPoly p, int bound) {
-    for (int i = 0; i < 256; i++) {
-      int t = p.coeffs[i];
-      if (t > (q >> 1)) t -= q;
-      if (t.abs() >= bound) return true;
-    }
-    return false;
-  }
+  // ===========================================================================
+  // FIPS 204 Algorithm 3 — ML-DSA.Verify (external)
+  // ===========================================================================
 
-  /// Verify signature
+  /// Verify [sig] over [m] under public key [pk].
+  ///
+  /// Returns `false` (never throws) for any malformed or attacker-controlled
+  /// input: wrong pk/sig length, over-long [ctx], malformed hints, or a norm
+  /// violation.
   static bool verify(
     Uint8List pk,
     Uint8List m,
     Uint8List sig,
+    DilithiumParams params, {
+    Uint8List? ctx,
+  }) {
+    ctx ??= _emptyCtx;
+    if (ctx.length > 255) return false;
+    final mPrime = _formatMessage(0x00, ctx, m, null);
+    return verifyInternal(pk, mPrime, sig, params);
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 5 — HashML-DSA.Verify (external)
+  // ===========================================================================
+
+  /// HashML-DSA verification matching [hashSign].
+  static bool hashVerify(
+    Uint8List pk,
+    Uint8List m,
+    Uint8List sig,
+    DilithiumParams params, {
+    Uint8List? ctx,
+  }) {
+    ctx ??= _emptyCtx;
+    if (ctx.length > 255) return false;
+    final ph = _preHash(m, params);
+    final mPrime = _formatMessage(0x01, ctx, ph.$2, ph.$1);
+    return verifyInternal(pk, mPrime, sig, params);
+  }
+
+  // ===========================================================================
+  // FIPS 204 Algorithm 8 — ML-DSA.Verify_internal
+  // ===========================================================================
+
+  /// Internal verification over an already-formatted message `M'` ([mPrime]).
+  static bool verifyInternal(
+    Uint8List pk,
+    Uint8List mPrime,
+    Uint8List sig,
     DilithiumParams params,
   ) {
-    // 1. Unpack PK -> rho, t1
-    final (rho, t1) = unpackPK(pk, params.k);
+    // Defensive length checks BEFORE any decode/sublist.
+    if (pk.length != params.publicKeyBytes) return false;
+    if (sig.length != params.signatureBytes) return false;
 
-    // 2. Unpack Sig -> c_tilde, z, h
-    late final Uint8List cTilde;
-    late final DilithiumPolyVec z;
-    late final DilithiumPolyVec h;
+    final DilithiumPolyVec t1;
+    final Uint8List rho;
+    try {
+      final pkParts = unpackPK(pk, params.k);
+      rho = pkParts.$1;
+      t1 = pkParts.$2;
+    } catch (_) {
+      return false;
+    }
+
+    final Uint8List cTilde;
+    final DilithiumPolyVec z;
+    final DilithiumPolyVec h;
     try {
       final res = unpackSig(
         sig,
@@ -360,41 +525,32 @@ class MlDsa {
       return false;
     }
 
-    // 3. Check ||z|| < gamma1 - beta
+    // ||z||_inf < gamma1 - beta
     for (int i = 0; i < params.l; i++) {
-      if (_checkNorm(z[i], params.gamma1 - params.beta)) {
+      if (_normExceeds(z[i], params.gamma1 - params.beta)) {
         return false;
       }
     }
 
-    // 4. tr = CRH(pk)
-    final tr = DilithiumSymmetric.crh(pk);
-
-    // 5. mu = CRH(tr || M)
-    final muInput = Uint8List(tr.length + m.length);
+    final tr = DilithiumSymmetric.crh(pk, 64);
+    final muInput = Uint8List(tr.length + mPrime.length);
     muInput.setRange(0, tr.length, tr);
-    muInput.setRange(tr.length, tr.length + m.length, m);
+    muInput.setRange(tr.length, muInput.length, mPrime);
     final mu = DilithiumSymmetric.crh(muInput);
 
-    // 6. c = SampleInBall(c_tilde)
     final c = DilithiumSymmetric.sampleInBall(cTilde, params.tau);
-
-    // 7. A = ExpandA(rho)
     final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
 
-    // 8. w_approx = A * z - c * t1 * 2^d
     final zHat = DilithiumPolyVec.zero(params.l);
     for (int i = 0; i < params.l; i++) {
       zHat[i].coeffs.setAll(0, z[i].coeffs);
       DilithiumNTT.ntt(zHat[i]);
     }
-
     final t1Hat = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {
       t1Hat[i].coeffs.setAll(0, t1[i].coeffs);
       DilithiumNTT.ntt(t1Hat[i]);
     }
-
     final cHat = DilithiumPoly.zero();
     cHat.coeffs.setAll(0, c.coeffs);
     DilithiumNTT.ntt(cHat);
@@ -405,37 +561,28 @@ class MlDsa {
         az[i] = az[i] + aHat[i][j].pointwiseMul(zHat[j]);
       }
     }
-
     final ct1 = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {
       final prod = cHat.pointwiseMul(t1Hat[i]);
       DilithiumNTT.invNtt(prod);
-
-      // Mult by 2^d (d=13)
-      for (int x = 0; x < 256; x++) {
-        prod.coeffs[x] = (prod.coeffs[x] << d) % q;
+      for (int x = 0; x < n; x++) {
+        // Multiply by 2^d (NOT a left shift: dart2js '<<' is 32-bit and
+        // prod*2^d can reach ~2^36; '*' stays exact within the 53-bit web int).
+        prod.coeffs[x] = (prod.coeffs[x] * (1 << d)) % q;
       }
       ct1[i] = prod;
     }
-
-    // wApprox = az - ct1
     final wApprox = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {
       DilithiumNTT.invNtt(az[i]);
       wApprox[i] = az[i] - ct1[i];
-    }
-
-    // Normalize wApprox coefficients to [0, q-1]
-    for (int i = 0; i < params.k; i++) {
       wApprox[i].reduce();
     }
 
-    // 9. w1' = UseHint(h, wApprox, 2*gamma2)
-    final w1Prime = DilithiumPolyVec.zero(params.k);
     final alpha = 2 * params.gamma2;
-
+    final w1Prime = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {
-      for (int j = 0; j < 256; j++) {
+      for (int j = 0; j < n; j++) {
         w1Prime[i].coeffs[j] = useHint(
           h[i].coeffs[j],
           wApprox[i].coeffs[j],
@@ -444,8 +591,7 @@ class MlDsa {
       }
     }
 
-    // 10. c_tilde' = CRH(mu || w1')
-    int w1Bits = (params.gamma2 == 95232) ? 6 : 4;
+    final w1Bits = (params.gamma2 == 95232) ? 6 : 4;
     final w1Packed = Uint8List(params.k * 32 * w1Bits);
     int w1Off = 0;
     for (int i = 0; i < params.k; i++) {
@@ -453,23 +599,80 @@ class MlDsa {
       w1Packed.setRange(w1Off, w1Off + packed.length, packed);
       w1Off += packed.length;
     }
-
     final cInput = Uint8List(mu.length + w1Packed.length);
     cInput.setRange(0, mu.length, mu);
     cInput.setRange(mu.length, cInput.length, w1Packed);
     final cTildePrime = DilithiumSymmetric.crh(cInput, params.cTildeSize);
 
-    // Compare c_tilde == c_tilde'
-    if (cTilde.length != cTildePrime.length) {
-      return false;
+    // Constant-time comparison of the two challenge hashes.
+    if (cTilde.length != cTildePrime.length) return false;
+    int diff = 0;
+    for (int i = 0; i < cTilde.length; i++) {
+      diff |= cTilde[i] ^ cTildePrime[i];
     }
+    return diff == 0;
+  }
 
-    for (int i = 0; i < params.cTildeSize; i++) {
-      if (cTilde[i] != cTildePrime[i]) {
-        return false;
-      }
+  // ===========================================================================
+  // Helpers
+  // ===========================================================================
+
+  /// FIPS 204 external message formatting.
+  ///
+  /// For ML-DSA: `M' = domain || IntegerToBytes(|ctx|,1) || ctx || M` with
+  /// `domain = 0x00`. For HashML-DSA: `domain = 0x01` and the trailing payload
+  /// is `DER(OID) || PH(M)`, supplied as [oid] (DER OID) and [payload] (digest).
+  static Uint8List _formatMessage(
+    int domain,
+    Uint8List ctx,
+    Uint8List payload,
+    Uint8List? oid,
+  ) {
+    final oidLen = oid?.length ?? 0;
+    final out = Uint8List(2 + ctx.length + oidLen + payload.length);
+    out[0] = domain;
+    out[1] = ctx.length;
+    int off = 2;
+    out.setRange(off, off + ctx.length, ctx);
+    off += ctx.length;
+    if (oid != null) {
+      out.setRange(off, off + oid.length, oid);
+      off += oid.length;
     }
+    out.setRange(off, off + payload.length, payload);
+    return out;
+  }
 
-    return true; // Verification Pass
+  /// Returns `(DER(OID), PH(M))` for the HashML-DSA pre-hash bound to this
+  /// security level (FIPS 204 §5.4): SHA-256 (44), SHA-384 (65), SHA-512 (87).
+  static (Uint8List, Uint8List) _preHash(Uint8List m, DilithiumParams params) {
+    return DilithiumSymmetric.preHash(m, params.cTildeSize);
+  }
+
+  /// Infinity-norm bound check: returns `true` iff some coefficient's centered
+  /// representative has absolute value `>= bound`.
+  ///
+  /// Hardening: every one of the 256 coefficients is evaluated with no early
+  /// exit, so the loop length is independent of secret data (the dominant and
+  /// most exploitable timing channel for this check is closed). Per-iteration
+  /// branch directions remain a residual side channel; in a pure-Dart library
+  /// that compiles to the VM, dart2js, and dart2wasm, fully branchless,
+  /// constant-time arithmetic is not portably achievable, so this is a
+  /// best-effort measure rather than a hard guarantee (see SECURITY_AUDIT.md).
+  ///
+  /// Uses only `%`, comparison, and subtraction so the result is identical on
+  /// the VM and the web compilers (no reliance on `>>`/`<<` of signed values,
+  /// which dart2js evaluates as 32-bit operations). Accepts coefficients in
+  /// `[0, q)` or in a signed domain such as `[-gamma1+1, gamma1]`.
+  static bool _normExceeds(DilithiumPoly p, int bound) {
+    int flag = 0;
+    for (int i = 0; i < n; i++) {
+      int c = p.coeffs[i] % q;
+      if (c < 0) c += q; // c in [0, q)
+      if (c > (q >> 1)) c -= q; // centered representative in (-q/2, q/2]
+      final a = c < 0 ? -c : c; // |centered|
+      if (a >= bound) flag = 1; // accumulate; no early exit
+    }
+    return flag != 0;
   }
 }

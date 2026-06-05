@@ -12,7 +12,7 @@ project documentation; the older documentation directory has been retired.
 | Package version              | `0.2.1`                                                                                         |
 | Runtime dependencies         | None. FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                          |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence. |
-| ML-DSA                       | Exported but experimental. The current full test suite fails in ML-DSA/debug tests.             |
+| ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
 | OpenSSL interop              | ML-KEM A-G suite for all three parameter sets.                                                  |
 | Certification claim boundary | This repository provides implementation evidence, not CMVP/FIPS 140 module validation.          |
 
@@ -52,12 +52,18 @@ project documentation; the older documentation directory has been retired.
 
 The current local verification snapshot used for this documentation pass:
 
-- `dart analyze` exits successfully with three info-level `avoid_print` notes in
-  `test/kat_evaluator_test.dart`.
-- `dart test` is not fully green because ML-DSA/debug tests fail. The same run
-  completes the ML-KEM KAT runner for 1000 vectors each at ML-KEM-512,
-  ML-KEM-768, and ML-KEM-1024.
+- `dart analyze` exits 0 (three info-level `avoid_print` notes remain in
+  `test/kat_evaluator_test.dart`).
+- `dart test` is **green**: 160 tests including the ML-KEM KAT runner (1000
+  vectors each at 512/768/1024) and the ML-DSA KAT runner (18 files;
+  300 byte-exact key generations and 1800 byte-exact signatures that all
+  verify, across ML-DSA-44/65/87 × {det, hedged} × {raw, pure, hashed}).
+- `dart test -p chrome` (dart2js) and `dart test -p chrome --compiler dart2wasm`
+  are green (the file-based KAT runners are VM-only and auto-skip on web).
+- `dart format --set-exit-if-changed .` and `markdownlint-cli2 "**/*.md"` pass.
 - The OpenSSL interop workflow is maintained separately in
   `.github/workflows/interop.yml` and `tool/openssl_interop/`.
 
 Do not upgrade readiness wording unless a fresh verification run supports it.
+The KAT corpora are described in `test/data/MLKEM/README.md` and
+`test/data/MLDSA/README.md`.
