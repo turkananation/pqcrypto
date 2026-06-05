@@ -34,6 +34,12 @@ class MlDsa {
     return b;
   }
 
+  static void _copyReduceNtt(DilithiumPoly out, DilithiumPoly input) {
+    out.coeffs.setAll(0, input.coeffs);
+    out.reduce();
+    DilithiumNTT.ntt(out);
+  }
+
   // ===========================================================================
   // FIPS 204 Algorithm 1 — ML-DSA.KeyGen (external)
   // ===========================================================================
@@ -98,13 +104,11 @@ class MlDsa {
       // 4. s1Hat = NTT(s1), s2Hat = NTT(s2) (s1/s2 retained for skEncode)
       final s1Hat = DilithiumPolyVec.zero(params.l);
       for (int i = 0; i < params.l; i++) {
-        s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
-        DilithiumNTT.ntt(s1Hat[i]);
+        _copyReduceNtt(s1Hat[i], s1[i]);
       }
       final s2Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
-        s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
-        DilithiumNTT.ntt(s2Hat[i]);
+        _copyReduceNtt(s2Hat[i], s2[i]);
       }
 
       // 5. t_hat = A_hat * s1_hat + s2_hat
@@ -278,18 +282,15 @@ class MlDsa {
 
       final s1Hat = DilithiumPolyVec.zero(params.l);
       for (int i = 0; i < params.l; i++) {
-        s1Hat[i].coeffs.setAll(0, s1[i].coeffs);
-        DilithiumNTT.ntt(s1Hat[i]);
+        _copyReduceNtt(s1Hat[i], s1[i]);
       }
       final s2Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
-        s2Hat[i].coeffs.setAll(0, s2[i].coeffs);
-        DilithiumNTT.ntt(s2Hat[i]);
+        _copyReduceNtt(s2Hat[i], s2[i]);
       }
       final t0Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
-        t0Hat[i].coeffs.setAll(0, t0[i].coeffs);
-        DilithiumNTT.ntt(t0Hat[i]);
+        _copyReduceNtt(t0Hat[i], t0[i]);
       }
 
       final alpha = 2 * params.gamma2;
@@ -308,8 +309,7 @@ class MlDsa {
         // w = A * y
         final yHat = DilithiumPolyVec.zero(params.l);
         for (int i = 0; i < params.l; i++) {
-          yHat[i].coeffs.setAll(0, y[i].coeffs);
-          DilithiumNTT.ntt(yHat[i]);
+          _copyReduceNtt(yHat[i], y[i]);
         }
         final w = DilithiumPolyVec.zero(params.k);
         for (int i = 0; i < params.k; i++) {
@@ -344,8 +344,7 @@ class MlDsa {
         // c = SampleInBall(c~); c_hat = NTT(c)
         final c = DilithiumSymmetric.sampleInBall(cTilde, params.tau);
         final cHat = DilithiumPoly.zero();
-        cHat.coeffs.setAll(0, c.coeffs);
-        DilithiumNTT.ntt(cHat);
+        _copyReduceNtt(cHat, c);
 
         // z = y + c*s1
         final z = DilithiumPolyVec.zero(params.l);
@@ -543,17 +542,14 @@ class MlDsa {
 
     final zHat = DilithiumPolyVec.zero(params.l);
     for (int i = 0; i < params.l; i++) {
-      zHat[i].coeffs.setAll(0, z[i].coeffs);
-      DilithiumNTT.ntt(zHat[i]);
+      _copyReduceNtt(zHat[i], z[i]);
     }
     final t1Hat = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {
-      t1Hat[i].coeffs.setAll(0, t1[i].coeffs);
-      DilithiumNTT.ntt(t1Hat[i]);
+      _copyReduceNtt(t1Hat[i], t1[i]);
     }
     final cHat = DilithiumPoly.zero();
-    cHat.coeffs.setAll(0, c.coeffs);
-    DilithiumNTT.ntt(cHat);
+    _copyReduceNtt(cHat, c);
 
     final az = DilithiumPolyVec.zero(params.k);
     for (int i = 0; i < params.k; i++) {

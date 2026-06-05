@@ -143,16 +143,16 @@ class KyberKem {
       kBar = _j(z, ct, 32);
 
       // 6. Constant-time select: out = (c == c') ? K' : K_bar.
-      // diff is the OR of per-byte XORs, so diff in [0, 255] and diff == 0 iff
-      // the ciphertexts match. eqMask = 0xFF when equal, 0x00 otherwise; the
-      // expression uses only web-safe 32-bit arithmetic.
+      // diff is the OR of byte/length differences, so diff == 0 iff the
+      // ciphertexts match. eqMask = 0xFF when equal, 0x00 otherwise; the mask
+      // construction is robust to non-zero diff values larger than one byte.
       int diff = 0;
       final n = ct.length < cPrime.length ? ct.length : cPrime.length;
       for (int i = 0; i < n; i++) {
         diff |= ct[i] ^ cPrime[i];
       }
       diff |= ct.length ^ cPrime.length;
-      final eqMask = (((diff + 0xFF) >> 8) - 1) & 0xFF;
+      final eqMask = (((diff | -diff) >> 31) & 0xFF) ^ 0xFF;
       final neMask = eqMask ^ 0xFF;
 
       final out = Uint8List(32);
