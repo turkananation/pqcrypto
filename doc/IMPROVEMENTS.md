@@ -14,7 +14,7 @@ guardrails.
 | IMP-02 | State ML-DSA validation status accurately.        | Done   | FIPS 204-aligned, byte-exact KATs; docs updated.        |
 | IMP-03 | Remove old `pointycastle` dependency claims.      | Done   | Only historical/replacement references remain.          |
 | IMP-04 | Replace old non-discovered KAT runner references. | Done   | Current runner is `test/kat_evaluator_test.dart`.       |
-| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.3.0`. |
+| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.3.1`. |
 
 ## P0 - ML-DSA Correctness (complete)
 

@@ -9,7 +9,7 @@ project documentation; the older documentation directory has been retired.
 
 | Area                         | Current state                                                                                                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Package version              | `0.3.0`                                                                                                                                    |
+| Package version              | `0.3.1`                                                                                                                                    |
 | Runtime dependencies         | None. FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                                                                     |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence.                                            |
 | ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
@@ -44,7 +44,7 @@ project documentation; the older documentation directory has been retired.
 | [BUGS.md](BUGS.md)                                                               | Known bugs and regressions, especially ML-DSA blockers.                              |
 | [IMPROVEMENTS.md](IMPROVEMENTS.md)                                               | Prioritized engineering improvements with current status.                            |
 | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                                       | Cross-document tracker for open work and validation gates.                           |
-| [ROADMAP.md](ROADMAP.md)                                                         | Release direction after 0.3.0.                                                       |
+| [ROADMAP.md](ROADMAP.md)                                                         | Release direction after 0.3.1.                                                       |
 | [PERFORMANCE.md](PERFORMANCE.md)                                                 | Performance baseline, optimization ideas, and benchmark guidance.                    |
 | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)                                     | Contributor setup, test commands, coding conventions, and security practices.        |
 | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)                     | Guidance for SLH-DSA, HQC, FN-DSA, and future PQC work.                              |

@@ -4,7 +4,7 @@ framework_version: 0.1.0
 canonical_doc: doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md
 generated_for_package:
   name: pqcrypto
-  version: 0.3.0
+  version: 0.3.1
   runtime_dependencies: 0
 
 native_wrappers:

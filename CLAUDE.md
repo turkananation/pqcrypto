@@ -15,7 +15,7 @@ Last updated: 2026-06-05
   byte-for-byte, all verifying. External API is hedged-by-default with context
   strings and HashML-DSA (SHA-256/384/512 pre-hash). This is KAT/regression
   evidence, NOT a CMVP/FIPS 140 validation claim.
-- **Version:** 0.3.0.
+- **Version:** 0.3.1.
 - **Runtime dependencies:** none. FIPS 202 SHA3/SHAKE is vendored in
   `lib/src/common/keccak.dart`.
 - **Canonical documentation root:** `doc/`.

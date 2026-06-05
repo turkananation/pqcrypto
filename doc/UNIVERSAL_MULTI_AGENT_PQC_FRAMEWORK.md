@@ -22,7 +22,7 @@ Use this framework only inside the current package boundary:
 
 | Area            | Contract                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
-| Package         | `pqcrypto` 0.3.0, pure Dart, zero runtime dependencies.                                                    |
+| Package         | `pqcrypto` 0.3.1, pure Dart, zero runtime dependencies.                                                    |
 | ML-KEM          | ML-KEM-512/768/1024; checked-in KATs and OpenSSL interop evidence.                                         |
 | ML-DSA          | ML-DSA-44/65/87; byte-exact checked-in KAT corpus across raw/pure/hashed and deterministic/hedged signing. |
 | Certification   | No CMVP/FIPS 140 module validation claim.                                                                  |

@@ -8,7 +8,7 @@ documentation root [doc/](doc/).
 
 ## Current Truth
 
-- Package version: `0.3.0`.
+- Package version: `0.3.1`.
 - Runtime dependencies: none. FIPS 202 SHA3/SHAKE is vendored in
   `lib/src/common/keccak.dart`.
 - ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,

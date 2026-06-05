@@ -10,7 +10,7 @@ claim boundary for both algorithms.
 
 | Area              | Status           | Evidence                                                                                  |
 | ----------------- | ---------------- | ----------------------------------------------------------------------------------------- |
-| Version           | 0.3.0            | `pubspec.yaml`, `CHANGELOG.md`.                                                           |
+| Version           | 0.3.1            | `pubspec.yaml`, `CHANGELOG.md`.                                                           |
 | Runtime deps      | Complete         | No runtime dependencies; FIPS 202 and FIPS 180-4 primitives vendored.                     |
 | ML-KEM            | Supported        | Checked-in KAT corpus, unit tests, OpenSSL interop.                                       |
 | OpenSSL interop   | Supported        | A-G suite for ML-KEM-512/768/1024.                                                        |
@@ -25,7 +25,7 @@ claim boundary for both algorithms.
 | Move remaining old documentation files into `doc/`. | Done   | `doc/` is the canonical documentation root. |
 | Update root README documentation links.             | Done   | Serverpod link and doc references updated.  |
 | Update AGENTS/CLAUDE assistant docs.                | Done   | Old path and dependency facts removed.      |
-| Rewrite stale 0.1.0-era docs.                       | Done   | Evidence-scoped 0.3.0 docs.                 |
+| Rewrite stale 0.1.0-era docs.                       | Done   | Evidence-scoped 0.3.1 docs.                 |
 | Preserve Conclave verdict.                          | Done   | `verdicts/verdict-20260605T081457Z.md`.     |
 
 ## Phase 1 - ML-KEM Maintenance
@@ -63,7 +63,7 @@ Complete per the Definition of Done in the release guide.
 | Review all rejection loops.     | Done   | Incremental XOF; no fixed-buffer exhaustion. Residual: DSA-20. |
 | Add adversarial negative tests. | Done   | `dsa_negative_test.dart` (malformed pk/sig/hint/context).      |
 | Deeper constant-time review.    | Open   | Best-effort posture in pure Dart; tracked as DSA-20.           |
-| Add security reporting process. | Open   | Consider `SECURITY.md`.                                        |
+| Add security reporting process. | Done   | SECURITY.md configuration.                                    |
 
 ## Phase 4 - Future Algorithms
 

@@ -23,7 +23,7 @@ Add `pqcrypto` to the Serverpod server package and the Flutter client package:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.3.0
+  pqcrypto: ^0.3.1
 ```
 
 No `pointycastle` dependency is needed. `pqcrypto` vendors the FIPS 202
