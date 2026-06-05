@@ -1,5 +1,12 @@
 # pqcrypto: Pure Dart Post-Quantum Cryptography
 
+[![Pub Version](https://img.shields.io/pub/v/pqcrypto?color=blue&logo=dart)](https://pub.dev/packages/pqcrypto)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-blue)](#)
+[![ML-KEM](https://img.shields.io/badge/FIPS_203-ML--KEM-brightgreen?logo=shield)](#)
+[![ML-DSA](https://img.shields.io/badge/FIPS_204-ML--DSA-brightgreen?logo=shield)](#)
+[![KATs](https://img.shields.io/badge/NIST_KATs-Byte_Exact-success)](#)
+[![Flutter Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web_%7C_macOS_%7C_Windows_%7C_Linux-lightgrey?logo=flutter)](#)
+
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
 The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation — see [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is not claimed.
