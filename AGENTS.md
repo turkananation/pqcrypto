@@ -1,282 +1,146 @@
 # AI Development Workflows for pqcrypto
 
-This document provides structured workflows for AI models to contribute to the pqcrypto project. Each phase includes detailed prompts, tool usage instructions, and common pitfalls. Follow these step-by-step to ensure high-quality contributions.
+Last updated: 2026-06-05
+
+This file tells coding agents how to work in this repository. Ground every
+claim in the live code, [CHANGELOG.md](CHANGELOG.md), and the canonical
+documentation root [doc/](doc/).
+
+## Current Truth
+
+- Package version: `0.2.1`.
+- Runtime dependencies: none. FIPS 202 SHA3/SHAKE is vendored in
+  `lib/src/common/keccak.dart`.
+- ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,
+  focused unit tests, web tests, and OpenSSL interop.
+- ML-DSA: exported but experimental. The current full suite fails in
+  ML-DSA/debug tests; do not call it production-ready.
+- Documentation root: `doc/`; the older documentation directory has been retired.
 
 ## Exploration Phase
 
-### Objective
+Start here:
 
-Understand project structure, current implementation status, and identify areas for contribution.
+1. Read [README.md](README.md).
+2. Read [doc/INDEX.md](doc/INDEX.md).
+3. Read [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md).
+4. Read [doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md) and
+   [doc/ROADMAP.md](doc/ROADMAP.md).
+5. Read [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md) and
+   [doc/FIPS_COMPLIANCE.md](doc/FIPS_COMPLIANCE.md).
+6. Inspect `lib/src/`, `test/`, and `tool/openssl_interop/`.
 
-### Detailed Prompt for AI
+Run:
 
-```text
-You are exploring the pqcrypto Dart post-quantum cryptography library. Your task is to:
-
-1. Analyze the overall architecture from docs/ARCHITECTURE.md
-2. Review current implementation status from docs/PROGRESS_TRACKER.md and docs/ROADMAP.md
-3. Examine test coverage and identify gaps
-4. Understand security audit findings from docs/SECURITY_AUDIT.md
-5. Map out the codebase structure in lib/src/
-6. Identify which algorithms are production-ready vs in-development
-
-Provide a structured summary with:
-- Current project status (ML-KEM ready, ML-DSA near-ready)
-- Key files to modify for common tasks
-- Testing patterns and conventions
-- Security requirements and known issues
-- Performance bottlenecks and optimization opportunities
-
-Focus on actionable insights for implementation work.
+```bash
+dart analyze
+dart test test/kat_evaluator_test.dart
+dart test
 ```
 
-### Tool Usage Instructions
-
-- Use `list_dir` to explore directory structures
-- Use `read_file` to examine key files (start with README.md, then docs/INDEX.md)
-- Use `grep_search` to find specific functions or patterns (e.g., "class.*Params")
-- Use `semantic_search` for "post-quantum cryptography implementation patterns"
-- Run `dart analyze` to check for lint issues
-- Run `dart test` to see current test status and failures
-
-### Common Pitfalls
-
-- Assuming ML-DSA is production-ready (it's not - awaiting KAT validation)
-- Modifying polynomial arithmetic without understanding the different rings (Kyber q=3329 incomplete NTT vs Dilithium q=8380417 complete NTT)
-- Forgetting to update both Kyber and Dilithium implementations for symmetric changes
-- Not implementing secret zeroization in finally blocks
-- Using early returns in validation functions (creates timing channels)
+Expected current boundary: `dart analyze` succeeds, the ML-KEM KAT test passes,
+and the full suite fails until ML-DSA blockers are fixed.
 
 ## Implementation Phase
 
-### Objective
+Before editing:
 
-Add new features, fix bugs, or optimize existing code following project conventions.
+- Identify whether the change touches ML-KEM, ML-DSA, common primitives,
+  tests, tooling, or docs.
+- For ML-KEM arithmetic/serialization, run the focused ML-KEM test set before
+  and after the change.
+- For ML-DSA, assume the code is experimental and do not upgrade docs without
+  KAT-backed evidence.
 
-### Detailed Prompt for AI
+Conventions:
 
-```text
-You are implementing changes to pqcrypto. Follow these guidelines:
-
-1. Understand the change requirements and scope
-2. Review relevant documentation (docs/ENGINEERING_GUIDE.md for math reference)
-3. Examine existing similar implementations for patterns
-4. Implement the change using project conventions:
-   - Static methods for crypto operations
-   - Pure modular arithmetic (no Montgomery)
-   - Proper parameter objects
-   - Domain separation for hashes
-   - Constant-time operations where security-critical
-
-5. Add comprehensive tests following existing patterns:
-   - Round-trip serialization tests
-   - Negative test cases
-   - Integration tests
-   - Size validation
-
-6. Update documentation if public APIs change
-7. Ensure security requirements are met (zeroization, constant-time)
-
-For [specific task: e.g., adding new algorithm / fixing security issue / optimizing performance]:
-
-Provide implementation with:
-- Code changes with explanations
-- Test additions
-- Performance impact analysis
-- Security validation steps
-```
-
-### Tool Usage Instructions
-
-- Use `read_file` to study existing implementations (e.g., read kyber/kem.dart for API patterns)
-- Use `grep_search` to find usage examples (e.g., "generateKeyPair")
-- Use `vscode_listCodeUsages` to understand function dependencies
-- Run `dart test [specific_test_file]` to validate changes
-- Run `dart analyze` after changes to catch lint issues
-- Use `run_in_terminal` for `dart run example/main.dart` to benchmark performance
-- Use `get_errors` to check for compilation issues
-
-### Common Pitfalls
-
-- Implementing features for one algorithm without considering the other (ML-KEM vs ML-DSA)
-- Not handling all parameter sets (3 security levels each)
-- Forgetting to update serialization for new fields
-- Breaking existing tests due to API changes
-- Not validating against FIPS specifications
-- Performance optimizations that compromise security (e.g., early exits)
+- Use the existing parameter objects.
+- Keep ML-KEM and ML-DSA polynomial types separate.
+- Keep runtime package dependencies at zero unless a package-boundary decision
+  is explicitly made.
+- Avoid `print()` in `lib/`.
+- Validate public inputs.
+- Add or update tests with every behavior change.
 
 ## Testing Phase
 
-### Objective
+Useful commands:
 
-Ensure code changes are thoroughly tested and maintain existing functionality.
+```bash
+# Static analysis
+dart analyze
 
-### Detailed Prompt for AI
+# ML-KEM KAT corpus
+dart test test/kat_evaluator_test.dart
 
-```text
-You are writing or updating tests for pqcrypto changes. Requirements:
+# Focused ML-KEM evidence set
+dart test test/kat_evaluator_test.dart test/keccak_test.dart test/kem_validation_test.dart test/keygen_derivation_test.dart test/pack_test.dart test/poly_test.dart test/roundtrip_test.dart
 
-1. Understand what needs testing (new feature, bug fix, regression)
-2. Review existing test patterns in test/ directory
-3. Implement appropriate test types:
-   - Unit tests for individual functions
-   - Round-trip tests for serialization
-   - Negative tests for error conditions
-   - Integration tests for full workflows
-   - Performance regression tests
+# Full suite
+dart test
 
-4. Use deterministic seeding for reproducible results
-5. Test all parameter sets and security levels
-6. Include size validation for all outputs
-7. For crypto functions, test against known test vectors when available
-
-For [specific test task]:
-
-Provide:
-- Test code with clear test names
-- Expected vs actual behavior descriptions
-- Edge cases covered
-- Test vector sources (NIST KAT files)
+# Web portable tests
+dart test -p chrome
+dart test -p chrome --compiler dart2wasm
 ```
 
-### Tool Usage Instructions
+The OpenSSL interop harness is a separate unpublished package:
 
-- Use `read_file` to examine existing tests (e.g., test/dsa_sign_test.dart)
-- Use `grep_search` for "test.*function" to find test patterns
-- Run `dart test --coverage` to check coverage (if available)
-- Run `dart test test/kat_evaluator.dart` for NIST compliance testing
-- Use `run_in_terminal` for `dart test --reporter=json` to get detailed results
-- Use `get_errors` on test files to check for issues
+```bash
+cd tool/openssl_interop
+dart pub get
+dart test
+```
 
-### Common Pitfalls
-
-- Tests that pass locally but fail in CI due to randomness
-- Not testing all parameter combinations
-- Missing negative test cases (invalid inputs)
-- Tests that don't validate output sizes
-- Crypto tests without proper test vectors
-- Performance tests without baseline measurements
+The interop harness needs an OpenSSL >= 3.5 `libcrypto` with ML-KEM support.
 
 ## Documentation Phase
 
-### Objective
+Use `doc/` paths everywhere. Update documentation when:
 
-Keep documentation accurate and comprehensive for contributors and users.
+- public APIs change;
+- validation evidence changes;
+- tests are added, removed, or renamed;
+- package dependencies or publish boundaries change;
+- readiness language changes.
 
-### Detailed Prompt for AI
+Keep assurance wording scoped:
 
-```text
-You are updating documentation for pqcrypto changes. Tasks:
-
-1. Identify what documentation needs updating:
-   - README.md for new features or API changes
-   - docs/ files for architectural changes
-   - Code comments for implementation details
-   - CHANGELOG.md for version updates
-
-2. Follow documentation conventions:
-   - Clear, concise language
-   - Code examples where helpful
-   - Cross-references between docs
-   - Security considerations highlighted
-
-3. Update relevant sections:
-   - Architecture diagrams if structure changes
-   - Performance benchmarks if optimizations added
-   - Security audit if issues addressed
-   - Roadmap if priorities shift
-
-For [specific documentation task]:
-
-Provide:
-- Updated content with change explanations
-- New sections or files if needed
-- Links to related documentation
-- Validation that docs remain accurate
-```
-
-### Tool Usage Instructions
-
-- Use `read_file` to review current documentation (start with docs/INDEX.md)
-- Use `grep_search` for "TODO|FIXME|NOTE" to find documentation gaps
-- Use `semantic_search` for "documentation patterns in crypto libraries"
-- Run `dart doc` if generating API docs (check pubspec.yaml)
-- Use `run_in_terminal` for `markdown-link-check` if available
-
-### Common Pitfalls
-
-- Documentation becoming outdated after code changes
-- Not updating cross-references when files move
-- Missing security warnings for new features
-- Inconsistent terminology across docs
-- Not including performance impact in change descriptions
+- Good: "passes the checked-in ML-KEM KAT corpus."
+- Good: "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
+- Bad: "fully FIPS validated" without a validation record.
+- Bad: "ML-DSA production-ready" while full tests fail and no KAT corpus exists.
 
 ## Security Auditing Phase
 
-### Objective
+Focus areas:
 
-Review code changes for security vulnerabilities and compliance issues.
+- cryptographic correctness against FIPS 203/204;
+- side-channel behavior in comparisons, rejection loops, and decapsulation;
+- secret-zeroization in `finally` blocks;
+- public input validation;
+- hardcoded local paths or secrets;
+- documentation that overstates evidence.
 
-### Detailed Prompt for AI
+Known current priorities:
 
-```text
-You are performing a security audit on pqcrypto changes. Focus areas:
+- ML-DSA packing failures;
+- ML-DSA `ExpandS` failure;
+- hardcoded Windows ML-DSA KAT paths in `test/mldsa_debug_test.dart` and
+  `test/mldsa_kat_test.dart`;
+- missing repo-local ML-DSA KAT corpus;
+- `_checkNorm` early return;
+- missing shared zeroization utilities;
+- KEM decapsulation output-selection review.
 
-1. Cryptographic correctness:
-   - Algorithm implementation matches FIPS specifications
-   - No deviations from standards
-   - Proper domain separation
+## Common Pitfalls
 
-2. Side-channel vulnerabilities:
-   - Constant-time operations (no early returns on validation)
-   - No timing leaks in comparisons
-   - Proper secret zeroization
-
-3. Memory safety:
-   - No uninitialized memory usage
-   - Proper bounds checking
-   - Secret data cleared in finally blocks
-
-4. Implementation security:
-   - RNG usage is cryptographically secure
-   - No hardcoded secrets or weak defaults
-   - Proper error handling doesn't leak information
-
-For [specific security audit task]:
-
-Provide:
-- Vulnerability assessment (severity: Critical/High/Medium/Low)
-- Specific code locations with issues
-- Recommended fixes with code examples
-- Compliance validation steps
-- References to relevant standards
-```
-
-### Tool Usage Instructions
-
-- Use `read_file` to examine security-critical functions
-- Use `grep_search` for "secret|key|random" to find sensitive operations
-- Use `vscode_listCodeUsages` to trace data flow
-- Run `dart test test/quick_wins_test.dart` for known security regression tests
-- Use `run_in_terminal` for static analysis tools if available
-- Review docs/SECURITY_AUDIT.md for known patterns
-
-### Common Pitfalls
-
-- Assuming existing code is secure (check for unresolved issues)
-- Not auditing all code paths (including error handling)
-- Missing side-channel analysis for new crypto operations
-- Not validating against NIST test vectors
-- Overlooking memory management in Dart (GC handles most, but zeroization needed)
-- Forgetting to audit dependencies (pointycastle security)
-
-## General Guidelines for All Phases
-
-- Always run `dart analyze` and `dart test` before and after changes
-- Follow the project's modular arithmetic approach (no Montgomery reduction)
-- Use parameter objects consistently
-- Implement security features (zeroization, constant-time) proactively
-- Test against all security levels (3 for each algorithm)
-- Update CHANGELOG.md for user-facing changes
-- Reference FIPS documents for algorithm details
-- Consult docs/ENGINEERING_GUIDE.md for mathematical background
+- Treating ML-KEM KAT success as ML-DSA readiness.
+- Reintroducing external or machine-local KAT paths.
+- Referring to the retired documentation directory instead of `doc/`.
+- Referring to the old non-discovered KAT runner path instead of
+  `test/kat_evaluator_test.dart`.
+- Mentioning `pointycastle` as a runtime dependency; it has been replaced by
+  vendored FIPS 202 code.
+- Updating roadmap/readiness docs without running the relevant verification
+  commands.

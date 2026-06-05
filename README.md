@@ -2,7 +2,7 @@
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
-The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** with checked-in known-answer tests and focused unit coverage for serialization, modular reduction, and input validation.
+The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** with checked-in known-answer tests, OpenSSL interoperability evidence, and focused unit coverage for serialization, modular reduction, and input validation. ML-DSA APIs are exported for ongoing development, but they are not production validated yet.
 
 ---
 
@@ -26,15 +26,26 @@ The current release provides a **FIPS 203-aligned implementation of ML-KEM (Kybe
 
 This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), but this repository does not claim CMVP/FIPS 140 module validation. The current evidence is the checked-in KAT corpus plus unit tests for the algorithm surfaces listed below.
 
-| Algorithm | Status | Checked-in KAT Vectors | Security Level |
-| :--- | :---: | :---: | :---: |
-| **ML-KEM-512** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 1 (AES-128) |
-| **ML-KEM-768** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 3 (AES-192) |
-| **ML-KEM-1024** | ✅ **KAT pass** | **1000/1000 PASS** | NIST Level 5 (AES-256) |
+| Algorithm       | Status       | Checked-in KAT Vectors | Security Level         |
+| :-------------- | :----------: | :--------------------: | :--------------------: |
+| **ML-KEM-512**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 1 (AES-128) |
+| **ML-KEM-768**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 3 (AES-192) |
+| **ML-KEM-1024** | **KAT pass** | **1000/1000 PASS**     | NIST Level 5 (AES-256) |
 
 **Total checked-in vectors:** 3000/3000 pass locally as of June 3, 2026.
 
 See [doc/MLKEM_TESTING.md](doc/MLKEM_TESTING.md) for the KAT file hashes, coverage boundaries, and release-gate commands.
+
+---
+
+## ML-DSA Experimental Status
+
+The package currently exports `MlDsa`, `DilithiumParams`, and
+`DilithiumParameter`, but ML-DSA remains experimental. The current full test
+suite fails in ML-DSA packing/symmetric/debug tests, and no repo-local ML-DSA
+KAT corpus is checked in. Do not use ML-DSA for production signatures until the
+blockers in [doc/BUGS.md](doc/BUGS.md) and
+[doc/PROGRESS_TRACKER.md](doc/PROGRESS_TRACKER.md) are closed and verified.
 
 ---
 
@@ -46,14 +57,14 @@ exposes those native ML-KEM algorithms in the 3.5 line and newer; the local
 interop harness ([`tool/openssl_interop/`](tool/openssl_interop/)) drives both
 implementations over `dart:ffi` and proves byte-level agreement on each:
 
-| Test | What it proves |
-| :--- | :--- |
-| **A / B** | each implementation is internally self-consistent (sanity) |
-| **C** | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed) |
-| **D** | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
-| **E** | same seed `(d‖z)` ⇒ **byte-identical public keys** |
-| **F** | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical |
-| **G** | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext |
+| Test      | What it proves                                                         |
+| :-------- | :--------------------------------------------------------------------- |
+| **A / B** | each implementation is internally self-consistent (sanity)             |
+| **C**     | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)  |
+| **D**     | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
+| **E**     | same seed `(d‖z)` ⇒ **byte-identical public keys**                     |
+| **F**     | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical   |
+| **G**     | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext     |
 
 Shared secrets — including the FIPS 203 implicit-rejection branch — are
 **byte-identical** across implementations in both directions, at every level
@@ -200,7 +211,7 @@ tool/
 
 ### Quick Start
 
-> **Serverpod Users:** Check out the [Full Stack Integration Guide](SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
+> **Serverpod Users:** Check out the [Full Stack Integration Guide](doc/SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
 
 ```dart
 import 'package:pqcrypto/pqcrypto.dart';
@@ -272,11 +283,11 @@ Validates against the `.rsp` files checked into `test/data`.
 
 Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 
-| Algorithm | Key Generation | Encapsulation | Decapsulation | Security Level |
-| :--- | :--- | :--- | :--- | :--- |
-| **ML-KEM-512** | ~0.7 ms | ~0.7 ms | ~0.6 ms | 128-bit security |
-| **ML-KEM-768** | ~1.3 ms | ~1.4 ms | ~1.0 ms | 192-bit security |
-| **ML-KEM-1024** | ~1.8 ms | ~1.8 ms | ~1.7 ms | 256-bit security |
+| Algorithm       | Key Generation | Encapsulation | Decapsulation | Security Level   |
+| :-------------- | :------------- | :------------ | :------------ | :--------------- |
+| **ML-KEM-512**  | ~0.7 ms        | ~0.7 ms       | ~0.6 ms       | 128-bit security |
+| **ML-KEM-768**  | ~1.3 ms        | ~1.4 ms       | ~1.0 ms       | 192-bit security |
+| **ML-KEM-1024** | ~1.8 ms        | ~1.8 ms       | ~1.7 ms       | 256-bit security |
 
 ---
 
@@ -286,8 +297,10 @@ Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 - ✅ **Phase 2: Correctness** (GenMatrix, CBD, FO Transform)
 - ✅ **Phase 3: FIPS 203 Alignment** (NTT, Compression, ByteEncode)
 - ✅ **Phase 4: Full Suite** (ML-KEM-512/768/1024 support)
-- ⬜ **Phase 5: Optimization** (SIMD, WASM via `dart:wasm`)
-- ⬜ **Phase 6: Expansion** (ML-DSA / Dilithium signatures)
+- ⬜ **Phase 5: ML-DSA validation** (fix current ML-DSA test failures, add repo-local KATs)
+- ⬜ **Phase 6: Hardening and expansion** (zeroization, side-channel review, SLH-DSA/HQC research)
+
+See [doc/ROADMAP.md](doc/ROADMAP.md) for the evidence-scoped roadmap.
 
 ---
 

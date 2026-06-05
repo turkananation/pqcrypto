@@ -4,5 +4,16 @@ default: true
 
 # MD013 (line length): disabled. Markdown tables, URLs, and fenced code blocks
 # cannot be wrapped to 80 columns, and GitHub/pub.dev render long prose fine.
-# Every other rule stays on and is satisfied.
+# Every other rule stays on unless tuned below.
 MD013: false
+
+# CHANGELOG.md repeats conventional "Added", "Changed", and similar headings
+# under separate release headings. Forbid duplicate sibling headings, but allow
+# the conventional repeated subsection names across different releases.
+MD024:
+  siblings_only: true
+
+# Keep tables readable in source. This setting used to live in
+# .markdownlint.json; keep it here so CLI and editor tools share one config.
+MD060:
+  style: aligned

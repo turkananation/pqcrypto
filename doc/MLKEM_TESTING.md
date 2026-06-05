@@ -15,11 +15,11 @@ Track the official source and errata before making release claims:
 
 ## Corpus
 
-| File | Vectors | SHA-256 |
-| --- | ---: | --- |
-| `test/data/kat_MLKEM_512.rsp` | 1000 | `783106e35afb1ab9aba557630f5380f3ffa40b83abfbe75a03059b5986702017` |
-| `test/data/kat_MLKEM_768.rsp` | 1000 | `6ecab47c229a80b85afd8e9b1b76e604317b2505ac35382b0e288116e1ba860a` |
-| `test/data/kat_MLKEM_1024.rsp` | 1000 | `ed23c551c53761649a2dd9573eda2f49f58285675d639fe8c0d585e21f37896c` |
+| File                           | Vectors | SHA-256                                                            |
+| ------------------------------ | ------: | ------------------------------------------------------------------ |
+| `test/data/kat_MLKEM_512.rsp`  | 1000    | `783106e35afb1ab9aba557630f5380f3ffa40b83abfbe75a03059b5986702017` |
+| `test/data/kat_MLKEM_768.rsp`  | 1000    | `6ecab47c229a80b85afd8e9b1b76e604317b2505ac35382b0e288116e1ba860a` |
+| `test/data/kat_MLKEM_1024.rsp` | 1000    | `ed23c551c53761649a2dd9573eda2f49f58285675d639fe8c0d585e21f37896c` |
 
 If a corpus file changes, update the hash table in the same change and run the release-gate commands below.
 
