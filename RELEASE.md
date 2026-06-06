@@ -128,6 +128,9 @@ git rev-parse HEAD
 # Re-run the package publication gate from main.
 dart pub publish --dry-run
 
+# Publish to pub.dev
+dart pub publish
+
 # Create an annotated tag with release notes on the main release commit.
 git tag -a vX.Y.Z -m "Release pqcrypto X.Y.Z
 
@@ -136,8 +139,6 @@ git tag -a vX.Y.Z -m "Release pqcrypto X.Y.Z
 - Bug fixes"
 
 git push origin vX.Y.Z
-
-dart pub publish
 ```
 
 The tag and pub.dev package must refer to the same `main` commit. If the dry
@@ -171,8 +172,12 @@ For critical bugs or security vulnerabilities found in a production release:
 4. **Test and Dry Run**: Run `dart format --output=none --set-exit-if-changed .`,
    `dart analyze`, `dart test`, focused KAT tests, web tests, and
    `dart pub publish --dry-run`.
-5. **PR to `main`**: Open the hotfix PR directly to `main` only for urgent
-   production fixes.
+5. **Hotfixes**:
+   - **For the current active release**: Open a hotfix PR directly to `main`. Once merged into `main`, the changes must be immediately forward-ported back into `develop` to ensure environment parity.
+   - **For older/legacy releases**: Do not PR directly to `main`. Instead:
+     1. Branch off the relevant release tag (e.g., `support/v0.3.x` or `hotfix/v0.3.2`).
+     2. Apply the fix and publish the release directly from that dedicated support/hotfix branch.
+     3. Cherry-pick or forward-port the fix into `develop` (and `main` if applicable) to ensure the bug doesn't resurface in newer versions.
 6. **Tag and Publish**: Follow the tag and publish process above using the new
    patch version tag.
 7. **Backport to `develop`**: Open a PR from `main` or a backport branch into
