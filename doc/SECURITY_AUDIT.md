@@ -12,6 +12,7 @@ pass, it is marked as open or needs verification.
 | --------- | ---------------------------------------------------------------------------------------- |
 | ML-KEM    | Supported surface with KAT, input-validation, Keccak, web, and OpenSSL interop evidence. |
 | ML-DSA    | FIPS 204-aligned; byte-exact on the checked-in KAT corpus; best-effort hardening.        |
+| SLH-DSA   | Planned (FIPS 205); not started. Design controls tracked below as SLH-01..SLH-05.        |
 | Common    | Vendored FIPS 202 + FIPS 180-4 SHA-2; no runtime dependencies.                           |
 | Package   | Not FIPS 140/CMVP validated (see FIPS_140_BOUNDARY.md); zero runtime deps.               |
 
@@ -93,6 +94,27 @@ Residual, accepted risks (do not affect KAT conformance):
   not a hard memory-erasure guarantee under Dart's GC. See DSA-20.
 - HashML-DSA exposes only the level-bound SHA-2 pre-hash (DSA-21).
 - This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140 validation.
+
+## SLH-DSA Security Boundary (planned)
+
+SLH-DSA is **not yet implemented**. These are the design controls the release
+guide commits to and that will be verified before any SLH-DSA parameter set is
+claimed. They are tracked here so the guide can reference stable IDs; they are
+not findings against shipped code.
+
+| ID     | Severity | Area                    | Design control to verify before release                                                              |
+| ------ | -------- | ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| SLH-01 | High     | Message-bound (BUFF)    | No BUFF property except `*-128f` (FIPS 205 §11); surface at API/README level; encourage ctx + nonce. |
+| SLH-02 | Medium   | Fault / grafting        | Hedged randomizer by default; optional verify-after-sign; document embedded/mobile residual.         |
+| SLH-03 | Medium   | RBG strength            | Fresh per-signature `addrnd`; RBG >= 8n bits documented assumption; deterministic mode opt-in only.  |
+| SLH-04 | Low      | `s`-variant performance | Default `shake128f`; gate `s` behind explicit acknowledgement; publish per-target benchmarks.        |
+| SLH-05 | Low      | Secret zeroization      | Zeroize seeds + per-call WOTS+/FORS secret nodes in `finally` (best-effort under Dart GC).           |
+
+The hash-based threat model differs from ML-DSA: there is no secret-dependent
+rejection-sampling timing loop (WOTS+ chain lengths and FORS leaf selection
+derive from the public digest), so constant-time work is largely not the issue;
+fault/grafting, RBG quality, and the BUFF gap are the real risks. See
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md).
 
 ## Audit Commands
 

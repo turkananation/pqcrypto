@@ -71,34 +71,57 @@ Remaining (carried forward, not release-blocking): deeper constant-time review
 (DSA-20), broader HashML-DSA pre-hash functions (DSA-21), and the maintainer's
 `dart pub publish` / tag decision.
 
-## 0.4.0 - SLH-DSA (FIPS 205)
+## 0.4.0 - SLH-DSA SHAKE Family (FIPS 205)
 
 Introduce stateless hash-based signatures (SLH-DSA, FIPS 205) as the next
-signature scheme. It is hash-only (no lattice arithmetic), so it reuses the
-vendored FIPS 202/180-4 primitives and is a strong diversification against any
-future lattice cryptanalysis.
+signature scheme. It is hash-only (no lattice arithmetic) and is a strong
+diversification against any future lattice cryptanalysis. Per the
+council-reviewed release strategy in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md), the six
+**SHAKE** parameter sets ship first: they reuse `KeccakXof` and add no new
+cryptographic primitive, which isolates correctness risk before the SHA-2 family.
 
-| Task                                                        | Priority | Status |
-| ----------------------------------------------------------- | -------- | ------ |
-| Scope parameter sets (SLH-DSA-SHA2/SHAKE, 128/192/256 s/f). | P0       | Open   |
-| Implement WOTS+, XMSS, and the hypertree.                   | P0       | Open   |
-| Implement FORS and the top-level SLH-DSA sign/verify.       | P0       | Open   |
-| Vendor a repo-local SLH-DSA KAT corpus + discovered runner. | P0       | Open   |
-| Reuse `KeccakXof`/SHA-2 and the zeroization helpers.        | P1       | Open   |
-| Cross-platform (VM/dart2js/dart2wasm) validation.           | P1       | Open   |
+| Task                                                              | Priority | Status |
+| ----------------------------------------------------------------- | -------- | ------ |
+| Acquire + check in NIST ACVP SLH-DSA vectors (provenance README). | P0       | Open   |
+| Shared scaffolding: params, util, `ADRS` (32B), SHAKE hashing.    | P0       | Open   |
+| Implement WOTS+, XMSS, hypertree, FORS (Algorithms 5-17).         | P0       | Open   |
+| Internal + external SLH-DSA (Algorithms 18-25); ACVP KAT runner.  | P0       | Open   |
+| Hedged default; `s`-variant gating; BUFF + performance docs.      | P0       | Open   |
+| Zeroization, benchmarks, cross-platform (VM/dart2js/dart2wasm).   | P1       | Open   |
 
 Release criteria:
 
-- byte-exact against a checked-in SLH-DSA KAT corpus for the chosen parameter
-  sets;
-- `dart test` plus web gates green;
-- evidence-scoped docs (no CMVP/FIPS 140 claim);
-- zero added runtime dependencies.
+- byte-exact against the checked-in NIST ACVP SLH-DSA corpus for the six SHAKE
+  sets (keyGen/sigGen/sigVer);
+- `dart test` plus web gates green; at least one benchmark per set per target;
+- BUFF and performance caveats surfaced at the API level; default `shake128f`;
+- evidence-scoped docs (no CMVP/FIPS 140 claim); zero added runtime dependencies.
 
-See [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md) for the
-implementation approach.
+## 0.5.0 - SLH-DSA SHA-2 Family (FIPS 205)
 
-## 0.5.0 - Performance and Platform Work
+Add the six **SHA-2** parameter sets. These require vendoring HMAC-SHA-256/512
+and MGF1-SHA-256/512, the 22-byte compressed address (`ADRS^c`), and the
+SHA-256/SHA-512 split for security categories 3 and 5 - each gated on its own
+known-answer test before it enters the SLH-DSA composition.
+
+| Task                                                         | Priority | Status |
+| ------------------------------------------------------------ | -------- | ------ |
+| Vendor + independently KAT-gate HMAC-SHA-256/512 (RFC 4231). | P0       | Open   |
+| Vendor + independently KAT-gate MGF1-SHA-256/512 (RFC 8017). | P0       | Open   |
+| `ADRS^c` (22B) + SHA-2 hashing (cat 1 and cat 3/5 split).    | P0       | Open   |
+| Wire 6 SHA-2 sets; extend ACVP KAT to all 12; cross-verify.  | P0       | Open   |
+
+Release criteria:
+
+- HMAC and MGF1 byte-exact against RFC 4231 / RFC 8017 before composition;
+- byte-exact against ACVP vectors for all six SHA-2 sets (12 total);
+- `dart test` plus web gates green; evidence-scoped docs; zero runtime deps.
+
+See [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md) for the
+full A-Z implementation, hardening, and milestone plan.
+
+## 0.6.0 - Performance and Platform Work
 
 | Task                                            | Priority | Status |
 | ----------------------------------------------- | -------- | ------ |
@@ -123,10 +146,14 @@ Release criteria:
 
 ## Extended Algorithms
 
-| Algorithm | Direction                                                                   |
-| --------- | --------------------------------------------------------------------------- |
-| SLH-DSA   | Scheduled for 0.4.0 (FIPS 205, hash-based; reuses vendored FIPS 202/180-4). |
-| HQC       | Consider after final standard details are stable and ML-KEM remains green.  |
-| FN-DSA    | Defer until sampler and side-channel approach are credible in Dart.         |
+| Algorithm  | Direction                                                                         |
+| ---------- | --------------------------------------------------------------------------------- |
+| SLH-DSA    | 0.4.0 (SHAKE) + 0.5.0 (SHA-2), FIPS 205, hash-based; reuses FIPS 202/180-4.       |
+| LMS / XMSS | Stateful HBS (SP 800-208); separate future workstream. NIST ACVP vectors on hand. |
+| HQC        | Consider after final standard details are stable and ML-KEM remains green.        |
+| FN-DSA     | Defer until sampler and side-channel approach are credible in Dart.               |
 
-See [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).
+SLH-DSA detail is in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md); broader
+expansion guidance is in
+[ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).

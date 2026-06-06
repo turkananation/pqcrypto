@@ -6,7 +6,10 @@ Last updated: 2026-06-05
 algorithm surfaces: ML-KEM (FIPS 203) and ML-DSA (FIPS 204). Both are byte-exact
 against their checked-in NIST KAT corpora; ML-KEM additionally has OpenSSL
 interop evidence. This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140
-module validation — see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
+module validation — see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md). SLH-DSA
+(FIPS 205) is planned and tracked in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md); it is not yet
+implemented.
 
 ## Package Shape
 
@@ -53,6 +56,20 @@ pqcrypto/
   tool/
     openssl_interop/               # separate unpublished OpenSSL FFI harness
 ```
+
+## Planned: SLH-DSA (FIPS 205)
+
+SLH-DSA is the next signature scheme and is **not yet implemented**. It is
+hash-only and will add, under `lib/src/algos/slhdsa/`, the components `params`,
+`util` (toInt/toByte/base_2b/Trunc_n), `address` (`ADRS` 32-byte and `ADRS^c`
+22-byte), `hashing` (the six tweakable hashes for the SHAKE and SHA-2 families),
+`wots`, `xmss`, `hypertree`, `fors`, and the top-level `slhdsa` (internal +
+external APIs). The SHAKE family reuses `keccak.dart` with no new primitive; the
+SHA-2 family additionally needs vendored `lib/src/common/hmac.dart` and
+`lib/src/common/mgf1.dart`. WOTS+, XMSS, hypertree, and FORS are internal
+components and will **not** be exported as standalone public APIs. The full
+layout, public API, hardening, and milestone plan are in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md).
 
 ## Public API Boundary
 

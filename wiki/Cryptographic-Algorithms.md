@@ -53,7 +53,8 @@ final signature = MlDsa.hashSign(
 ---
 
 ## ⛓️ 3. SLH-DSA (FIPS 205) - Stateless Hash-Based Signatures
-*(Targeting Release v0.4.0)*
+
+Status: planned — the SHAKE family targets release v0.4.0 and the SHA-2 family v0.5.0.
 
 **Stateless Hash-Based Digital Signature Algorithm** (Formerly SPHINCS+).
 

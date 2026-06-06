@@ -14,6 +14,7 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 | FIPS 203   | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                |
 | FIPS 202   | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                                                                               |
 | FIPS 204   | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
+| FIPS 205   | SLH-DSA (planned)               | In development; SHAKE sets target v0.4.0, SHA-2 sets v0.5.0. No code or KAT corpus yet. See the release guide.                                 |
 | FIPS 180-4 | SHA-256/384/512                 | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                               |
 | FIPS 140   | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                                                                                    |
 
@@ -106,6 +107,28 @@ Residual hardening (does not affect KAT conformance): the norm check and
 rejection loops are best-effort, not provably constant-time, in pure Dart; and
 HashML-DSA exposes only the level-bound SHA-2 pre-hash. See
 [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+
+## FIPS 205 - SLH-DSA (planned)
+
+SLH-DSA is **not yet implemented**. The full A-Z compliance and release plan is
+in [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). When
+shipped, the evidence model mirrors ML-DSA: byte-exact against the checked-in
+NIST ACVP SLH-DSA KAT corpus for each claimed parameter set, with the same
+evidence-scoped claim boundary. The six SHAKE parameter sets are planned for
+v0.4.0 and the six SHA-2 sets for v0.5.0.
+
+Acceptable wording once a release is complete:
+
+> `pqcrypto` provides a FIPS 205-aligned SLH-DSA implementation for the released
+> parameter sets that passes the checked-in SLH-DSA KAT corpus and regression
+> suite described in this repository.
+
+The same avoid-list applies ("FIPS validated", "CMVP validated", "FIPS 140
+compliant module", "certified"). Two SLH-DSA-specific caveats must be surfaced at
+the API level, not buried here: the message-bound (BUFF) property does not hold
+except for `*-128f` (FIPS 205 §11), and the `s` parameter sets are unsuitable for
+web/interactive use. Both are detailed in the release guide and
+[SECURITY_AUDIT.md](SECURITY_AUDIT.md) (SLH-01, SLH-04).
 
 ## RNG and Module Validation
 

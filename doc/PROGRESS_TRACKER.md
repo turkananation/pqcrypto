@@ -16,6 +16,7 @@ claim boundary for both algorithms.
 | OpenSSL interop   | Supported        | A-G suite for ML-KEM-512/768/1024.                                                        |
 | Web support       | Tested surface   | CI has `dart2js` and `dart2wasm` test jobs.                                               |
 | ML-DSA            | FIPS 204-aligned | Byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged); full suite green. |
+| SLH-DSA           | Planned          | FIPS 205; not started. SHAKE sets target 0.4.0, SHA-2 sets 0.5.0. See the release guide.  |
 | Formal validation | Not claimed      | No CMVP/FIPS 140 validation record.                                                       |
 
 ## Phase 0 - Documentation Consolidation
@@ -63,19 +64,45 @@ Complete per the Definition of Done in the release guide.
 | Review all rejection loops.     | Done   | Incremental XOF; no fixed-buffer exhaustion. Residual: DSA-20. |
 | Add adversarial negative tests. | Done   | `dsa_negative_test.dart` (malformed pk/sig/hint/context).      |
 | Deeper constant-time review.    | Open   | Best-effort posture in pure Dart; tracked as DSA-20.           |
-| Add security reporting process. | Done   | SECURITY.md configuration.                                    |
+| Add security reporting process. | Done   | SECURITY.md configuration.                                     |
 
 ## Phase 4 - Future Algorithms
 
-ML-DSA is validated, so SLH-DSA (FIPS 205) is the next scheduled scheme (0.4.0).
+ML-DSA is validated, so SLH-DSA (FIPS 205) is the next scheduled scheme. Its
+detailed task tracking is in Phase 5 below.
 
-| Algorithm | Status       | Guidance                                     |
-| --------- | ------------ | -------------------------------------------- |
-| SLH-DSA   | 0.4.0 target | Hash-based; reuses vendored FIPS 202/180-4.  |
-| HQC       | Not started  | Wait for final parameter/spec stability.     |
-| FN-DSA    | Not started  | High sampler/side-channel risk in pure Dart. |
+| Algorithm  | Status              | Guidance                                              |
+| ---------- | ------------------- | ----------------------------------------------------- |
+| SLH-DSA    | 0.4.0/0.5.0 planned | Hash-based; SHAKE then SHA-2. See the release guide.  |
+| LMS / XMSS | Future workstream   | Stateful HBS (SP 800-208); separate guide if pursued. |
+| HQC        | Not started         | Wait for final parameter/spec stability.              |
+| FN-DSA     | Not started         | High sampler/side-channel risk in pure Dart.          |
 
-See [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).
+See [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md) and
+[ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md).
+
+## Phase 5 - SLH-DSA (FIPS 205)
+
+Not started. Controlled by
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). The SHAKE
+family ships at 0.4.0 (reuses `KeccakXof`, no new primitive); the SHA-2 family
+ships at 0.5.0 (vendored HMAC/MGF1, 22-byte `ADRS^c`, SHA-256/512 split).
+
+| Task                                                      | Status | Gate / evidence                               |
+| --------------------------------------------------------- | ------ | --------------------------------------------- |
+| Acquire + check in NIST ACVP SLH-DSA vectors.             | Open   | `test/data/SLHDSA` + provenance README.       |
+| Params, util, `ADRS` (32B), SHAKE hashing.                | Open   | `slhdsa_address_test`, `slhdsa_hashing_test`. |
+| WOTS+, XMSS, hypertree, FORS (Algorithms 5-17).           | Open   | `slhdsa_wots/xmss_ht/fors_test`.              |
+| Internal + external SLH-DSA (Algorithms 18-25).           | Open   | `slhdsa_kat_test` byte-exact (SHAKE).         |
+| Hedged default, `s`-gating, BUFF + perf docs, benchmarks. | Open   | API docstrings, README, PERFORMANCE.md.       |
+| Ship v0.4.0 (6 SHAKE sets); platform matrix green.        | Open   | `dart pub publish --dry-run`.                 |
+| Vendor + KAT-gate HMAC-SHA-256/512 (RFC 4231).            | Open   | `hmac_test`.                                  |
+| Vendor + KAT-gate MGF1-SHA-256/512 (RFC 8017).            | Open   | `mgf1_test`.                                  |
+| `ADRS^c` (22B) + SHA-2 hashing (cat 1 + cat 3/5 split).   | Open   | `slhdsa_hashing_test`, `slhdsa_address_test`. |
+| Wire 6 SHA-2 sets; ACVP KAT to all 12; ship v0.5.0.       | Open   | `slhdsa_kat_test` byte-exact (all 12).        |
+
+SLH-DSA security design controls (BUFF, fault, RBG, performance, zeroization)
+are tracked as SLH-01..SLH-05 in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ## Verification Gates
 

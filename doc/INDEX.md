@@ -13,6 +13,7 @@ project documentation; the older documentation directory has been retired.
 | Runtime dependencies         | None. FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                                                                     |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence.                                            |
 | ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
+| SLH-DSA                      | FIPS 205 planned (v0.4.0 SHAKE, v0.5.0 SHA-2). Not started; see the release guide. No code or KAT corpus yet.                              |
 | OpenSSL interop              | ML-KEM A-G suite for all three parameter sets.                                                                                             |
 | Certification claim boundary | Implementation/KAT evidence, not CMVP/FIPS 140 module validation. See [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).                        |
 
@@ -22,6 +23,7 @@ project documentation; the older documentation directory has been retired.
 | ---------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Current assurance boundary   | [MLKEM_TESTING.md](MLKEM_TESTING.md)                                             | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)                 |
 | ML-DSA release work          | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md)                 | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)               |
+| SLH-DSA release work         | [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)               | [ROADMAP.md](ROADMAP.md)                                 |
 | OpenSSL interoperability     | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)             |
 | Architecture and code layout | [ARCHITECTURE.md](ARCHITECTURE.md)                                               | [PERFORMANCE.md](PERFORMANCE.md)                         |
 | Security review              | [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                                           | [BUGS.md](BUGS.md)                                       |
@@ -36,6 +38,7 @@ project documentation; the older documentation directory has been retired.
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [MLKEM_TESTING.md](MLKEM_TESTING.md)                                             | Checked-in ML-KEM KAT corpus, hashes, coverage, release gates, and claim boundary.   |
 | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md)                 | FIPS 204 implementation, validation, hardening, and release guide for ML-DSA.        |
+| [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)               | FIPS 205 A-Z compliance and release plan for SLH-DSA (greenfield; SHAKE then SHA-2). |
 | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | OpenSSL ML-KEM interop matrix, harness, platform notes, and results.                 |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                                               | Current module layout, API surface, data flow, and package boundaries.               |
 | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)                                         | Evidence-scoped FIPS 203/204/202/180-4 status.                                       |
