@@ -1,6 +1,6 @@
 # FIPS Evidence and Claim Boundary
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 This document records standards alignment evidence for the current repository.
 It is not a CMVP/FIPS 140 validation certificate, and it must not be cited as
@@ -9,14 +9,15 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
 ## Summary
 
-| Standard   | Scope in repo                   | Current status                                                                                                                                 |
-| ---------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| FIPS 203   | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                |
-| FIPS 202   | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                                                                               |
-| FIPS 204   | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
-| FIPS 205   | SLH-DSA (planned)               | In development; SHAKE sets target v0.4.0, SHA-2 sets v0.5.0. No code or KAT corpus yet. See the release guide.                                 |
-| FIPS 180-4 | SHA-256/384/512                 | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                               |
-| FIPS 140   | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                                                                                    |
+| Standard     | Scope in repo                                            | Current status                                                                                                                                   |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FIPS 203     | ML-KEM-512/768/1024                                      | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                  |
+| FIPS 202     | SHA3-256/512, SHAKE128/256 today; SHA3-224/384 planned   | Partial vendored implementation with known-answer tests; full-family completion targets 0.7.0, with 0.8.0 spillover if needed.                   |
+| SP 800-185   | cSHAKE, KMAC, TupleHash, ParallelHash                    | Not implemented yet. Controlled by the FIPS 202 / SP 800-185 release guide; targets 0.7.0 with disciplined 0.8.0 spillover.                      |
+| FIPS 204     | ML-DSA-44/65/87                                          | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated.   |
+| FIPS 205     | SLH-DSA (planned)                                        | In development; SHAKE sets target v0.4.0, SHA-2 sets v0.5.0. No code or KAT corpus yet. See the release guide.                                   |
+| FIPS 180-4   | SHA-256/384/512                                          | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                                 |
+| FIPS 140     | Cryptographic module validation                          | Not claimed. No CMVP validation record exists in this repo.                                                                                      |
 
 ## FIPS 203 - ML-KEM
 
@@ -63,8 +64,34 @@ Evidence:
 - `pubspec.yaml` has no runtime dependencies; `lints` and `test` are
   dev-only dependencies.
 
-The vendored implementation is not a FIPS-validated module. It is implementation
-evidence for this package's correctness boundary.
+Current limitations:
+
+- SHA3-224 and SHA3-384 are not implemented yet.
+- The official NIST example-value corpus is not checked in yet.
+- Non-byte-aligned FIPS 202 examples are not covered yet.
+
+Full FIPS 202 completion targets 0.7.0 and is planned in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). The
+vendored implementation is not a FIPS-validated module. It is implementation
+evidence for this package's correctness boundary. Any incomplete standards
+surface spills into 0.8.0 instead of receiving broad release wording.
+
+## SP 800-185 - SHA-3 Derived Functions
+
+SP 800-185 support is **not implemented yet**. The target release is 0.7.0, with
+0.8.0 reserved for any surface that cannot satisfy the complete evidence gate.
+The planned surface includes:
+
+- cSHAKE128 and cSHAKE256;
+- KMAC128, KMAC256, KMACXOF128, and KMACXOF256;
+- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256; and
+- ParallelHash128, ParallelHash256, ParallelHashXOF128, and
+  ParallelHashXOF256.
+
+No README, changelog, package metadata, or release note may claim SP 800-185
+support until the relevant issue gates and NIST example-vector tests in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md) are
+complete.
 
 ## FIPS 204 - ML-DSA
 
@@ -78,12 +105,12 @@ Current ML-DSA evidence:
 - `test/mldsa_kat_test.dart` reproduces every vector **byte-for-byte** and
   verifies every signature, across the full matrix:
 
-| Dimension     | Values                                                          |
-| ------------- | --------------------------------------------------------------- |
-| Parameter set | ML-DSA-44, ML-DSA-65, ML-DSA-87                                 |
-| Signing mode  | deterministic (`rnd = 0`), hedged (`rnd` from vector)           |
-| Flavour       | raw (Alg 6/7/8), pure (Alg 1/2/3 + context), hashed (Alg 1/4/5) |
-| Per file      | 100 vectors → 300 key generations + 1800 signatures total       |
+| Dimension       | Values                                                            |
+| --------------- | ----------------------------------------------------------------- |
+| Parameter set   | ML-DSA-44, ML-DSA-65, ML-DSA-87                                   |
+| Signing mode    | deterministic (`rnd = 0`), hedged (`rnd` from vector)             |
+| Flavour         | raw (Alg 6/7/8), pure (Alg 1/2/3 + context), hashed (Alg 1/4/5)   |
+| Per file        | 100 vectors → 300 key generations + 1800 signatures total         |
 
 - Algorithm-level regression tests: `dsa_zetas_test.dart` (Appendix B zetas +
   negacyclic NTT), `dsa_rounding_test.dart` (Power2Round/Decompose/MakeHint/

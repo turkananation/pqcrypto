@@ -48,7 +48,7 @@ try {
 
 ## 🚨 4. Vulnerability Disclosure Policy
 
-We treat all cryptographic defects as **P0 Critical**. 
+We treat all cryptographic defects as **P0 Critical**.
 
 If you discover a timing leak, a deviation from a KAT vector, or an RNG failure, **DO NOT** open a public issue or discuss it in the GitHub Discussions board.
 

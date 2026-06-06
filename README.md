@@ -1,15 +1,66 @@
 # pqcrypto: Pure Dart Post-Quantum Cryptography
 
-[![Pub Version](https://img.shields.io/pub/v/pqcrypto?color=blue&logo=dart)](https://pub.dev/packages/pqcrypto)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-blue)](#)
-[![ML-KEM](https://img.shields.io/badge/FIPS_203-ML--KEM-brightgreen?logo=shield)](#)
-[![ML-DSA](https://img.shields.io/badge/FIPS_204-ML--DSA-brightgreen?logo=shield)](#)
-[![KATs](https://img.shields.io/badge/NIST_KATs-Byte_Exact-success)](#)
-[![Flutter Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web_%7C_macOS_%7C_Windows_%7C_Linux-lightgrey?logo=flutter)](#)
+## Project Signals
+
+### Package & Reach
+
+[![pub.dev](https://img.shields.io/pub/v/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=pub.dev&color=0175c2)](https://pub.dev/packages/pqcrypto)
+[![pub points](https://img.shields.io/pub/points/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=pub%20points&color=0175c2)](https://pub.dev/packages/pqcrypto/score)
+[![pub likes](https://img.shields.io/pub/likes/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=likes&color=00a67e)](https://pub.dev/packages/pqcrypto/score)
+[![pub popularity](https://img.shields.io/pub/popularity/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=popularity&color=00a67e)](https://pub.dev/packages/pqcrypto/score)
+[![license](https://img.shields.io/github/license/turkananation/pqcrypto?style=for-the-badge&label=license&color=2ea043)](LICENSE)
+[![Dart SDK](https://img.shields.io/badge/Dart-%5E3.10.0-0175c2?style=for-the-badge&logo=dart&logoColor=white)](pubspec.yaml)
+[![stars](https://img.shields.io/github/stars/turkananation/pqcrypto?style=for-the-badge&logo=github&label=stars&color=181717)](https://github.com/turkananation/pqcrypto/stargazers)
+[![last commit](https://img.shields.io/github/last-commit/turkananation/pqcrypto?style=for-the-badge&logo=github&label=last%20commit&color=6f42c1)](https://github.com/turkananation/pqcrypto/commits/develop)
+
+### Standards & Cryptographic Surface
+
+[![FIPS 203](https://img.shields.io/badge/FIPS%20203-ML--KEM-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS_COMPLIANCE.md)
+[![ML-KEM levels](https://img.shields.io/badge/ML--KEM-512%20%7C%20768%20%7C%201024-2ea043?style=for-the-badge)](doc/MLKEM_TESTING.md)
+[![FIPS 204](https://img.shields.io/badge/FIPS%20204-ML--DSA-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![ML-DSA levels](https://img.shields.io/badge/ML--DSA-44%20%7C%2065%20%7C%2087-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![FIPS 202](https://img.shields.io/badge/FIPS%20202-partial%20SHA--3%2FSHAKE-f59e0b?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
+[![SP 800-185](https://img.shields.io/badge/SP%20800--185-planned%200.7.0-0969da?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
+[![CMVP boundary](https://img.shields.io/badge/CMVP%20%2F%20FIPS%20140-not%20validated-bf8700?style=for-the-badge)](doc/FIPS_140_BOUNDARY.md)
+[![zero dependencies](https://img.shields.io/badge/runtime%20dependencies-0-2ea043?style=for-the-badge)](pubspec.yaml)
+
+### Evidence, Portability & Interoperability
+
+[![ML-KEM KATs](https://img.shields.io/badge/ML--KEM%20KATs-3000%2F3000-2ea043?style=for-the-badge)](doc/MLKEM_TESTING.md)
+[![ML-DSA keygen KATs](https://img.shields.io/badge/ML--DSA%20keygen-300%2F300-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![ML-DSA signature KATs](https://img.shields.io/badge/ML--DSA%20signatures-1800%2F1800-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![OpenSSL interop](https://img.shields.io/badge/OpenSSL%20interop-A%E2%80%93G%20%7C%20all%20ML--KEM%20levels-2ea043?style=for-the-badge&logo=openssl&logoColor=white)](doc/OPENSSL_INTEROP.md)
+[![pure Dart](https://img.shields.io/badge/pure%20Dart-no%20native%20runtime-0175c2?style=for-the-badge&logo=dart&logoColor=white)](lib/)
+[![Flutter platforms](https://img.shields.io/badge/Flutter-iOS%20%7C%20Android%20%7C%20Web%20%7C%20Desktop-02569b?style=for-the-badge&logo=flutter&logoColor=white)](doc/PROGRESS_TRACKER.md)
+[![web backends](https://img.shields.io/badge/Web-dart2js%20%2B%20dart2wasm-7c3aed?style=for-the-badge)](.github/workflows/ci.yml)
+[![vendored SHA-3](https://img.shields.io/badge/SHA--3%20%2F%20SHAKE-vendored%20FIPS%20202%20core-0969da?style=for-the-badge)](lib/src/common/keccak.dart)
+
+### Automation & Security Gates
+
+[![CI](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/ci.yml?branch=develop&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/ci.yml)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/codeql.yml?branch=develop&style=for-the-badge&label=CodeQL&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/codeql.yml)
+[![OpenSSL workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/interop.yml?branch=develop&style=for-the-badge&label=OpenSSL%20interop&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/interop.yml)
+[![visibility workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/visibility.yml?branch=develop&style=for-the-badge&label=Visibility&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/visibility.yml)
+[![Pages deploy](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/pages.yml?branch=develop&style=for-the-badge&label=Pages&logo=githubpages&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/pages.yml)
+[![Wiki sync](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/sync-wiki.yml?branch=develop&style=for-the-badge&label=Wiki%20sync&logo=github&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/sync-wiki.yml)
+
+### Docs, Citation & Coding-Agent Discovery
+
+[![Website](https://img.shields.io/badge/Website-GitHub%20Pages-0969da?style=for-the-badge&logo=githubpages&logoColor=white)](https://turkananation.github.io/pqcrypto/)
+[![API reference](https://img.shields.io/badge/API-pub.dev%20docs-0175c2?style=for-the-badge&logo=dart&logoColor=white)](https://pub.dev/documentation/pqcrypto/latest/)
+[![Wiki](https://img.shields.io/badge/Wiki-synced%20from%20repo-6f42c1?style=for-the-badge&logo=github&logoColor=white)](https://github.com/turkananation/pqcrypto/wiki)
+[![Cookbook](https://img.shields.io/badge/Cookbook-project%20ideas-f59e0b?style=for-the-badge)](doc/cookbook/README.md)
+[![llms.txt](https://img.shields.io/badge/llms.txt-agent%20ready-7c3aed?style=for-the-badge)](llms.txt)
+[![Copilot](https://img.shields.io/badge/GitHub%20Copilot-repo%20instructions-8957e5?style=for-the-badge&logo=githubcopilot&logoColor=white)](.github/copilot-instructions.md)
+[![Cursor](https://img.shields.io/badge/Cursor-rule%20pack-000000?style=for-the-badge)](.cursor/rules/pqcrypto.mdc)
+[![Windsurf](https://img.shields.io/badge/Windsurf-rule%20pack-00a67e?style=for-the-badge)](.windsurfrules)
+[![Citation](https://img.shields.io/badge/Citation-CFF-2ea043?style=for-the-badge)](CITATION.cff)
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
 The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation — see [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is not claimed.
+
+**📚 Documentation:** [Website](https://turkananation.github.io/pqcrypto/) · [Wiki](https://github.com/turkananation/pqcrypto/wiki) · [Quickstart](https://github.com/turkananation/pqcrypto/wiki/Quickstart) · [Cookbook (project ideas)](doc/cookbook/README.md) · [API reference](https://pub.dev/documentation/pqcrypto/latest/) · [Documentation index](doc/INDEX.md)
 
 ---
 
@@ -30,7 +81,7 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
   - **Defensive verification**: returns `false` (never throws) on malformed public keys, signatures, hints, or over-long contexts; unbounded XOF rejection sampling; best-effort secret zeroization.
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
-  - **Zero dependencies.** No third-party packages at all: FIPS 202 (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`.
+  - **Zero dependencies.** No third-party packages at all: the current FIPS 202 surface (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`; full FIPS 202 and SP 800-185 completion targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ---
 
@@ -38,11 +89,11 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
 
 This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), but this repository does not claim CMVP/FIPS 140 module validation ([why?](doc/FIPS_140_BOUNDARY.md)). The current evidence is the checked-in KAT corpus plus unit tests for the algorithm surfaces listed below.
 
-| Algorithm       | Status       | Checked-in KAT Vectors | Security Level         |
-| --------------- | ------------ | ---------------------- | ---------------------- |
-| **ML-KEM-512**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 1 (AES-128) |
-| **ML-KEM-768**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 3 (AES-192) |
-| **ML-KEM-1024** | **KAT pass** | **1000/1000 PASS**     | NIST Level 5 (AES-256) |
+| Algorithm         | Status         | Checked-in KAT Vectors   | Security Level           |
+| ----------------- | -------------- | ------------------------ | ------------------------ |
+| **ML-KEM-512**    | **KAT pass**   | **1000/1000 PASS**       | NIST Level 1 (AES-128)   |
+| **ML-KEM-768**    | **KAT pass**   | **1000/1000 PASS**       | NIST Level 3 (AES-192)   |
+| **ML-KEM-1024**   | **KAT pass**   | **1000/1000 PASS**       | NIST Level 5 (AES-256)   |
 
 **Total checked-in vectors:** 3000/3000 pass locally as of June 3, 2026.
 
@@ -62,11 +113,11 @@ Every signature in the official KAT corpus (`test/data/MLDSA`) is reproduced
 **byte-for-byte**, and every KAT signature **verifies**, across the full matrix
 of parameter set × signing mode × implementation flavour:
 
-| Parameter set | Security level | KeyGen (raw/det) | Sign + Verify (all flavours) |
-| ------------- | -------------- | ---------------- | ---------------------------- |
-| **ML-DSA-44** | NIST Level 2   | 100/100 PASS     | 600/600 PASS                 |
-| **ML-DSA-65** | NIST Level 3   | 100/100 PASS     | 600/600 PASS                 |
-| **ML-DSA-87** | NIST Level 5   | 100/100 PASS     | 600/600 PASS                 |
+| Parameter set   | Security level   | KeyGen (raw/det)   | Sign + Verify (all flavours)   |
+| --------------- | ---------------- | ------------------ | ------------------------------ |
+| **ML-DSA-44**   | NIST Level 2     | 100/100 PASS       | 600/600 PASS                   |
+| **ML-DSA-65**   | NIST Level 3     | 100/100 PASS       | 600/600 PASS                   |
+| **ML-DSA-87**   | NIST Level 5     | 100/100 PASS       | 600/600 PASS                   |
 
 - **Flavours:** `raw` (internal `*_internal`, Algorithms 6/7/8), `pure`
   (external ML-DSA with a context string, Algorithms 1/2/3), and `hashed`
@@ -99,14 +150,14 @@ exposes those native ML-KEM algorithms in the 3.5 line and newer; the local
 interop harness ([`tool/openssl_interop/`](tool/openssl_interop/)) drives both
 implementations over `dart:ffi` and proves byte-level agreement on each:
 
-| Test      | What it proves                                                         |
-| --------- | ---------------------------------------------------------------------- |
-| **A / B** | each implementation is internally self-consistent (sanity)             |
-| **C**     | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)  |
-| **D**     | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
-| **E**     | same seed `(d‖z)` ⇒ **byte-identical public keys**                     |
-| **F**     | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical   |
-| **G**     | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext     |
+| Test        | What it proves                                                           |
+| ----------- | ------------------------------------------------------------------------ |
+| **A / B**   | each implementation is internally self-consistent (sanity)               |
+| **C**       | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)    |
+| **D**       | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed)   |
+| **E**       | same seed `(d‖z)` ⇒ **byte-identical public keys**                       |
+| **F**       | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical     |
+| **G**       | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext       |
 
 Shared secrets — including the FIPS 203 implicit-rejection branch — are
 **byte-identical** across implementations in both directions, at every level
@@ -223,7 +274,7 @@ ML-DSA uses a different ring from ML-KEM:
   $\eta \in \{2,3\}$.
 - **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
   bounded sampling, mask expansion, and challenge sampling.
-- **Vendored FIPS 202**: SHA-3 and SHAKE are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`.
+- **Vendored FIPS 202 foundation**: SHA3-256/512 and SHAKE128/256 are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`. Full FIPS 202 plus SP 800-185 work targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 - **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
   (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
   pairs for SHA-384/512 portability across the VM and web compilers.
@@ -282,8 +333,9 @@ lib/
         │
         ├── shake.dart            # 🎲 SHAKE-128/256 wrappers + incremental XOF
         │
-        ├── keccak.dart           # 🧱 Vendored FIPS 202 (zero-dependency)
+        ├── keccak.dart           # 🧱 Vendored FIPS 202 foundation (zero-dependency)
         │                         # - SHA3-256/512, SHAKE128/256, KeccakXof
+        │                         # - Full FIPS 202 + SP 800-185 tracked in doc/
         │                         # - web-safe 32-bit lanes (dart2js/dart2wasm)
         │
         ├── sha2.dart             # #️⃣ Vendored FIPS 180-4 SHA-256/384/512
@@ -330,6 +382,12 @@ tool/
 
 ### Quick Start
 
+> **Looking for project ideas?** The [Cookbook](doc/cookbook/README.md) catalogs
+> things you can build across servers, mobile, desktop, CLI, embedded Linux, web,
+> and cross-language interop — each composed from reusable, API-correct
+> [building blocks](doc/cookbook/BUILDING_BLOCKS.md). Browse the
+> [project catalog](doc/cookbook/PROJECT_CATALOG.md), or the machine-readable
+> [`project-ideas.yaml`](doc/cookbook/project-ideas.yaml) for AI agents.
 > **Serverpod Users:** Check out the [Full Stack Integration Guide](doc/SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
 > **Agent Workflows:** The project-level
 > [Universal Multi-Agent PQC Framework](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)
@@ -406,11 +464,11 @@ Validates against the `.rsp` files checked into `test/data`.
 
 Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 
-| Algorithm       | Key Generation | Encapsulation | Decapsulation | Security Level   |
-| --------------- | -------------- | ------------- | ------------- | ---------------- |
-| **ML-KEM-512**  | ~0.7 ms        | ~0.7 ms       | ~0.6 ms       | 128-bit security |
-| **ML-KEM-768**  | ~1.3 ms        | ~1.4 ms       | ~1.0 ms       | 192-bit security |
-| **ML-KEM-1024** | ~1.8 ms        | ~1.8 ms       | ~1.7 ms       | 256-bit security |
+| Algorithm         | Key Generation   | Encapsulation   | Decapsulation   | Security Level     |
+| ----------------- | ---------------- | --------------- | --------------- | ------------------ |
+| **ML-KEM-512**    | ~0.7 ms          | ~0.7 ms         | ~0.6 ms         | 128-bit security   |
+| **ML-KEM-768**    | ~1.3 ms          | ~1.4 ms         | ~1.0 ms         | 192-bit security   |
+| **ML-KEM-1024**   | ~1.8 ms          | ~1.8 ms         | ~1.7 ms         | 256-bit security   |
 
 ---
 

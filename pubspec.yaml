@@ -1,8 +1,16 @@
 name: pqcrypto
-description: Pure Dart post-quantum cryptography. Zero dependencies. Features byte-exact FIPS 203 ML-KEM & FIPS 204 ML-DSA for secure Flutter & Web apps.
+description: Pure Dart post-quantum cryptography. Zero dependencies. FIPS 203 ML-KEM and FIPS 204 ML-DSA with checked-in KAT evidence.
 version: 0.3.1
-homepage: https://github.com/turkananation/pqcrypto
+homepage: https://turkananation.github.io/pqcrypto/
 repository: https://github.com/turkananation/pqcrypto
+documentation: https://turkananation.github.io/pqcrypto/
+issue_tracker: https://github.com/turkananation/pqcrypto/issues
+topics:
+  - cryptography
+  - post-quantum
+  - security
+  - dart
+  - flutter
 
 environment:
   sdk: ^3.10.0

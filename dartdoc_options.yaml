@@ -1,0 +1,11 @@
+# dartdoc configuration — https://dart.dev/tools/dartdoc
+# Surfaces the builder-facing Cookbook as a navigable "topic" in the generated
+# API docs. The library in lib/pqcrypto.dart is tagged `{@category Cookbook}`,
+# which makes this category appear in the sidebar with the markdown file below as
+# its landing page. Verify locally with: dart doc .
+dartdoc:
+  categories:
+    "Cookbook":
+      markdown: doc/cookbook/README.md
+  categoryOrder:
+    - "Cookbook"

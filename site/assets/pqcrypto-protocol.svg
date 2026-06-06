@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" role="img" aria-labelledby="title desc">
+  <title id="title">pqcrypto protocol primitives</title>
+  <desc id="desc">ML-KEM establishes a shared secret and ML-DSA signs transcripts while external systems provide KDF, AEAD, key storage, and transport.</desc>
+  <rect width="760" height="520" fill="#ffffff"/>
+  <rect x="32" y="30" width="696" height="460" rx="8" fill="#f7f9f6" stroke="#d8e2dc"/>
+  <text x="64" y="76" fill="#155e52" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800">pqcrypto primitive boundary</text>
+  <text x="64" y="108" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="16">Pure Dart ML-KEM and ML-DSA. Protocol machinery stays outside.</text>
+
+  <rect x="70" y="152" width="250" height="116" rx="8" fill="#e9f4f0" stroke="#92b8aa"/>
+  <text x="94" y="190" fill="#13211a" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">ML-KEM</text>
+  <text x="94" y="220" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="15">512 / 768 / 1024</text>
+  <text x="94" y="244" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="15">32-byte shared secret</text>
+
+  <rect x="440" y="152" width="250" height="116" rx="8" fill="#edf2fb" stroke="#9db2d8"/>
+  <text x="464" y="190" fill="#13211a" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">ML-DSA</text>
+  <text x="464" y="220" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="15">44 / 65 / 87</text>
+  <text x="464" y="244" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="15">Detached signatures</text>
+
+  <path d="M322 210 H438" stroke="#155e52" stroke-width="4" stroke-linecap="round"/>
+  <path d="M422 198 L438 210 L422 222" fill="none" stroke="#155e52" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="338" y="196" fill="#155e52" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">bind transcript</text>
+
+  <rect x="70" y="326" width="620" height="88" rx="8" fill="#fff8ed" stroke="#f1c27d"/>
+  <text x="94" y="362" fill="#b45309" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Application supplies the protocol layer</text>
+  <text x="94" y="392" fill="#51615a" font-family="Inter, Arial, sans-serif" font-size="15">HKDF, AEAD, X25519, authenticated key directory, replay windows, storage, TLS</text>
+
+  <text x="64" y="456" fill="#b42318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Not a CMVP/FIPS 140 validated module. Not authenticated transport by itself.</text>
+</svg>
