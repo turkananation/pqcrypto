@@ -1,12 +1,15 @@
 # pqcrypto Architecture
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 `pqcrypto` is a pure Dart post-quantum cryptography package with two supported
 algorithm surfaces: ML-KEM (FIPS 203) and ML-DSA (FIPS 204). Both are byte-exact
 against their checked-in NIST KAT corpora; ML-KEM additionally has OpenSSL
 interop evidence. This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140
-module validation — see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md). SLH-DSA
+module validation — see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md). Full
+FIPS 202 and SP 800-185 coverage targets 0.7.0, with 0.8.0 spillover if the
+evidence gate cannot close, and is planned in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). SLH-DSA
 (FIPS 205) is planned and tracked in
 [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md); it is not yet
 implemented.
@@ -19,8 +22,9 @@ pqcrypto/
     pqcrypto.dart                  # public API exports
     src/
       common/
-        keccak.dart                # vendored FIPS 202 SHA3/SHAKE + KeccakXof
+        keccak.dart                # partial vendored FIPS 202 SHA3/SHAKE + KeccakXof
         shake.dart                 # SHAKE wrappers + incremental XOF
+        sp800_185.dart             # planned cSHAKE/KMAC/TupleHash/ParallelHash
         sha2.dart                  # vendored FIPS 180-4 SHA-256/384/512
         zeroize.dart               # best-effort secret zeroization helpers
         poly.dart                  # ML-KEM polynomial arithmetic
@@ -44,7 +48,9 @@ pqcrypto/
       MLDSA/                       # checked-in ML-DSA KAT corpus (18 files) + README
     kat_evaluator_test.dart        # VM-only ML-KEM KAT runner (3000 vectors)
     mldsa_kat_test.dart            # VM-only discovered ML-DSA KAT runner (18 files)
-    keccak_test.dart               # FIPS 202 known-answer tests
+    keccak_test.dart               # current FIPS 202 known-answer tests
+    fips202_examples_test.dart     # planned official FIPS 202 example corpus
+    sp800_185_*_test.dart          # planned SP 800-185 examples and regressions
     sha2_test.dart                 # FIPS 180-4 SHA-2 known-answer tests
     kem_validation_test.dart       # ML-KEM input validation tests
     roundtrip_test.dart            # portable ML-KEM VM/web round-trips
@@ -71,6 +77,28 @@ components and will **not** be exported as standalone public APIs. The full
 layout, public API, hardening, and milestone plan are in
 [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md).
 
+## Planned: FIPS 202 Completion and SP 800-185
+
+The current Keccak implementation is a shared primitive for ML-KEM, ML-DSA, and
+future SLH-DSA. It is **partial FIPS 202 support**, not a complete standalone
+SHA-3 release surface: SHA3-256, SHA3-512, SHAKE128, SHAKE256, and incremental
+SHAKE XOFs exist; SHA3-224, SHA3-384, official NIST example-corpus coverage,
+non-byte example handling, and SP 800-185 are still planned for 0.7.0 or
+controlled 0.8.0 spillover.
+
+The target architecture keeps Keccak ownership in `lib/src/common/keccak.dart`
+and adds `lib/src/common/sp800_185.dart` for the derived functions:
+
+- SP 800-185 encodings: `left_encode`, `right_encode`, `encode_string`,
+  `bytepad`, and test-only bit substring helpers;
+- cSHAKE128/256;
+- KMAC128/256 and KMACXOF128/256;
+- TupleHash128/256 and TupleHashXOF128/256; and
+- ParallelHash128/256 and ParallelHashXOF128/256.
+
+The full architecture, API, corpus strategy, and issue map are in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
+
 ## Public API Boundary
 
 `lib/pqcrypto.dart` exports:
@@ -91,9 +119,11 @@ evidence, and [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md) for the claim limit.
 
 ## Dependency Boundary
 
-The published package has no third-party runtime dependencies. FIPS 202
+The published package has no third-party runtime dependencies. Current FIPS 202
 SHA3/SHAKE support is vendored in `lib/src/common/keccak.dart`; `shake.dart`
-wraps that implementation. The OpenSSL interop code lives in a separate
+wraps that implementation. Full FIPS 202 and SP 800-185 remain planned 0.7.0
+work, with 0.8.0 spillover only if the evidence gate requires it.
+The OpenSSL interop code lives in a separate
 unpublished path package under `tool/openssl_interop/` and is not part of the
 runtime package.
 
@@ -151,10 +181,10 @@ in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ML-KEM and ML-DSA use different rings and different NTT shapes:
 
-| Algorithm | Modulus | Polynomial type | NTT style                  |
-| --------- | ------- | --------------- | -------------------------- |
-| ML-KEM    | 3329    | `Poly`          | Incomplete, base-mul pairs |
-| ML-DSA    | 8380417 | `DilithiumPoly` | Complete, coefficient-wise |
+| Algorithm   | Modulus   | Polynomial type   | NTT style                    |
+| ----------- | --------- | ----------------- | ---------------------------- |
+| ML-KEM      | 3329      | `Poly`            | Incomplete, base-mul pairs   |
+| ML-DSA      | 8380417   | `DilithiumPoly`   | Complete, coefficient-wise   |
 
 Keeping these types separate makes the arithmetic easier to audit and avoids
 pretending the two schemes share a single polynomial abstraction.

@@ -1,11 +1,11 @@
 # pqcrypto: Pure Dart Post-Quantum Cryptography
 
 [![Pub Version](https://img.shields.io/pub/v/pqcrypto?color=blue&logo=dart)](https://pub.dev/packages/pqcrypto)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-blue)](#)
-[![ML-KEM](https://img.shields.io/badge/FIPS_203-ML--KEM-brightgreen?logo=shield)](#)
-[![ML-DSA](https://img.shields.io/badge/FIPS_204-ML--DSA-brightgreen?logo=shield)](#)
-[![KATs](https://img.shields.io/badge/NIST_KATs-Byte_Exact-success)](#)
-[![Flutter Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web_%7C_macOS_%7C_Windows_%7C_Linux-lightgrey?logo=flutter)](#)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-blue)](pubspec.yaml)
+[![ML-KEM](https://img.shields.io/badge/FIPS_203-ML--KEM-brightgreen?logo=shield)](doc/FIPS_COMPLIANCE.md)
+[![ML-DSA](https://img.shields.io/badge/FIPS_204-ML--DSA-brightgreen?logo=shield)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![KATs](https://img.shields.io/badge/NIST_KATs-Byte_Exact-success)](doc/MLKEM_TESTING.md)
+[![Flutter Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web_%7C_macOS_%7C_Windows_%7C_Linux-lightgrey?logo=flutter)](doc/PROGRESS_TRACKER.md)
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
@@ -30,7 +30,7 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
   - **Defensive verification**: returns `false` (never throws) on malformed public keys, signatures, hints, or over-long contexts; unbounded XOF rejection sampling; best-effort secret zeroization.
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
-  - **Zero dependencies.** No third-party packages at all: FIPS 202 (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`.
+  - **Zero dependencies.** No third-party packages at all: the current FIPS 202 surface (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`; full FIPS 202 and SP 800-185 completion targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ---
 
@@ -38,11 +38,11 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
 
 This implementation tracks [FIPS 203](https://csrc.nist.gov/pubs/fips/203/final), but this repository does not claim CMVP/FIPS 140 module validation ([why?](doc/FIPS_140_BOUNDARY.md)). The current evidence is the checked-in KAT corpus plus unit tests for the algorithm surfaces listed below.
 
-| Algorithm       | Status       | Checked-in KAT Vectors | Security Level         |
-| --------------- | ------------ | ---------------------- | ---------------------- |
-| **ML-KEM-512**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 1 (AES-128) |
-| **ML-KEM-768**  | **KAT pass** | **1000/1000 PASS**     | NIST Level 3 (AES-192) |
-| **ML-KEM-1024** | **KAT pass** | **1000/1000 PASS**     | NIST Level 5 (AES-256) |
+| Algorithm         | Status         | Checked-in KAT Vectors   | Security Level           |
+| ----------------- | -------------- | ------------------------ | ------------------------ |
+| **ML-KEM-512**    | **KAT pass**   | **1000/1000 PASS**       | NIST Level 1 (AES-128)   |
+| **ML-KEM-768**    | **KAT pass**   | **1000/1000 PASS**       | NIST Level 3 (AES-192)   |
+| **ML-KEM-1024**   | **KAT pass**   | **1000/1000 PASS**       | NIST Level 5 (AES-256)   |
 
 **Total checked-in vectors:** 3000/3000 pass locally as of June 3, 2026.
 
@@ -62,11 +62,11 @@ Every signature in the official KAT corpus (`test/data/MLDSA`) is reproduced
 **byte-for-byte**, and every KAT signature **verifies**, across the full matrix
 of parameter set × signing mode × implementation flavour:
 
-| Parameter set | Security level | KeyGen (raw/det) | Sign + Verify (all flavours) |
-| ------------- | -------------- | ---------------- | ---------------------------- |
-| **ML-DSA-44** | NIST Level 2   | 100/100 PASS     | 600/600 PASS                 |
-| **ML-DSA-65** | NIST Level 3   | 100/100 PASS     | 600/600 PASS                 |
-| **ML-DSA-87** | NIST Level 5   | 100/100 PASS     | 600/600 PASS                 |
+| Parameter set   | Security level   | KeyGen (raw/det)   | Sign + Verify (all flavours)   |
+| --------------- | ---------------- | ------------------ | ------------------------------ |
+| **ML-DSA-44**   | NIST Level 2     | 100/100 PASS       | 600/600 PASS                   |
+| **ML-DSA-65**   | NIST Level 3     | 100/100 PASS       | 600/600 PASS                   |
+| **ML-DSA-87**   | NIST Level 5     | 100/100 PASS       | 600/600 PASS                   |
 
 - **Flavours:** `raw` (internal `*_internal`, Algorithms 6/7/8), `pure`
   (external ML-DSA with a context string, Algorithms 1/2/3), and `hashed`
@@ -99,14 +99,14 @@ exposes those native ML-KEM algorithms in the 3.5 line and newer; the local
 interop harness ([`tool/openssl_interop/`](tool/openssl_interop/)) drives both
 implementations over `dart:ffi` and proves byte-level agreement on each:
 
-| Test      | What it proves                                                         |
-| --------- | ---------------------------------------------------------------------- |
-| **A / B** | each implementation is internally self-consistent (sanity)             |
-| **C**     | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)  |
-| **D**     | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed) |
-| **E**     | same seed `(d‖z)` ⇒ **byte-identical public keys**                     |
-| **F**     | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical   |
-| **G**     | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext     |
+| Test        | What it proves                                                           |
+| ----------- | ------------------------------------------------------------------------ |
+| **A / B**   | each implementation is internally self-consistent (sanity)               |
+| **C**       | OpenSSL decapsulates a **pqcrypto** ciphertext → same secret (fuzzed)    |
+| **D**       | pqcrypto decapsulates an **OpenSSL** ciphertext → same secret (fuzzed)   |
+| **E**       | same seed `(d‖z)` ⇒ **byte-identical public keys**                       |
+| **F**       | public-key wire round-trip (pqcrypto → OpenSSL → bytes) is identical     |
+| **G**       | implicit-rejection secret `J(z‖c)` agrees on an invalid ciphertext       |
 
 Shared secrets — including the FIPS 203 implicit-rejection branch — are
 **byte-identical** across implementations in both directions, at every level
@@ -223,7 +223,7 @@ ML-DSA uses a different ring from ML-KEM:
   $\eta \in \{2,3\}$.
 - **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
   bounded sampling, mask expansion, and challenge sampling.
-- **Vendored FIPS 202**: SHA-3 and SHAKE are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`.
+- **Vendored FIPS 202 foundation**: SHA3-256/512 and SHAKE128/256 are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`. Full FIPS 202 plus SP 800-185 work targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 - **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
   (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
   pairs for SHA-384/512 portability across the VM and web compilers.
@@ -282,8 +282,9 @@ lib/
         │
         ├── shake.dart            # 🎲 SHAKE-128/256 wrappers + incremental XOF
         │
-        ├── keccak.dart           # 🧱 Vendored FIPS 202 (zero-dependency)
+        ├── keccak.dart           # 🧱 Vendored FIPS 202 foundation (zero-dependency)
         │                         # - SHA3-256/512, SHAKE128/256, KeccakXof
+        │                         # - Full FIPS 202 + SP 800-185 tracked in doc/
         │                         # - web-safe 32-bit lanes (dart2js/dart2wasm)
         │
         ├── sha2.dart             # #️⃣ Vendored FIPS 180-4 SHA-256/384/512
@@ -406,11 +407,11 @@ Validates against the `.rsp` files checked into `test/data`.
 
 Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 
-| Algorithm       | Key Generation | Encapsulation | Decapsulation | Security Level   |
-| --------------- | -------------- | ------------- | ------------- | ---------------- |
-| **ML-KEM-512**  | ~0.7 ms        | ~0.7 ms       | ~0.6 ms       | 128-bit security |
-| **ML-KEM-768**  | ~1.3 ms        | ~1.4 ms       | ~1.0 ms       | 192-bit security |
-| **ML-KEM-1024** | ~1.8 ms        | ~1.8 ms       | ~1.7 ms       | 256-bit security |
+| Algorithm         | Key Generation   | Encapsulation   | Decapsulation   | Security Level     |
+| ----------------- | ---------------- | --------------- | --------------- | ------------------ |
+| **ML-KEM-512**    | ~0.7 ms          | ~0.7 ms         | ~0.6 ms         | 128-bit security   |
+| **ML-KEM-768**    | ~1.3 ms          | ~1.4 ms         | ~1.0 ms         | 192-bit security   |
+| **ML-KEM-1024**   | ~1.8 ms          | ~1.8 ms         | ~1.7 ms         | 256-bit security   |
 
 ---
 
