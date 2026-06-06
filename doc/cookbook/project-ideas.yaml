@@ -1,0 +1,648 @@
+schema_version: 1
+catalog_id: pqcrypto-project-ideas
+catalog_version: 0.1.0
+last_updated: "2026-06-06"
+
+generated_for_package:
+  name: pqcrypto
+  version: 0.3.1
+  runtime_dependencies: 0
+
+canonical_docs:
+  index: doc/cookbook/README.md
+  building_blocks: doc/cookbook/BUILDING_BLOCKS.md
+  project_catalog: doc/cookbook/PROJECT_CATALOG.md
+  future_releases: doc/cookbook/FUTURE_RELEASES.md
+  serverpod_flutter_guide: doc/SERVERPOD_FLUTTER_GUIDE.md
+  openssl_interop: doc/OPENSSL_INTEROP.md
+
+# Agents and codegen tools: read this first. An idea is only safe to emit WITH
+# its you_supply and caveats. Never strip them. Never upgrade a claim past
+# evidence_boundary.allowed_claims.
+agent_contract:
+  must_carry_into_output:
+    - the selected idea's you_supply list
+    - the selected idea's caveats list
+    - each referenced building block's you_supply and caveats
+  must_not:
+    - emit any string in evidence_boundary.forbidden_claims
+    - present ML-KEM alone as authenticated/secure transport
+    - imply "quantum-safe" means "secure" or "private"
+    - call pqcrypto FIPS-validated or certified
+    - design against any idea whose status is not "available"
+
+evidence_boundary:
+  no_cmvp_fips_140_claim: true
+  zeroization: best_effort_dart
+  side_channel_posture: best_effort_dart
+  allowed_claims:
+    - "FIPS 203-aligned ML-KEM with checked-in KAT evidence."
+    - "FIPS 204-aligned ML-DSA, byte-exact on the checked-in KAT corpus."
+    - "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
+    - "Best-effort zeroization in Dart."
+  forbidden_claims:
+    - "FIPS validated"
+    - "CMVP validated"
+    - "certified"
+    - "constant-time guarantee"
+    - "memory is securely erased"
+    - "ML-KEM is authenticated/secure transport on its own"
+  key_facts:
+    - "Package exports ONLY ML-KEM (PqcKem/KyberKem) and ML-DSA (MlDsa) plus DilithiumParams."
+    - "HKDF, AEAD, X25519, public hashing, KMAC, secure storage are NOT provided; the app supplies them."
+    - "ML-KEM yields a 32-byte shared secret; it is not encryption by itself (needs KDF + AEAD)."
+    - "Public keys must be authenticated; a self-provided key is not an identity."
+    - "Embedded means embedded Linux / SBC; bare-metal microcontrollers are out of scope."
+    - "Flutter web does not offload isolates; heavy keygen blocks the main thread."
+  universal_you_supply:
+    - HKDF or another KDF
+    - AEAD (AES-GCM or ChaCha20-Poly1305)
+    - a public hash (e.g. SHA-256) for transcripts/logs
+    - X25519 or another classical KEX for hybrid handshakes
+    - secure key storage (platform keystore / KMS / HSM)
+    - CSPRNG for nonces and salts
+
+algorithms:
+  ml_kem:
+    sizes_bytes:
+      ml-kem-512: {security_category: 1, public_key: 800, secret_key: 1632, ciphertext: 768, shared_secret: 32}
+      ml-kem-768: {security_category: 3, public_key: 1184, secret_key: 2400, ciphertext: 1088, shared_secret: 32}
+      ml-kem-1024: {security_category: 5, public_key: 1568, secret_key: 3168, ciphertext: 1568, shared_secret: 32}
+    api:
+      factory: "PqcKem.kyber512 | PqcKem.kyber768 | PqcKem.kyber1024"
+      generate_key_pair: "generateKeyPair([Uint8List seed /* 32=d or 64=d||z */]) -> (pk, sk)"
+      encapsulate: "encapsulate(pk, [nonce]) -> (ct, ss32)"
+      decapsulate: "decapsulate(sk, ct) -> ss32"
+  ml_dsa:
+    sizes_bytes:
+      ml-dsa-44: {security_category: 2, public_key: 1312, secret_key: 2560, signature: 2420}
+      ml-dsa-65: {security_category: 3, public_key: 1952, secret_key: 4032, signature: 3309}
+      ml-dsa-87: {security_category: 5, public_key: 2592, secret_key: 4896, signature: 4627}
+    api:
+      params: "DilithiumParams.mlDsa44 | mlDsa65 | mlDsa87"
+      generate_key_pair: "MlDsa.generateKeyPair(params) -> (pk, sk)  /* hedged */"
+      generate_key_pair_seeded: "MlDsa.generateKeyPairSeeded(params, seed32) -> (pk, sk)"
+      sign: "MlDsa.sign(sk, m, params, {ctx<=255, rnd}) -> sig  /* hedged default */"
+      sign_deterministic: "MlDsa.signDeterministic(sk, m, params, {ctx}) -> sig  /* discouraged */"
+      hash_sign: "MlDsa.hashSign(sk, m, params, {ctx, rnd}) -> sig  /* pre-hash, large msgs */"
+      verify: "MlDsa.verify(pk, m, sig, params, {ctx}) -> bool  /* never throws */"
+      hash_verify: "MlDsa.hashVerify(pk, m, sig, params, {ctx}) -> bool"
+
+building_blocks:
+  - id: BB1
+    name: Detached signatures
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb1-detached-signatures
+    algos: [ml-dsa]
+    you_supply: [canonical message encoding, public-key trust/distribution]
+    caveats:
+      - "A signature is only meaningful if you trust the public key (see BB4)."
+      - "Prefer hedged sign over signDeterministic."
+      - "ctx <= 255 bytes; use a distinct versioned context per purpose."
+  - id: BB2
+    name: Encrypt to a public key (KEM-DEM)
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb2-encrypt-to-a-public-key
+    algos: [ml-kem]
+    you_supply: [HKDF, AEAD, CSPRNG for nonce]
+    caveats:
+      - "ML-KEM gives a shared secret, not encryption; you MUST add KDF + AEAD."
+      - "Provides confidentiality to the key holder, not sender authentication."
+      - "Bind the ciphertext into the KDF/AEAD AAD."
+  - id: BB3
+    name: Hybrid authenticated handshake
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb3-hybrid-authenticated-handshake
+    algos: [ml-kem, ml-dsa]
+    you_supply: [X25519, HKDF, AEAD, replay window, session store]
+    caveats:
+      - "Authenticate the server key bundle before encapsulation."
+      - "Never use the raw shared secret as a traffic key."
+      - "Client ML-DSA key is an identity only after enrollment (BB4)."
+  - id: BB4
+    name: Identity enrollment and key directory
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb4-identity-enrollment-and-key-directory
+    algos: [ml-dsa]
+    you_supply: [out-of-band vetting, directory storage, revocation, authority-key custody]
+    caveats:
+      - "A signed key is an identity only because a trusted authority vouches for it."
+      - "Revocation is not provided by signatures; design it explicitly."
+  - id: BB5
+    name: Deterministic keys from a seed
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb5-deterministic-keys-from-a-seed
+    algos: [ml-kem, ml-dsa]
+    you_supply: [secure seed entropy, storage, backup]
+    caveats:
+      - "The seed equals the secret key; protect it identically."
+      - "ML-KEM 64-byte seed keygen is byte-identical to OpenSSL (interop)."
+  - id: BB6
+    name: Tamper-evident signed log
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb6-tamper-evident-signed-log
+    algos: [ml-dsa]
+    you_supply: [public hash, durable storage, optional Merkle tree]
+    caveats:
+      - "Tamper-evident, not tamper-proof."
+      - "Signer-key compromise rewrites history from that point."
+      - "Logging people's activity is a surveillance capability; minimize."
+  - id: BB7
+    name: Signed software and firmware updates
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb7-signed-software-and-firmware-updates
+    algos: [ml-dsa]
+    you_supply: [pinned vendor key in image, rollback/version protection, delivery channel]
+    caveats:
+      - "Sign version + target id with the artifact to stop rollback replay."
+      - "Vendor signing key compromise is catastrophic; use an HSM."
+  - id: BB8
+    name: Encrypted data at rest
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb8-encrypted-data-at-rest
+    algos: [ml-kem]
+    you_supply: [HKDF, AEAD, CSPRNG, vault secret-key custody]
+    caveats:
+      - "Prefer ML-KEM-1024 for long confidentiality lifetimes."
+      - "Best-effort zeroization is not hard memory erasure."
+  - id: BB9
+    name: Hybrid and dual signatures
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb9-hybrid-and-dual-signatures
+    algos: [ml-dsa]
+    you_supply: [a classical signature scheme (Ed25519/ECDSA)]
+    caveats:
+      - "Decide require-both vs accept-either explicitly; opposite failure modes."
+      - "A second post-quantum scheme (SLH-DSA) is future work."
+  - id: BB10
+    name: Offloading heavy work
+    anchor: doc/cookbook/BUILDING_BLOCKS.md#bb10-offloading-heavy-work
+    algos: [ml-kem, ml-dsa]
+    you_supply: [isolate-sendable types, secret-key crossing policy]
+    caveats:
+      - "Flutter web does not offload isolates; compute() does not move CPU off the main thread."
+      - "Passing a secret key to an isolate copies sensitive bytes."
+
+# status: available = buildable on 0.3.1; future = needs a roadmap release.
+ideas:
+  # --- servers and backends ---
+  - id: srv-handshake
+    domain: server
+    name: Hybrid PQC session handshake service
+    status: available
+    platforms: [dart-server, serverpod]
+    algos: [ml-kem-768, ml-dsa-65]
+    building_blocks: [BB3, BB4]
+    you_supply: [X25519, HKDF, AEAD, replay window, session store]
+    feasibility: "Fully worked example in SERVERPOD_FLUTTER_GUIDE.md."
+    caveats: ["Authenticate server key bundle before encapsulation."]
+  - id: srv-tokens
+    domain: server
+    name: Stateless signed API / capability tokens
+    status: available
+    platforms: [dart-server]
+    algos: [ml-dsa-44, ml-dsa-65]
+    building_blocks: [BB1]
+    you_supply: [token encoding, expiry/clock, rotation, revocation strategy]
+    feasibility: "Verify is fast; ML-DSA-44 if size/throughput dominates."
+    caveats: ["Signatures are large vs classical tokens.", "Tokens are not encryption."]
+  - id: srv-webhooks
+    domain: server
+    name: Signed webhook delivery and verification
+    status: available
+    platforms: [dart-server, polyglot-consumers]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1]
+    you_supply: [canonical payload encoding, published verify key, anti-replay]
+    feasibility: "hashSign for large payloads."
+    caveats: ["Pin the verification key out of band."]
+  - id: srv-updates
+    domain: server
+    name: Software update / release distribution server
+    status: available
+    platforms: [dart-server, embedded-linux-clients, cli-clients]
+    algos: [ml-dsa-65, ml-dsa-87]
+    building_blocks: [BB7]
+    you_supply: [vendor key custody (HSM), version metadata, delivery]
+    feasibility: "Verify is cheap on modest devices."
+    caveats: ["Sign version + target id to block rollback replay."]
+  - id: srv-audit-log
+    domain: server
+    name: Tamper-evident audit / transparency log
+    status: available
+    platforms: [dart-server]
+    algos: [ml-dsa-44, ml-dsa-65]
+    building_blocks: [BB6]
+    you_supply: [public hash, append-only storage, optional Merkle/anchor]
+    feasibility: "Cheap per event with ML-DSA-44."
+    caveats: ["Tamper-evident not tamper-proof.", "Logging activity is surveillance; minimize."]
+    forbidden_claims: ["tamper-proof"]
+  - id: srv-sealed-secrets
+    domain: server
+    name: Sealed-secrets / config distribution service
+    status: available
+    platforms: [dart-server, ci]
+    algos: [ml-kem-1024]
+    building_blocks: [BB2, BB8]
+    you_supply: [HKDF, AEAD, vault key custody (KMS/HSM)]
+    feasibility: "Encapsulation fast; custody is the work."
+    caveats: ["KEM is confidentiality, not authenticity; add a signature if needed."]
+  - id: srv-mutual-auth
+    domain: server
+    name: Mutual application authentication (mTLS-style)
+    status: available
+    platforms: [dart-server]
+    algos: [ml-kem-768, ml-dsa-65]
+    building_blocks: [BB3, BB4]
+    you_supply: [enrollment/PKI, X25519, HKDF, AEAD]
+    feasibility: "Reuses the handshake block."
+    caveats: ["Application-layer auth, not a TLS replacement."]
+    forbidden_claims: ["PQC TLS", "TLS replacement"]
+  - id: srv-license
+    domain: server
+    name: License / entitlement server
+    status: available
+    platforms: [dart-server, offline-verify]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB5]
+    you_supply: [license schema, expiry, device binding]
+    feasibility: "Offline verify is the point."
+    caveats: ["Signatures stop forgery, not copying; add device binding."]
+  - id: srv-pki-directory
+    domain: server
+    name: Public-key directory / PKI microservice
+    status: available
+    platforms: [dart-server]
+    algos: [ml-dsa-65]
+    building_blocks: [BB4]
+    you_supply: [vetting, storage, revocation, authority-key custody]
+    feasibility: "Mostly app logic."
+    caveats: ["The authority key is the whole root of trust."]
+
+  # --- mobile ---
+  - id: mob-e2e-messaging
+    domain: mobile
+    name: End-to-end encrypted messaging
+    status: available
+    platforms: [flutter-mobile, flutter-desktop]
+    algos: [ml-kem-768, ml-dsa-65]
+    building_blocks: [BB2, BB4, BB10]
+    you_supply: [HKDF, AEAD, key directory, forward-secrecy ratchet]
+    feasibility: "Per-message encapsulation fine in an isolate."
+    caveats: ["Not Signal: without a ratchet, a stolen key decrypts past messages."]
+  - id: mob-vault
+    domain: mobile
+    name: Personal secure vault / password manager
+    status: available
+    platforms: [flutter-mobile, flutter-desktop]
+    algos: [ml-kem-1024]
+    building_blocks: [BB8, BB10]
+    you_supply: [HKDF, AEAD, platform keystore, master unlock]
+    feasibility: "Excellent fit."
+    caveats: ["Best-effort zeroization is not hard memory erasure."]
+  - id: mob-backup
+    domain: mobile
+    name: Client-side encrypted cloud backup
+    status: available
+    platforms: [flutter-mobile, flutter-desktop]
+    algos: [ml-kem-1024]
+    building_blocks: [BB8, BB5]
+    you_supply: [HKDF, AEAD, recovery-key handling]
+    feasibility: "Strong; defends harvest-now-decrypt-later."
+    caveats: ["Lose the seed/key, lose the data; design recovery."]
+  - id: mob-field-records
+    domain: mobile
+    name: Offline-first signed field records
+    status: available
+    platforms: [flutter-mobile]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB4, BB6]
+    you_supply: [local store, sync, enrollment, canonical encoding]
+    feasibility: "Cheap per record."
+    caveats: ["A signature proves the key signed it, not that contents are true."]
+  - id: mob-doc-signing
+    domain: mobile
+    name: Mobile document / contract signing
+    status: available
+    platforms: [flutter-mobile, flutter-desktop]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB4]
+    you_supply: [doc canonicalization, signature container, identity trust]
+    feasibility: "hashSign handles large documents."
+    caveats: ["Legal e-signature validity is regulatory, not cryptographic."]
+  - id: mob-key-verify
+    domain: mobile
+    name: Contact-key verification (safety numbers)
+    status: available
+    platforms: [flutter-mobile]
+    algos: [ml-dsa-65, ml-kem-768]
+    building_blocks: [BB4]
+    you_supply: [fingerprint encoding, hash, QR/scan UI]
+    feasibility: "UX over public-key bytes."
+    caveats: ["Out-of-band verification is what defeats MITM; do not skip it."]
+  - id: mob-p2p-transfer
+    domain: mobile
+    name: Secure peer-to-peer file transfer
+    status: available
+    platforms: [flutter-mobile, flutter-desktop]
+    algos: [ml-kem-768]
+    building_blocks: [BB2, BB10]
+    you_supply: [transport, key-exchange bootstrap, HKDF, AEAD]
+    feasibility: "Chunk large files under the AEAD."
+    caveats: ["Authenticate the peer key (QR/NFC)."]
+  - id: mob-push-encryption
+    domain: mobile
+    name: Encrypted push-notification payloads
+    status: available
+    platforms: [flutter-mobile]
+    algos: [ml-kem-768]
+    building_blocks: [BB2]
+    you_supply: [HKDF, AEAD, payload-size budget]
+    feasibility: "Works for small payloads within push limits."
+    caveats: ["Push metadata is still visible."]
+
+  # --- desktop and cli ---
+  - id: cli-file-encrypt
+    domain: desktop-cli
+    name: File / folder encryption tool
+    status: available
+    platforms: [dart-cli, flutter-desktop]
+    algos: [ml-kem-768, ml-kem-1024]
+    building_blocks: [BB2, BB8]
+    you_supply: [HKDF, AEAD, file container format, key management]
+    feasibility: "Excellent on the VM; stream large files."
+    caveats: ["Do not load multi-GB files into RAM."]
+  - id: cli-artifact-signing
+    domain: desktop-cli
+    name: Artifact / code signing CLI
+    status: available
+    platforms: [dart-cli, ci]
+    algos: [ml-dsa-65, ml-dsa-87]
+    building_blocks: [BB1, BB7]
+    you_supply: [signature container, key custody, CI verify step]
+    feasibility: "Drop-in for release pipelines."
+    caveats: ["Protect the signing key; sign versioned metadata."]
+  - id: cli-git-signer
+    domain: desktop-cli
+    name: Git commit / tag signer
+    status: available
+    platforms: [dart-cli]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1]
+    you_supply: [git integration, key distribution]
+    feasibility: "Practical as an out-of-band signature store."
+    caveats: ["You are building a side trust channel; document it."]
+  - id: cli-sealed-config
+    domain: desktop-cli
+    name: Secrets distribution / sealed config tool
+    status: available
+    platforms: [dart-cli]
+    algos: [ml-kem-1024]
+    building_blocks: [BB2, BB8]
+    you_supply: [HKDF, AEAD, vault key custody]
+    feasibility: "Strong."
+    caveats: ["Authenticity needs a signature."]
+  - id: cli-keyring
+    domain: desktop-cli
+    name: PQC keyring / keychain manager
+    status: available
+    platforms: [dart-cli, flutter-desktop]
+    algos: [ml-kem-512, ml-kem-768, ml-kem-1024, ml-dsa-44, ml-dsa-65, ml-dsa-87]
+    building_blocks: [BB4, BB5]
+    you_supply: [OS keystore integration, export formats, backup]
+    feasibility: "Mostly app logic around keygen."
+    caveats: ["The seed equals the key; protect backups."]
+
+  # --- embedded / iot (embedded linux / SBC only) ---
+  - id: iot-update-verify
+    domain: embedded
+    name: On-device update signature verification
+    status: available
+    platforms: [embedded-linux, sbc]
+    algos: [ml-dsa-65]
+    building_blocks: [BB7]
+    you_supply: [pinned vendor key in image, rollback protection]
+    feasibility: "Verify is light; good first PQC step for a fleet."
+    caveats: ["Sign version + model id.", "Bare-metal MCUs are out of scope."]
+  - id: iot-device-identity
+    domain: embedded
+    name: Device identity and fleet enrollment
+    status: available
+    platforms: [embedded-linux, sbc]
+    algos: [ml-dsa-65]
+    building_blocks: [BB4, BB1]
+    you_supply: [provisioning, enrollment authority, secure key storage (TPM/SE)]
+    feasibility: "Sign-on-challenge is occasional."
+    caveats: ["Without secure hardware the identity can be cloned."]
+  - id: iot-signed-telemetry
+    domain: embedded
+    name: Signed sensor telemetry / data integrity
+    status: available
+    platforms: [embedded-linux, sbc]
+    algos: [ml-dsa-44]
+    building_blocks: [BB1, BB6]
+    you_supply: [batching, time source]
+    feasibility: "Batch to amortize signing; ML-DSA-44 is light."
+    caveats: ["Integrity is not confidentiality.", "Signed behavioral telemetry is a surveillance/coercion substrate."]
+  - id: iot-edge-encryption
+    domain: embedded
+    name: Edge-to-cloud payload encryption (MQTT/CoAP)
+    status: available
+    platforms: [embedded-linux, sbc]
+    algos: [ml-kem-512, ml-kem-768]
+    building_blocks: [BB2, BB3]
+    you_supply: [HKDF, AEAD, transport binding, session caching]
+    feasibility: "Cache the KEM result and rekey; ciphertext is large for tiny MTUs."
+    caveats: ["Mind payload sizes on constrained links."]
+  - id: iot-provenance
+    domain: embedded
+    name: Supply-chain provenance / device birth certificates
+    status: available
+    platforms: [factory-tooling, field-verify]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB4]
+    you_supply: [manufacturing schema, authority key custody]
+    feasibility: "Sign once at birth; verify anywhere."
+    caveats: ["Provenance proves origin claims, not untampered hardware."]
+
+  # --- web ---
+  - id: web-e2e
+    domain: web
+    name: Browser-based end-to-end encryption
+    status: available
+    platforms: [flutter-web, dart-web, pwa]
+    algos: [ml-kem-768]
+    building_blocks: [BB2]
+    you_supply: [HKDF, AEAD, browser key storage]
+    feasibility: "Per-message work fine; avoid frequent keygen on the UI thread."
+    caveats: ["Web isolates do not offload CPU.", "Browser key storage is exposed to XSS."]
+  - id: web-doc-signing
+    domain: web
+    name: Client-side document signing in the browser
+    status: available
+    platforms: [flutter-web, dart-web]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1]
+    you_supply: [key storage, document canonicalization]
+    feasibility: "Signing a hash is quick."
+    caveats: ["XSS/key-storage is the real boundary."]
+  - id: web-interop-demo
+    domain: web
+    name: PQC interop demo vs an OpenSSL/WebCrypto backend
+    status: available
+    platforms: [flutter-web, dart-web]
+    algos: [ml-kem-512, ml-kem-768, ml-kem-1024]
+    building_blocks: [BB2]
+    you_supply: [the server, HKDF, AEAD]
+    feasibility: "Encodings are byte-identical; no conversion."
+    caveats: ["A demo is not a hardened deployment."]
+
+  # --- interop / polyglot ---
+  - id: interop-dart-openssl
+    domain: interop
+    name: Dart client to OpenSSL/C server key exchange
+    status: available
+    platforms: [dart-client, openssl-server, polyglot]
+    algos: [ml-kem-512, ml-kem-768, ml-kem-1024]
+    building_blocks: [BB2, BB3]
+    you_supply: [the non-Dart side, HKDF, AEAD]
+    feasibility: "Proven by interop Tests C/D."
+    caveats: ["Only public keys/ciphertexts/seeds cross the wire."]
+  - id: interop-hybrid-tls-component
+    domain: interop
+    name: Hybrid TLS-adjacent ML-KEM component
+    status: available
+    platforms: [dart-server]
+    algos: [ml-kem-768]
+    building_blocks: [BB3]
+    you_supply: [X25519, the TLS/transport stack, HKDF]
+    feasibility: "ML-KEM encodings match OpenSSL."
+    caveats: ["A component, not a TLS stack."]
+    forbidden_claims: ["PQC TLS"]
+  - id: interop-migration-harness
+    domain: interop
+    name: Migration / dual-stack validation harness
+    status: available
+    platforms: [ci, tooling]
+    algos: [ml-kem-512, ml-kem-768, ml-kem-1024]
+    building_blocks: [BB5]
+    you_supply: [the comparison harness]
+    feasibility: "Deterministic seed path makes it exact."
+    caveats: ["Validates functional equivalence, not side-channel parity."]
+  - id: interop-regression-guard
+    domain: interop
+    name: Cross-implementation regression guard
+    status: available
+    platforms: [ci]
+    algos: [ml-kem-512, ml-kem-768, ml-kem-1024]
+    building_blocks: []
+    you_supply: [CI wiring (example workflow exists in the repo)]
+    feasibility: "Already implemented; reuse it."
+    caveats: ["Needs OpenSSL >= 3.5."]
+
+  # --- vertical industries ---
+  - id: vert-fintech
+    domain: vertical
+    name: "Fintech: signed transactions and authorization"
+    status: available
+    platforms: [dart-server, mobile]
+    algos: [ml-dsa-65, ml-dsa-87, ml-kem-768]
+    building_blocks: [BB1, BB3, BB6]
+    you_supply: [ledger, idempotency, regulatory controls, HSM custody]
+    feasibility: "Standard signing/handshake patterns."
+    caveats: ["No CMVP/FIPS 140 validation; many financial regimes require validated modules."]
+    forbidden_claims: ["FIPS validated"]
+  - id: vert-healthcare
+    domain: vertical
+    name: "Healthcare: encrypted records and signed events"
+    status: available
+    platforms: [dart-server, mobile]
+    algos: [ml-kem-1024, ml-dsa-65]
+    building_blocks: [BB8, BB1, BB6]
+    you_supply: [access control, audit, HKDF, AEAD, legal compliance]
+    feasibility: "Strong for at-rest confidentiality."
+    caveats: ["Crypto is one control; de-identification/access policy matter more for most threats."]
+  - id: vert-legal
+    domain: vertical
+    name: Legal and notarization
+    status: available
+    platforms: [dart-server, mobile, cli]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB6]
+    you_supply: [trusted timestamp source, identity vetting, archival format]
+    feasibility: "Straightforward signing."
+    caveats: ["Legal validity is jurisdictional, not a crypto guarantee."]
+  - id: vert-govtech
+    domain: vertical
+    name: Govtech and civic technology
+    status: available
+    platforms: [dart-server, mobile, web]
+    algos: [ml-dsa-65, ml-kem-768]
+    building_blocks: [BB1, BB2, BB6, BB4]
+    you_supply: [identity, storage, transparency, governance]
+    feasibility: "Signing/sealing/logging patterns apply."
+    caveats:
+      - "E-VOTING HARD FLAG: a signature scheme is not an election system."
+      - "Coercion-resistance, ballot secrecy, end-to-end verifiability are NOT solved by ML-DSA/ML-KEM."
+      - "Do not build/market voting on these primitives alone."
+    forbidden_claims: ["verifiable e-voting", "secure online voting"]
+  - id: vert-supply-chain
+    domain: vertical
+    name: Supply chain and product authenticity
+    status: available
+    platforms: [dart-server, mobile, cli]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB7, BB4]
+    you_supply: [item identity, scanning UX, registry]
+    feasibility: "Sign and verify SBOMs/tags."
+    caveats: ["Signatures bind data to a key, not goods to reality; add physical anti-tamper."]
+  - id: vert-credentials
+    domain: vertical
+    name: Identity and verifiable credentials
+    status: available
+    platforms: [dart-server, mobile]
+    algos: [ml-dsa-65]
+    building_blocks: [BB1, BB4]
+    you_supply: [credential schema, revocation, selective disclosure if needed]
+    feasibility: "Plain signed credentials are easy."
+    caveats: ["Plain signatures reveal the whole credential; ZK selective disclosure is out of scope."]
+  - id: vert-media-provenance
+    domain: vertical
+    name: Media provenance and source protection
+    status: available
+    platforms: [mobile, dart-server]
+    algos: [ml-dsa-65, ml-kem-1024]
+    building_blocks: [BB1, BB2]
+    you_supply: [capture integration, metadata policy, operational security]
+    feasibility: "Sign at capture; encrypt submissions."
+    caveats: ["Source protection is mostly opsec, not encryption; metadata/seizure defeat crypto-only designs."]
+    forbidden_claims: ["guaranteed anonymity"]
+
+# These require a future release; do NOT design against them yet.
+future:
+  - id: fut-dual-pq-signature
+    name: Dual post-quantum signatures (ML-DSA + SLH-DSA)
+    required_release: "0.4.0/0.5.0"
+    status: planned
+    note: "Diversify across two different hardness families via BB9."
+  - id: fut-archival-signing
+    name: Long-term / archival hash-based signing
+    required_release: "0.4.0/0.5.0"
+    status: planned
+    note: "SLH-DSA for decades-long signature trust."
+  - id: fut-native-kmac
+    name: Native keyed MAC / transcript hashing
+    required_release: "0.7.0"
+    status: planned
+    note: "SP 800-185 KMAC/TupleHash/cSHAKE could shrink the you_supply list for BB3/BB6."
+  - id: fut-standalone-sha3
+    name: Standalone SHA-3 utility surface
+    required_release: "0.7.0"
+    status: planned
+    note: "Full FIPS 202 (incl. SHA3-224/384) as public API."
+  - id: fut-hqc-kem-agility
+    name: Code-based KEM diversification (HQC)
+    required_release: "tbd"
+    status: exploratory
+    note: "Alternative hardness assumption for BB2/BB3 crypto-agility."
+  - id: fut-falcon-compact-sig
+    name: Compact signatures (FN-DSA / Falcon)
+    required_release: "tbd"
+    status: exploratory
+    note: "Where ML-DSA signature size is the binding constraint."
+  - id: fut-stateful-hbs-firmware
+    name: High-assurance firmware signing (LMS/XMSS)
+    required_release: "tbd"
+    status: exploratory
+    note: "Stateful HBS; state reuse is catastrophic — rigorous state custody required."

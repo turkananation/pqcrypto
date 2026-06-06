@@ -101,6 +101,10 @@ Expected as of this update:
 - For multi-agent PQC workflows, use the committed Claude wrapper at
   `.claude/skills/universal-pqc-framework/SKILL.md`; it is a thin wrapper over
   the canonical framework doc and manifest.
+- For website, AI discovery, and editor-agent rule changes, edit
+  `tool/visibility/visibility_manifest.json` and regenerate with
+  `dart run tool/visibility/generate_visibility.dart`; do not hand-edit the
+  generated outputs.
 
 ## Known High-Priority Work
 

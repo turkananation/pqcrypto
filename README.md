@@ -11,6 +11,8 @@
 
 The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation — see [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is not claimed.
 
+**📚 Documentation:** [Website](https://turkananation.github.io/pqcrypto/) · [Wiki](https://github.com/turkananation/pqcrypto/wiki) · [Quickstart](https://github.com/turkananation/pqcrypto/wiki/Quickstart) · [Cookbook (project ideas)](doc/cookbook/README.md) · [API reference](https://pub.dev/documentation/pqcrypto/latest/) · [Documentation index](doc/INDEX.md)
+
 ---
 
 ## 🚀 Features
@@ -331,6 +333,12 @@ tool/
 
 ### Quick Start
 
+> **Looking for project ideas?** The [Cookbook](doc/cookbook/README.md) catalogs
+> things you can build across servers, mobile, desktop, CLI, embedded Linux, web,
+> and cross-language interop — each composed from reusable, API-correct
+> [building blocks](doc/cookbook/BUILDING_BLOCKS.md). Browse the
+> [project catalog](doc/cookbook/PROJECT_CATALOG.md), or the machine-readable
+> [`project-ideas.yaml`](doc/cookbook/project-ideas.yaml) for AI agents.
 > **Serverpod Users:** Check out the [Full Stack Integration Guide](doc/SERVERPOD_FLUTTER_GUIDE.md) for a complete backend + client implementation pattern.
 > **Agent Workflows:** The project-level
 > [Universal Multi-Agent PQC Framework](doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)

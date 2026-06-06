@@ -33,6 +33,8 @@ project documentation; the older documentation directory has been retired.
 | Multi-agent PQC workflows      | [UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md](UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)   | [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)   |
 | Future algorithms              | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)                       | [IMPROVEMENTS.md](IMPROVEMENTS.md)                         |
 | Serverpod/Flutter use          | [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)                           | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                   |
+| Project ideas by domain        | [cookbook/README.md](cookbook/README.md)                                           | [PROJECT_CATALOG.md](cookbook/PROJECT_CATALOG.md)          |
+| Public website and AI discovery | [Website](https://turkananation.github.io/pqcrypto/)                               | [../llms.txt](../llms.txt)                                 |
 
 ## Documents
 
@@ -56,6 +58,8 @@ project documentation; the older documentation directory has been retired.
 | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)                       | Guidance for SLH-DSA, HQC, FN-DSA, and future PQC work.                                |
 | [SERVERPOD_FLUTTER_GUIDE.md](SERVERPOD_FLUTTER_GUIDE.md)                           | Example ML-KEM + ML-DSA handshake pattern for Serverpod and Flutter.                   |
 | [UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md](UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md)   | Project-level Codex/Claude/Antigravity agent framework for PQC integration planning.   |
+| [cookbook/README.md](cookbook/README.md)                                           | Builder-facing project-idea catalog and reusable recipes across domains.               |
+| [../tool/visibility/README.md](../tool/visibility/README.md)                       | Generated GitHub Pages, AI discovery files, and coding-agent rule surfaces.            |
 
 ## Verification Snapshot
 

@@ -139,6 +139,28 @@ These wrappers are thin. The canonical source is
 plus [tool/agent_framework/pqc_framework.yaml](tool/agent_framework/pqc_framework.yaml).
 Keep role output and implementation plans inside that evidence boundary.
 
+## Visibility and AI Discovery Surfaces
+
+The GitHub Pages site, root AI discovery files, Copilot instructions, Cursor
+rule, and Windsurf rule are generated from
+[tool/visibility/visibility_manifest.json](tool/visibility/visibility_manifest.json).
+Do not edit generated outputs directly. Update the manifest, then run:
+
+```bash
+dart run tool/visibility/generate_visibility.dart
+dart run tool/visibility/generate_visibility.dart --check
+```
+
+The generated outputs include:
+
+- `site/` for GitHub Pages;
+- `llms.txt`, `llms-full.txt`, `identity.json`, `developer-ai.txt`,
+  `faq-ai.txt`, `ai.txt`, `robots-ai.txt`, and `robots.txt`;
+- `.github/copilot-instructions.md`;
+- `.github/instructions/pqcrypto-crypto.instructions.md`;
+- `.cursor/rules/pqcrypto.mdc`;
+- `.windsurfrules`.
+
 ## Security Auditing Phase
 
 Focus areas:
