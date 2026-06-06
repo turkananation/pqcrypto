@@ -346,7 +346,7 @@ final out = CShake128.hash(
   message,
   outputLength: 64,
   functionName: Uint8List(0),
-  customization: ascii('tenant-a'),
+  customization: ascii.encode('tenant-a'),
 );
 ```
 
@@ -376,7 +376,7 @@ final tag = Kmac256.mac(
   key,
   message,
   outputLength: 32,
-  customization: ascii('pqcrypto:v1'),
+  customization: ascii.encode('pqcrypto:v1'),
 );
 ```
 
@@ -415,7 +415,7 @@ API target:
 final digest = TupleHash256.hash(
   [firstField, secondField, Uint8List(0)],
   outputLength: 64,
-  customization: ascii('record-hash'),
+  customization: ascii.encode('record-hash'),
 );
 ```
 
@@ -554,10 +554,16 @@ export 'src/common/sp800_185.dart'
         CShake256,
         Kmac128,
         Kmac256,
+        KmacXof128,
+        KmacXof256,
         TupleHash128,
         TupleHash256,
+        TupleHashXof128,
+        TupleHashXof256,
         ParallelHash128,
-        ParallelHash256;
+        ParallelHash256,
+        ParallelHashXof128,
+        ParallelHashXof256;
 ```
 
 API design rules:
