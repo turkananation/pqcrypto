@@ -1,6 +1,6 @@
 # FIPS Evidence and Claim Boundary
 
-Last updated: 2026-06-06
+Last updated: 2026-06-13
 
 This document records standards alignment evidence for the current repository.
 It is not a CMVP/FIPS 140 validation certificate, and it must not be cited as
@@ -12,10 +12,10 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 | Standard     | Scope in repo                                            | Current status                                                                                                                                   |
 | ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | FIPS 203     | ML-KEM-512/768/1024                                      | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                  |
-| FIPS 202     | SHA3-256/512, SHAKE128/256 today; SHA3-224/384 planned   | Partial vendored implementation with known-answer tests; full-family completion targets 0.7.0, with 0.8.0 spillover if needed.                   |
+| FIPS 202     | SHA3-224/256/384/512 and SHAKE128/256                    | Partial vendored implementation with selected official byte examples; non-byte and full-corpus completion target 0.7.0/0.8.0.                    |
 | SP 800-185   | cSHAKE, KMAC, TupleHash, ParallelHash                    | Not implemented yet. Controlled by the FIPS 202 / SP 800-185 release guide; targets 0.7.0 with disciplined 0.8.0 spillover.                      |
 | FIPS 204     | ML-DSA-44/65/87                                          | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated.   |
-| FIPS 205     | SLH-DSA (planned)                                        | In development; SHAKE sets target v0.4.0, SHA-2 sets v0.5.0. No code or KAT corpus yet. See the release guide.                                   |
+| FIPS 205     | SLH-DSA                                                  | In development: M1 internal scaffolding exists; no signing API or ACVP corpus/claim yet. SHAKE targets v0.4.0, SHA-2 v0.5.0                      |
 | FIPS 180-4   | SHA-256/384/512                                          | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                                 |
 | FIPS 140     | Cryptographic module validation                          | Not claimed. No CMVP validation record exists in this repo.                                                                                      |
 
@@ -58,17 +58,19 @@ uses wrapper functions in `lib/src/common/shake.dart`.
 
 Evidence:
 
-- `test/keccak_test.dart` pins SHA3-256, SHA3-512, SHAKE128, and SHAKE256
-  against known-answer values, including multi-block and XOF prefix-stability
-  cases.
+- `test/keccak_test.dart` pins all four SHA3 functions plus SHAKE128/256,
+  including direct Keccak-f[1600] constants/profiles, rate boundaries,
+  multi-block absorb, and XOF chunk/prefix behavior.
+- `test/data/FIPS202` records selected official NIST empty/1600-bit byte
+  examples for all six functions, source URLs, retrieval date, and PDF hashes;
+  `test/fips202_examples_test.dart` executes the normalized corpus.
 - `pubspec.yaml` has no runtime dependencies; `lints` and `test` are
   dev-only dependencies.
 
 Current limitations:
 
-- SHA3-224 and SHA3-384 are not implemented yet.
-- The official NIST example-value corpus is not checked in yet.
 - Non-byte-aligned FIPS 202 examples are not covered yet.
+- The checked-in NIST subset does not yet cover every published example.
 
 Full FIPS 202 completion targets 0.7.0 and is planned in
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). The
@@ -135,14 +137,19 @@ rejection loops are best-effort, not provably constant-time, in pure Dart; and
 HashML-DSA exposes only the level-bound SHA-2 pre-hash. See
 [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
-## FIPS 205 - SLH-DSA (planned)
+## FIPS 205 - SLH-DSA (in development)
 
-SLH-DSA is **not yet implemented**. The full A-Z compliance and release plan is
-in [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). When
-shipped, the evidence model mirrors ML-DSA: byte-exact against the checked-in
-NIST ACVP SLH-DSA KAT corpus for each claimed parameter set, with the same
-evidence-scoped claim boundary. The six SHAKE parameter sets are planned for
-v0.4.0 and the six SHA-2 sets for v0.5.0.
+SLH-DSA is **not yet shipped or exported**. Internal M1 scaffolding now covers
+all 12 Table 2 parameter records, Algorithms 1-4 utilities, the 32-byte address
+layout, and the six SHAKE hash functions. Focused VM and dart2js tests pass,
+including independent OpenSSL SHAKE vectors. This is component regression
+evidence only, not SLH-DSA algorithm conformance.
+
+The full A-Z compliance and release plan is in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). Before
+shipping, the evidence model must mirror ML-DSA: byte-exact against the
+checked-in NIST ACVP SLH-DSA corpus for each claimed parameter set. The six
+SHAKE parameter sets target v0.4.0 and the six SHA-2 sets v0.5.0.
 
 Acceptable wording once a release is complete:
 

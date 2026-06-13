@@ -809,11 +809,13 @@ parameter sets being claimed.
 
 SHAKE release (v0.4.0):
 
-- [ ] `SlhDsaParams` encodes all 12 sets with derived sizes from one source of
+- [x] `SlhDsaParams` encodes all 12 sets with derived sizes from one source of
       truth; size tests pass.
-- [ ] `toInt`/`toByte`/`base_2b`/`Trunc_n`/`gen_len2` implemented and tested.
-- [ ] `ADRS` (32-byte) and the seven types with member functions match Table 1.
-- [ ] SHAKE instantiation of `H_msg`/`PRF`/`PRF_msg`/`F`/`H`/`T_len` is exact.
+- [x] `toInt`/`toByte`/`base_2b`/`Trunc_n`/`gen_len2` implemented and tested.
+- [x] `ADRS` (32-byte) and the seven types with member functions match Table 1.
+- [x] SHAKE instantiation of `H_msg`/`PRF`/`PRF_msg`/`F`/`H`/`T_len` is
+      implemented and pinned by independent SHAKE vectors; ACVP composition
+      evidence remains part of the release gate below.
 - [ ] WOTS+, XMSS, hypertree, FORS (Algorithms 5-17) implemented; component
       round-trips green; components are not public APIs.
 - [ ] SLH-DSA internal + external (Algorithms 18-25); hedged default;

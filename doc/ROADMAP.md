@@ -84,7 +84,7 @@ cryptographic primitive, which isolates correctness risk before the SHA-2 family
 | Task                                                                | Priority   | Status   |
 | ------------------------------------------------------------------- | ---------- | -------- |
 | Acquire + check in NIST ACVP SLH-DSA vectors (provenance README).   | P0         | Open     |
-| Shared scaffolding: params, util, `ADRS` (32B), SHAKE hashing.      | P0         | Open     |
+| Shared scaffolding: params, util, `ADRS` (32B), SHAKE hashing.      | P0         | Active   |
 | Implement WOTS+, XMSS, hypertree, FORS (Algorithms 5-17).           | P0         | Open     |
 | Internal + external SLH-DSA (Algorithms 18-25); ACVP KAT runner.    | P0         | Open     |
 | Hedged default; `s`-variant gating; BUFF + performance docs.        | P0         | Open     |

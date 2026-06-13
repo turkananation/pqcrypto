@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- Began FIPS 205 SLH-DSA development with internal M1 scaffolding: all 12 Table
+  2 parameter sets and derived sizes, Algorithms 1-4 utilities, the 32-byte
+  `ADRS` layout, and the six SHAKE hash functions. These are not yet exported
+  as a signing API and do not constitute an SLH-DSA conformance claim.
+- Added SHA3-224 and SHA3-384 to the vendored FIPS 202 implementation, direct
+  Keccak-f[1600] constants/profile tests, and a normalized selected NIST
+  byte-example corpus with source provenance.
+
+### Changed
+
+- Added explicit Keccak sponge/output validation and broader VM/web regression
+  coverage for rate boundaries and incremental XOF squeezing.
+
 ## 0.3.1
 
 ### Changed

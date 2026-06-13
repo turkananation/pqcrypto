@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-06-06
+Last updated: 2026-06-13
 
 This tracker reconciles the current codebase, changelog, and local verification
 snapshot. It deliberately separates ML-KEM evidence, ML-DSA evidence, and the
@@ -12,13 +12,13 @@ claim boundary for both algorithms.
 | ------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
 | Version             | 0.3.1              | `pubspec.yaml`, `CHANGELOG.md`.                                                             |
 | Runtime deps        | Complete           | No runtime dependencies; FIPS 202 and FIPS 180-4 primitives vendored.                       |
-| FIPS 202            | Partial            | SHA3-256/512 and SHAKE128/256 present; full family and NIST example corpus planned.         |
+| FIPS 202            | Partial            | SHA3-224/256/384/512 plus SHAKE128/256; official byte examples and table tests pass.        |
 | SP 800-185          | Not started        | cSHAKE/KMAC/TupleHash/ParallelHash planned for 0.7.0, with 0.8.0 spillover if needed.       |
 | ML-KEM              | Supported          | Checked-in KAT corpus, unit tests, OpenSSL interop.                                         |
 | OpenSSL interop     | Supported          | A-G suite for ML-KEM-512/768/1024.                                                          |
 | Web support         | Tested surface     | CI has `dart2js` and `dart2wasm` test jobs.                                                 |
-| ML-DSA              | FIPS 204-aligned   | Byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged); full suite green.   |
-| SLH-DSA             | Planned            | FIPS 205; not started. SHAKE sets target 0.4.0, SHA-2 sets 0.5.0. See the release guide.    |
+| ML-DSA              | FIPS 204-aligned   | Byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged); full suite green    |
+| SLH-DSA             | In development     | M1 params/util/32-byte ADRS/SHAKE hashing implemented; no signing API or ACVP claim yet.    |
 | Formal validation   | Not claimed        | No CMVP/FIPS 140 validation record.                                                         |
 
 ## Phase 0 - Documentation Consolidation
@@ -85,7 +85,7 @@ See [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md) and
 
 ## Phase 5 - SLH-DSA (FIPS 205)
 
-Not started. Controlled by
+In active development. Controlled by
 [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). The SHAKE
 family ships at 0.4.0 (reuses `KeccakXof`, no new primitive); the SHA-2 family
 ships at 0.5.0 (vendored HMAC/MGF1, 22-byte `ADRS^c`, SHA-256/512 split).
@@ -93,7 +93,7 @@ ships at 0.5.0 (vendored HMAC/MGF1, 22-byte `ADRS^c`, SHA-256/512 split).
 | Task                                                        | Status   | Gate / evidence                                 |
 | ----------------------------------------------------------- | -------- | ----------------------------------------------- |
 | Acquire + check in NIST ACVP SLH-DSA vectors.               | Open     | `test/data/SLHDSA` + provenance README.         |
-| Params, util, `ADRS` (32B), SHAKE hashing.                  | Open     | `slhdsa_address_test`, `slhdsa_hashing_test`.   |
+| Params, util, `ADRS` (32B), SHAKE hashing.                  | Active   | Code/tests green; ACVP intermediate gate open.  |
 | WOTS+, XMSS, hypertree, FORS (Algorithms 5-17).             | Open     | `slhdsa_wots/xmss_ht/fors_test`.                |
 | Internal + external SLH-DSA (Algorithms 18-25).             | Open     | `slhdsa_kat_test` byte-exact (SHAKE).           |
 | Hedged default, `s`-gating, BUFF + perf docs, benchmarks.   | Open     | API docstrings, README, PERFORMANCE.md.         |
@@ -109,18 +109,19 @@ are tracked as SLH-01..SLH-05 in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 ## Phase 7 - FIPS 202 / SP 800-185 SHA-3 Foundation
 
 Target release: **0.7.0**, with **0.8.0** reserved for standards-complete
-spillover if the full evidence gate cannot close in 0.7.0. Not started beyond
-the current partial FIPS 202 implementation. Controlled by
+spillover if the full evidence gate cannot close in 0.7.0. The byte-oriented
+shared-core prerequisite has started; non-byte examples and SP 800-185 remain.
+Controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 | Task                                                    | Status   | Gate / evidence                                                           |
 | ------------------------------------------------------- | -------- | ------------------------------------------------------------------------- |
 | Publish FIPS 202 / SP 800-185 release guide.            | Done     | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).   |
 | Create GitHub issue map SHA3-00..SHA3-12.               | Done     | Epic #48 and child issues #36..#47.                                       |
-| Acquire + normalize NIST FIPS 202 example vectors.      | Open     | `test/data/FIPS202` provenance manifest.                                  |
+| Acquire + normalize NIST FIPS 202 example vectors.      | Partial  | Empty/1600-bit byte cases for all six functions; non-byte cases remain    |
 | Acquire + normalize NIST SP 800-185 example vectors.    | Open     | `test/data/SP800185` provenance manifest.                                 |
-| Implement SHA3-224 and SHA3-384.                        | Open     | `fips202_examples_test.dart`.                                             |
-| Add Keccak constants/suffix/rate/capacity tests.        | Open     | Direct table tests for Keccak-f[1600] and functions.                      |
+| Implement SHA3-224 and SHA3-384.                        | Done     | Official byte examples plus VM/dart2js focused tests.                     |
+| Add Keccak constants/suffix/rate/capacity tests.        | Done     | Active implementation tables are directly pinned in `keccak_test.dart`.   |
 | Implement SP 800-185 encodings and cSHAKE.              | Open     | `sp800_185_encoding_test`, `sp800_185_cshake_test`.                       |
 | Implement KMAC/KMACXOF.                                 | Open     | `sp800_185_kmac_test`; key/tag guidance docs.                             |
 | Implement TupleHash/ParallelHash families.              | Open     | Tuple-boundary and multi-block ParallelHash tests.                        |
@@ -138,6 +139,5 @@ the current partial FIPS 202 implementation. Controlled by
 | Web portable suite   | `dart test -p chrome` and `dart test -p chrome --compiler dart2wasm`                                                                                                                             |
 | OpenSSL interop      | `cd tool/openssl_interop && dart test` with ML-KEM-capable OpenSSL                                                                                                                               |
 
-The full VM suite is expected to be green (160 tests), as are the `dart2js` and
-`dart2wasm` web gates. Add `dart test test/mldsa_kat_test.dart` for the ML-DSA
-KAT runner.
+The full VM suite and both web compiler gates are expected to remain green. Add
+`dart test test/mldsa_kat_test.dart` for the ML-DSA KAT runner.
