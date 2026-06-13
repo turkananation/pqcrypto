@@ -1,7 +1,5 @@
 import 'dart:typed_data';
 
-import 'util.dart';
-
 /// FIPS 205 Table 1 address types.
 enum AdrsType {
   wotsHash(0),
@@ -21,9 +19,9 @@ enum AdrsType {
 ///
 /// Layout: layer (4) || tree (12) || type (4) || type-specific (12).
 final class Adrs {
-  Adrs() : _bytes = Uint8List(byteLength);
+  Adrs() : this._(Uint8List(byteLength));
 
-  Adrs.fromBytes(Uint8List bytes) : _bytes = Uint8List.fromList(bytes) {
+  factory Adrs.fromBytes(Uint8List bytes) {
     if (bytes.length != byteLength) {
       throw ArgumentError.value(
         bytes.length,
@@ -31,7 +29,10 @@ final class Adrs {
         'must be exactly $byteLength',
       );
     }
+    return Adrs._(Uint8List.fromList(bytes));
   }
+
+  Adrs._(this._bytes) : _byteData = ByteData.sublistView(_bytes);
 
   static const int byteLength = 32;
   static const int _layerOffset = 0;
@@ -42,17 +43,42 @@ final class Adrs {
   static const int _hashOrIndexOffset = 28;
 
   final Uint8List _bytes;
+  final ByteData _byteData;
 
   Uint8List toBytes() => Uint8List.fromList(_bytes);
 
   Adrs copy() => Adrs.fromBytes(_bytes);
+
+  /// Copy this address into [destination] without exposing its backing store.
+  void copyBytesTo(Uint8List destination, int offset) {
+    RangeError.checkValidRange(
+      offset,
+      offset + byteLength,
+      destination.length,
+      'offset',
+      'offset + byteLength',
+    );
+    destination.setRange(offset, offset + byteLength, _bytes);
+  }
 
   void setLayerAddress(int layer) {
     _setUint32(_layerOffset, layer, 'layer');
   }
 
   void setTreeAddress(BigInt tree) {
-    _bytes.setRange(_treeOffset, _typeOffset, toByte(tree, 12));
+    if (tree.isNegative) {
+      throw ArgumentError.value(tree, 'tree', 'must be non-negative');
+    }
+    if (tree >= (BigInt.one << 96)) {
+      throw RangeError('tree does not fit in 12 bytes');
+    }
+
+    var remaining = tree;
+    final wordMask = BigInt.from(0xffffffff);
+    for (var offset = _typeOffset - 4; offset >= _treeOffset; offset -= 4) {
+      _byteData.setUint32(offset, (remaining & wordMask).toInt(), Endian.big);
+      remaining >>= 32;
+    }
   }
 
   /// Set the address type and clear all type-specific fields.
@@ -89,9 +115,8 @@ final class Adrs {
     if (value < 0 || value > 0xffffffff) {
       throw RangeError.range(value, 0, 0xffffffff, name);
     }
-    _bytes.setRange(offset, offset + 4, toByte(BigInt.from(value), 4));
+    _byteData.setUint32(offset, value, Endian.big);
   }
 
-  int _getUint32(int offset) =>
-      toInt(Uint8List.sublistView(_bytes, offset, offset + 4)).toInt();
+  int _getUint32(int offset) => _byteData.getUint32(offset, Endian.big);
 }

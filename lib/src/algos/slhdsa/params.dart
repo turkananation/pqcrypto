@@ -3,6 +3,8 @@
 /// Reference: FIPS 205 Table 2 and Equations 5.1-5.4.
 library;
 
+import 'util.dart';
+
 enum SlhDsaHashFamily { sha2, shake }
 
 enum SlhDsaParameter {
@@ -123,7 +125,7 @@ final class SlhDsaParams {
   int get hPrime => h ~/ d;
   int get w => 1 << lgW;
   int get len1 => (8 * n + lgW - 1) ~/ lgW;
-  int get len2 => _genLen2(n, lgW);
+  int get len2 => genLen2(n, lgW);
   int get len => len1 + len2;
   int get t => 1 << a;
 
@@ -175,15 +177,4 @@ final class _SlhDsaParameterRow {
   final int a;
   final int k;
   final bool isFast;
-}
-
-int _genLen2(int n, int lgW) {
-  final w = 1 << lgW;
-  var checksum = ((8 * n + lgW - 1) ~/ lgW) * (w - 1);
-  var result = 0;
-  do {
-    result++;
-    checksum ~/= w;
-  } while (checksum > 0);
-  return result;
 }

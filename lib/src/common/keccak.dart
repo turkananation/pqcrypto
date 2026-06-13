@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'keccak_parameters.dart';
+import 'zeroize.dart';
 
 /// Self-contained FIPS 202 SHA3-224/256/384/512 and SHAKE128/256.
 ///
@@ -146,35 +147,42 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
   final b = Uint32List(50);
   final c = Uint32List(10);
   final d = Uint32List(10);
-
-  // Absorb full blocks.
-  var offset = 0;
-  final n = input.length;
-  while (n - offset >= rateBytes) {
-    _xorBlock(a, input, offset, rateBytes);
-    _permute(a, b, c, d);
-    offset += rateBytes;
-  }
-
-  // Final block: remaining bytes ‖ domain ‖ pad10*1.
   final block = Uint8List(rateBytes);
-  final rem = n - offset;
-  block.setRange(0, rem, input, offset);
-  block[rem] = domain;
-  block[rateBytes - 1] ^= 0x80;
-  _xorBlock(a, block, 0, rateBytes);
-  _permute(a, b, c, d);
+  try {
+    // Absorb full blocks.
+    var offset = 0;
+    final n = input.length;
+    while (n - offset >= rateBytes) {
+      _xorBlock(a, input, offset, rateBytes);
+      _permute(a, b, c, d);
+      offset += rateBytes;
+    }
 
-  // Squeeze.
-  final out = Uint8List(outLen);
-  var got = 0;
-  while (got < outLen) {
-    final take = (outLen - got) < rateBytes ? (outLen - got) : rateBytes;
-    _extractBlock(a, out, got, take);
-    got += take;
-    if (got < outLen) _permute(a, b, c, d);
+    // Final block: remaining bytes ‖ domain ‖ pad10*1.
+    final rem = n - offset;
+    block.setRange(0, rem, input, offset);
+    block[rem] = domain;
+    block[rateBytes - 1] ^= 0x80;
+    _xorBlock(a, block, 0, rateBytes);
+    _permute(a, b, c, d);
+
+    // Squeeze.
+    final out = Uint8List(outLen);
+    var got = 0;
+    while (got < outLen) {
+      final take = (outLen - got) < rateBytes ? (outLen - got) : rateBytes;
+      _extractBlock(a, out, got, take);
+      got += take;
+      if (got < outLen) _permute(a, b, c, d);
+    }
+    return out;
+  } finally {
+    secureZeroUint32(a);
+    secureZeroUint32(b);
+    secureZeroUint32(c);
+    secureZeroUint32(d);
+    secureZero(block);
   }
-  return out;
 }
 
 /// Incremental Keccak sponge in XOF (squeeze) mode.
@@ -209,12 +217,16 @@ class KeccakXof {
       offset += rateBytes;
     }
     final block = Uint8List(rateBytes);
-    final rem = n - offset;
-    block.setRange(0, rem, input, offset);
-    block[rem] = domain;
-    block[rateBytes - 1] ^= 0x80;
-    _xorBlock(_a, block, 0, rateBytes);
-    _permute(_a, _b, _c, _d);
+    try {
+      final rem = n - offset;
+      block.setRange(0, rem, input, offset);
+      block[rem] = domain;
+      block[rateBytes - 1] ^= 0x80;
+      _xorBlock(_a, block, 0, rateBytes);
+      _permute(_a, _b, _c, _d);
+    } finally {
+      secureZero(block);
+    }
     _extractBlock(_a, _buf, 0, rateBytes);
   }
 

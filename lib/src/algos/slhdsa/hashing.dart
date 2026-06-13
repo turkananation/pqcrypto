@@ -73,11 +73,7 @@ final class SlhDsaShakeHashFunctions implements SlhDsaHashFunctions {
   Uint8List prf(Uint8List publicSeed, Uint8List secretSeed, Adrs address) {
     _requireN(publicSeed, 'publicSeed');
     _requireN(secretSeed, 'secretSeed');
-    return _shake(<Uint8List>[
-      publicSeed,
-      address.toBytes(),
-      secretSeed,
-    ], params.n);
+    return _shakeWithAddress(publicSeed, address, secretSeed, params.n);
   }
 
   @override
@@ -118,7 +114,26 @@ final class SlhDsaShakeHashFunctions implements SlhDsaHashFunctions {
     Uint8List publicSeed,
     Adrs address,
     Uint8List message,
-  ) => _shake(<Uint8List>[publicSeed, address.toBytes(), message], params.n);
+  ) => _shakeWithAddress(publicSeed, address, message, params.n);
+
+  Uint8List _shakeWithAddress(
+    Uint8List prefix,
+    Adrs address,
+    Uint8List suffix,
+    int outputLength,
+  ) {
+    final addressOffset = prefix.length;
+    final suffixOffset = addressOffset + Adrs.byteLength;
+    final input = Uint8List(suffixOffset + suffix.length);
+    try {
+      input.setRange(0, addressOffset, prefix);
+      address.copyBytesTo(input, addressOffset);
+      input.setRange(suffixOffset, input.length, suffix);
+      return shake256(input, outputLength);
+    } finally {
+      secureZero(input);
+    }
+  }
 
   Uint8List _shake(List<Uint8List> parts, int outputLength) {
     final inputLength = parts.fold<int>(0, (sum, part) => sum + part.length);
