@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
-/// Self-contained FIPS 202 Keccak: SHA3-256, SHA3-512, SHAKE128, SHAKE256.
+import 'keccak_parameters.dart';
+
+/// Self-contained FIPS 202 SHA3-224/256/384/512 and SHAKE128/256.
 ///
 /// This replaces the previous dependency on `package:pointycastle` — `pqcrypto`
-/// uses only these four Keccak-f[1600] sponge functions, so vendoring them makes
-/// the library zero-dependency without touching its public API.
+/// Vendoring the Keccak-f[1600] sponge keeps the library zero-dependency
+/// without exposing these package-internal primitives through `pqcrypto.dart`.
 ///
 /// ## Portability (VM, dart2wasm, dart2js)
 ///
@@ -24,77 +26,13 @@ import 'dart:typed_data';
 ///    known-answer tests in `test/keccak_test.dart` and the 3000-vector ML-KEM
 ///    KAT corpus, run on both the VM and the web compilers in CI.
 ///
-/// Keccak is structurally constant-time (a fixed 24 rounds with no
-/// secret-dependent branch or memory index); this implementation preserves that
-/// property. It is not a side-channel-hardened or CMVP-validated module — see
-/// `doc/MLKEM_TESTING.md` for the claim boundary.
+/// Keccak-f[1600] executes a fixed 24-round permutation. This implementation is
+/// not a side-channel-hardened or CMVP-validated module; see
+/// `doc/FIPS_140_BOUNDARY.md` for the claim boundary.
 ///
 /// References: FIPS 202 <https://csrc.nist.gov/pubs/fips/202/final>.
 
 const int _mask32 = 0xFFFFFFFF;
-
-/// Iota round constants, as (low 32 bits, high 32 bits) of each 64-bit RC.
-final Uint32List _rcLo = Uint32List.fromList(<int>[
-  0x00000001,
-  0x00008082,
-  0x0000808a,
-  0x80008000,
-  0x0000808b,
-  0x80000001,
-  0x80008081,
-  0x00008009,
-  0x0000008a,
-  0x00000088,
-  0x80008009,
-  0x8000000a,
-  0x8000808b,
-  0x0000008b,
-  0x00008089,
-  0x00008003,
-  0x00008002,
-  0x00000080,
-  0x0000800a,
-  0x8000000a,
-  0x80008081,
-  0x00008080,
-  0x80000001,
-  0x80008008,
-]);
-final Uint32List _rcHi = Uint32List.fromList(<int>[
-  0x00000000,
-  0x00000000,
-  0x80000000,
-  0x80000000,
-  0x00000000,
-  0x00000000,
-  0x80000000,
-  0x80000000,
-  0x00000000,
-  0x00000000,
-  0x00000000,
-  0x00000000,
-  0x00000000,
-  0x80000000,
-  0x80000000,
-  0x80000000,
-  0x80000000,
-  0x80000000,
-  0x00000000,
-  0x80000000,
-  0x80000000,
-  0x80000000,
-  0x00000000,
-  0x80000000,
-]);
-
-/// Rho rotation offsets, indexed by lane `x + 5*y` (FIPS 202 Table 2).
-const List<int> _rho = <int>[
-  0, 1, 62, 28, 27, //
-  36, 44, 6, 55, 20,
-  3, 10, 43, 25, 39,
-  41, 45, 15, 21, 8,
-  18, 2, 61, 56, 14,
-];
 
 /// dart2js-safe 32-bit left shift: pre-mask the high `n` bits so `x << n` stays
 /// within 32 bits. Requires `0 <= n < 32` and `0 <= x <= 0xFFFFFFFF`.
@@ -103,7 +41,7 @@ int _shl32(int x, int n) => ((x & (_mask32 >> n)) << n) & _mask32;
 /// One Keccak-f[1600] permutation, in place on `a` (50 words = 25 lanes × 2).
 /// `b`, `c`, `d` are caller-provided scratch (reused across rounds/calls).
 void _permute(Uint32List a, Uint32List b, Uint32List c, Uint32List d) {
-  for (var round = 0; round < 24; round++) {
+  for (var round = 0; round < KeccakF1600Parameters.rounds; round++) {
     // θ — column parities.
     for (var x = 0; x < 5; x++) {
       var lo = a[2 * x], hi = a[2 * x + 1];
@@ -134,7 +72,7 @@ void _permute(Uint32List a, Uint32List b, Uint32List c, Uint32List d) {
         final src = x + 5 * y;
         final dst = y + 5 * ((2 * x + 3 * y) % 5);
         var lo = a[2 * src], hi = a[2 * src + 1];
-        var n = _rho[src];
+        var n = KeccakF1600Parameters.rhoOffsets[src];
         if (n >= 32) {
           final t = lo;
           lo = hi;
@@ -165,8 +103,8 @@ void _permute(Uint32List a, Uint32List b, Uint32List c, Uint32List d) {
     }
 
     // ι — break symmetry with the round constant.
-    a[0] ^= _rcLo[round];
-    a[1] ^= _rcHi[round];
+    a[0] ^= KeccakF1600Parameters.roundConstantsLow32[round];
+    a[1] ^= KeccakF1600Parameters.roundConstantsHigh32[round];
   }
 }
 
@@ -201,6 +139,9 @@ void _extractBlock(Uint32List a, Uint8List out, int off, int len) {
 
 /// Core sponge: absorb `input`, apply pad10*1 with `domain`, squeeze `outLen`.
 Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
+  _validateSpongeArguments(rateBytes, domain);
+  _validateOutputLength(outLen);
+
   final a = Uint32List(50);
   final b = Uint32List(50);
   final c = Uint32List(10);
@@ -252,7 +193,12 @@ class KeccakXof {
   final Uint8List _buf;
   int _pos = 0;
 
-  KeccakXof(Uint8List input, int rateBytes, int domain)
+  factory KeccakXof(Uint8List input, int rateBytes, int domain) {
+    _validateSpongeArguments(rateBytes, domain);
+    return KeccakXof._validated(input, rateBytes, domain);
+  }
+
+  KeccakXof._validated(Uint8List input, int rateBytes, int domain)
     : _rate = rateBytes,
       _buf = Uint8List(rateBytes) {
     var offset = 0;
@@ -280,6 +226,7 @@ class KeccakXof {
 
   /// Squeeze the next [len] output bytes.
   Uint8List squeeze(int len) {
+    _validateOutputLength(len);
     final out = Uint8List(len);
     var got = 0;
     while (got < len) {
@@ -300,22 +247,76 @@ class KeccakXof {
   }
 }
 
+void _validateSpongeArguments(int rateBytes, int domain) {
+  if (rateBytes <= 0 ||
+      rateBytes >= KeccakF1600Parameters.stateBits ~/ 8 ||
+      rateBytes % 8 != 0) {
+    throw ArgumentError.value(
+      rateBytes,
+      'rateBytes',
+      'must be a positive multiple of 8 smaller than 200',
+    );
+  }
+  if (domain <= 0 || domain >= 0x80) {
+    throw ArgumentError.value(
+      domain,
+      'domain',
+      'must be a non-zero delimited suffix smaller than 0x80',
+    );
+  }
+}
+
+void _validateOutputLength(int outLen) {
+  if (outLen < 0) {
+    throw RangeError.range(outLen, 0, null, 'outLen');
+  }
+}
+
 /// SHAKE128 incremental XOF (rate 168 bytes, domain `0x1F`).
-KeccakXof shake128Xof(Uint8List input) => KeccakXof(input, 168, 0x1F);
+KeccakXof shake128Xof(Uint8List input) => KeccakXof(
+  input,
+  Fips202Parameters.shake128.rateBytes,
+  Fips202Parameters.shake128.domain,
+);
 
 /// SHAKE256 incremental XOF (rate 136 bytes, domain `0x1F`).
-KeccakXof shake256Xof(Uint8List input) => KeccakXof(input, 136, 0x1F);
+KeccakXof shake256Xof(Uint8List input) => KeccakXof(
+  input,
+  Fips202Parameters.shake256.rateBytes,
+  Fips202Parameters.shake256.domain,
+);
 
-/// SHA3-256 (FIPS 202): 32-byte digest, rate 136 bytes, domain `0x06`.
-Uint8List sha3256(Uint8List input) => _keccak(input, 136, 0x06, 32);
+/// SHA3-224 (FIPS 202): 28-byte digest.
+Uint8List sha3224(Uint8List input) =>
+    _fixedDigest(input, Fips202Parameters.sha3224);
 
-/// SHA3-512 (FIPS 202): 64-byte digest, rate 72 bytes, domain `0x06`.
-Uint8List sha3512(Uint8List input) => _keccak(input, 72, 0x06, 64);
+/// SHA3-256 (FIPS 202): 32-byte digest.
+Uint8List sha3256(Uint8List input) =>
+    _fixedDigest(input, Fips202Parameters.sha3256);
+
+/// SHA3-384 (FIPS 202): 48-byte digest.
+Uint8List sha3384(Uint8List input) =>
+    _fixedDigest(input, Fips202Parameters.sha3384);
+
+/// SHA3-512 (FIPS 202): 64-byte digest.
+Uint8List sha3512(Uint8List input) =>
+    _fixedDigest(input, Fips202Parameters.sha3512);
 
 /// SHAKE128 (FIPS 202): XOF, rate 168 bytes, domain `0x1F`.
 Uint8List shake128(Uint8List input, int outLen) =>
-    _keccak(input, 168, 0x1F, outLen);
+    _xof(input, Fips202Parameters.shake128, outLen);
 
 /// SHAKE256 (FIPS 202): XOF, rate 136 bytes, domain `0x1F`.
 Uint8List shake256(Uint8List input, int outLen) =>
-    _keccak(input, 136, 0x1F, outLen);
+    _xof(input, Fips202Parameters.shake256, outLen);
+
+Uint8List _fixedDigest(Uint8List input, Fips202Parameters parameters) =>
+    _keccak(
+      input,
+      parameters.rateBytes,
+      parameters.domain,
+      parameters.digestBytes!,
+    );
+
+Uint8List _xof(Uint8List input, Fips202Parameters parameters, int outLen) =>
+    _keccak(input, parameters.rateBytes, parameters.domain, outLen);

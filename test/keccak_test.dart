@@ -1,11 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:pqcrypto/src/common/keccak.dart';
+import 'package:pqcrypto/src/common/keccak_parameters.dart';
 import 'package:test/test.dart';
 
 /// Direct FIPS 202 known-answer tests for the vendored Keccak (the code that
-/// replaced the `pointycastle` dependency). These pin SHA3-256/512 and
-/// SHAKE128/256 against published NIST values, independent of the ML-KEM KAT
+/// replaced the `pointycastle` dependency). These pin the FIPS 202 functions
+/// against published NIST values, independent of the ML-KEM KAT
 /// corpus. The empty- and "abc"-message vectors fit in one block; the
 /// 1,000,000-byte message exercises the multi-block absorb path; the SHAKE
 /// stream-prefix property exercises multi-block squeeze.
@@ -22,6 +23,29 @@ void main() {
   final empty = Uint8List(0);
   final abc = ascii('abc');
   final millionA = Uint8List(1000000)..fillRange(0, 1000000, 0x61); // 'a'
+
+  group('SHA3-224 (FIPS 202)', () {
+    test('empty', () {
+      expect(
+        sha3224(empty),
+        equals(
+          hexToBytes(
+            '6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7',
+          ),
+        ),
+      );
+    });
+    test('"abc"', () {
+      expect(
+        sha3224(abc),
+        equals(
+          hexToBytes(
+            'e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf',
+          ),
+        ),
+      );
+    });
+  });
 
   group('SHA3-256 (FIPS 202)', () {
     test('empty', () {
@@ -92,6 +116,31 @@ void main() {
     });
   });
 
+  group('SHA3-384 (FIPS 202)', () {
+    test('empty', () {
+      expect(
+        sha3384(empty),
+        equals(
+          hexToBytes(
+            '0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2a'
+            'c3713831264adb47fb6bd1e058d5f004',
+          ),
+        ),
+      );
+    });
+    test('"abc"', () {
+      expect(
+        sha3384(abc),
+        equals(
+          hexToBytes(
+            'ec01498288516fc926459f58e2c6ad8df9b473cb0fc08c2596da7cf0e49be4b'
+            '298d88cea927ac7f539f1edf228376d25',
+          ),
+        ),
+      );
+    });
+  });
+
   group('SHAKE128 / SHAKE256 (FIPS 202)', () {
     test('SHAKE128 empty, 32 bytes', () {
       expect(
@@ -129,5 +178,193 @@ void main() {
       expect(shake256(abc, 136), equals(long.sublist(0, 136)));
       expect(shake256(abc, 300), equals(long.sublist(0, 300)));
     });
+
+    test('incremental squeeze is byte-identical across chunk shapes', () {
+      for (final factory in <KeccakXof Function(Uint8List)>[
+        shake128Xof,
+        shake256Xof,
+      ]) {
+        final xof = factory(abc);
+        final chunked = <int>[
+          ...xof.squeeze(1),
+          xof.squeezeByte(),
+          ...xof.squeeze(133),
+          ...xof.squeeze(0),
+          ...xof.squeeze(379),
+        ];
+        final expected = factory(abc).squeeze(chunked.length);
+        expect(Uint8List.fromList(chunked), equals(expected));
+      }
+    });
+
+    test('zero output is empty and does not consume the stream', () {
+      final xof = shake256Xof(abc);
+      expect(xof.squeeze(0), isEmpty);
+      expect(xof.squeeze(64), equals(shake256(abc, 64)));
+      expect(shake128(abc, 0), isEmpty);
+      expect(shake256(abc, 0), isEmpty);
+    });
+
+    test('negative output lengths are rejected', () {
+      expect(() => shake128(abc, -1), throwsRangeError);
+      expect(() => shake256(abc, -1), throwsRangeError);
+      expect(() => shake128Xof(abc).squeeze(-1), throwsRangeError);
+    });
+  });
+
+  group('Keccak-f[1600] parameters', () {
+    test('round count and iota constants match FIPS 202', () {
+      expect(KeccakF1600Parameters.stateBits, 1600);
+      expect(KeccakF1600Parameters.rounds, 24);
+      expect(
+        KeccakF1600Parameters.roundConstantsLow32,
+        equals(<int>[
+          0x00000001,
+          0x00008082,
+          0x0000808a,
+          0x80008000,
+          0x0000808b,
+          0x80000001,
+          0x80008081,
+          0x00008009,
+          0x0000008a,
+          0x00000088,
+          0x80008009,
+          0x8000000a,
+          0x8000808b,
+          0x0000008b,
+          0x00008089,
+          0x00008003,
+          0x00008002,
+          0x00000080,
+          0x0000800a,
+          0x8000000a,
+          0x80008081,
+          0x00008080,
+          0x80000001,
+          0x80008008,
+        ]),
+      );
+      expect(
+        KeccakF1600Parameters.roundConstantsHigh32,
+        equals(<int>[
+          0x00000000,
+          0x00000000,
+          0x80000000,
+          0x80000000,
+          0x00000000,
+          0x00000000,
+          0x80000000,
+          0x80000000,
+          0x00000000,
+          0x00000000,
+          0x00000000,
+          0x00000000,
+          0x00000000,
+          0x80000000,
+          0x80000000,
+          0x80000000,
+          0x80000000,
+          0x80000000,
+          0x00000000,
+          0x80000000,
+          0x80000000,
+          0x80000000,
+          0x00000000,
+          0x80000000,
+        ]),
+      );
+    });
+
+    test('rho offsets match FIPS 202 Table 2', () {
+      expect(
+        KeccakF1600Parameters.rhoOffsets,
+        equals(<int>[
+          0,
+          1,
+          62,
+          28,
+          27,
+          36,
+          44,
+          6,
+          55,
+          20,
+          3,
+          10,
+          43,
+          25,
+          39,
+          41,
+          45,
+          15,
+          21,
+          8,
+          18,
+          2,
+          61,
+          56,
+          14,
+        ]),
+      );
+    });
+
+    test('rates, capacities, suffixes, and digest lengths are exact', () {
+      final expected = <String, (int, int, int, int?)>{
+        'SHA3-224': (144, 448, 0x06, 28),
+        'SHA3-256': (136, 512, 0x06, 32),
+        'SHA3-384': (104, 768, 0x06, 48),
+        'SHA3-512': (72, 1024, 0x06, 64),
+        'SHAKE128': (168, 256, 0x1f, null),
+        'SHAKE256': (136, 512, 0x1f, null),
+      };
+      expect(Fips202Parameters.values, hasLength(expected.length));
+      for (final parameters in Fips202Parameters.values) {
+        final values = expected[parameters.name]!;
+        expect(parameters.rateBytes, values.$1, reason: parameters.name);
+        expect(parameters.capacityBits, values.$2, reason: parameters.name);
+        expect(parameters.domain, values.$3, reason: parameters.name);
+        expect(parameters.digestBytes, values.$4, reason: parameters.name);
+        expect(
+          parameters.rateBytes * 8 + parameters.capacityBits,
+          KeccakF1600Parameters.stateBits,
+          reason: parameters.name,
+        );
+      }
+    });
+
+    test('unsupported raw sponge arguments are rejected', () {
+      expect(() => KeccakXof(empty, 0, 0x1f), throwsArgumentError);
+      expect(() => KeccakXof(empty, 7, 0x1f), throwsArgumentError);
+      expect(() => KeccakXof(empty, 200, 0x1f), throwsArgumentError);
+      expect(() => KeccakXof(empty, 136, 0), throwsArgumentError);
+      expect(() => KeccakXof(empty, 136, 0x80), throwsArgumentError);
+    });
+  });
+
+  group('rate-boundary behavior', () {
+    final profiles = <(String, int, Uint8List Function(Uint8List))>[
+      ('SHA3-224', 144, sha3224),
+      ('SHA3-256', 136, sha3256),
+      ('SHA3-384', 104, sha3384),
+      ('SHA3-512', 72, sha3512),
+      ('SHAKE128', 168, (input) => shake128(input, 64)),
+      ('SHAKE256', 136, (input) => shake256(input, 64)),
+    ];
+
+    for (final profile in profiles) {
+      test('${profile.$1}: rate - 1, rate, rate + 1 are distinct', () {
+        Uint8List message(int length) =>
+            Uint8List.fromList(List<int>.generate(length, (i) => i & 0xff));
+
+        final before = profile.$3(message(profile.$2 - 1));
+        final exact = profile.$3(message(profile.$2));
+        final after = profile.$3(message(profile.$2 + 1));
+
+        expect(before, isNot(equals(exact)));
+        expect(exact, isNot(equals(after)));
+        expect(before, isNot(equals(after)));
+      });
+    }
   });
 }
