@@ -21,9 +21,9 @@ plan for algorithm conformance, corpus provenance, security hardening, API
 design, test evidence, issue tracking, and public claim discipline. The exact
 acceptable wording lives in [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
-Release train: **0.7.0** is the target for the first complete FIPS 202 /
-SP 800-185 release scope. **0.8.0** is reserved for spillover if the full
-standards surface or its validation evidence cannot close in 0.7.0 without
+Release train: **0.6.0** is the target for the first complete FIPS 202 /
+SP 800-185 release scope. **0.7.0** is reserved for spillover if the full
+standards surface or its validation evidence cannot close in 0.6.0 without
 weakening the claim boundary.
 
 ## Completion Status (2026-06-06)
@@ -71,15 +71,10 @@ Missing before any SP 800-185 claim:
   strings, key length guidance, and unsupported bit-level inputs.
 - VM, dart2js, and dart2wasm tests for the implemented byte-oriented surface.
 
-## Release Strategy (Conclave-Reviewed)
+## Release Strategy
 
-Before this guide was written, the release strategy was stress-tested through
-the Sovereign Conclave skill. Six blind seats (Feynman, Lee Kuan Yew,
-von Neumann, Oppenheimer, Aurelius, and Addington) converged on the same
-recommendation: use a standards-first, evidence-gated release program rather
-than a narrow patch that only fills SHA3-224/SHA3-384. This guide captures the
-durable decision and its implementation consequences; local Conclave scratch
-artifacts remain outside the published package and repository history.
+The release strategy uses a standards-first, evidence-gated program rather than a
+narrow patch that only fills SHA3-224/SHA3-384.
 
 Controlling decisions:
 
@@ -90,7 +85,7 @@ Controlling decisions:
 2. **Split implementation into evidence-backed stages.** Complete FIPS 202
    first, then SP 800-185 encodings and cSHAKE, then KMAC, TupleHash, and
    ParallelHash.
-3. **Use 0.7.0 as the release target and 0.8.0 as disciplined spillover.**
+3. **Use 0.6.0 as the release target and 0.7.0 as disciplined spillover.**
    Incomplete surfaces move forward as tracked scope; they do not become
    undocumented partial claims.
 4. **Do not imply full support from partial primitives.** Current SHA3-256,
@@ -739,9 +734,9 @@ Performance gates:
 
 ## Milestone Plan
 
-The roadmap target is **0.7.0**. Milestones M0-M6 are ordered so that FIPS 202
+The roadmap target is **0.6.0**. Milestones M0-M6 are ordered so that FIPS 202
 can be completed before SP 800-185 derived functions depend on it. Any unfinished
-standards surface that misses 0.7.0 moves to **0.8.0** with the same evidence
+standards surface that misses 0.6.0 moves to **0.7.0** with the same evidence
 requirements; no issue may be closed by downgrading public wording to hide a
 partial implementation.
 

@@ -60,6 +60,44 @@ void main() {
     expect(address.getTreeIndex(), 0x191a1b1c);
   });
 
+  test('Figure 18 ADRS compression uses exact 22-byte offsets', () {
+    final address = Adrs()
+      ..setLayerAddress(0x01020304)
+      ..setTreeAddress(BigInt.parse('05060708090a0b0c0d0e0f10', radix: 16))
+      ..setTypeAndClear(AdrsType.forsPrf)
+      ..setKeyPairAddress(0x11121314)
+      ..setTreeHeight(0x15161718)
+      ..setTreeIndex(0x191a1b1c);
+
+    expect(
+      address.toCompressedBytes(),
+      equals(<int>[
+        0x04,
+        0x09,
+        0x0a,
+        0x0b,
+        0x0c,
+        0x0d,
+        0x0e,
+        0x0f,
+        0x10,
+        0x06,
+        0x11,
+        0x12,
+        0x13,
+        0x14,
+        0x15,
+        0x16,
+        0x17,
+        0x18,
+        0x19,
+        0x1a,
+        0x1b,
+        0x1c,
+      ]),
+    );
+  });
+
   test('tree aliases write the same Table 1 fields', () {
     final address = Adrs()
       ..setTreeHeight(0x01020304)
@@ -112,6 +150,49 @@ void main() {
     expect(() => address.copyBytesTo(Uint8List(32), -1), throwsRangeError);
     expect(() => address.copyBytesTo(Uint8List(32), 1), throwsRangeError);
     expect(() => address.copyBytesTo(Uint8List(31), 0), throwsRangeError);
+  });
+
+  test('copyCompressedBytesTo validates range and preserves source', () {
+    final address = Adrs.fromBytes(
+      Uint8List.fromList(List<int>.generate(32, (index) => index)),
+    );
+    final destination = Uint8List(30)..fillRange(0, 30, 0xff);
+
+    address.copyCompressedBytesTo(destination, 4);
+    final copied = destination.sublist(4, 26);
+    expect(
+      copied,
+      equals(<int>[
+        3,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+      ]),
+    );
+    destination.fillRange(4, 26, 0);
+    expect(address.toBytes(), equals(List<int>.generate(32, (index) => index)));
+    expect(
+      () => address.copyCompressedBytesTo(Uint8List(22), 1),
+      throwsRangeError,
+    );
   });
 
   test('constructor and setters reject values outside their fields', () {

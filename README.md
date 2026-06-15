@@ -19,8 +19,9 @@
 [![ML-KEM levels](https://img.shields.io/badge/ML--KEM-512%20%7C%20768%20%7C%201024-2ea043?style=for-the-badge)](doc/MLKEM_TESTING.md)
 [![FIPS 204](https://img.shields.io/badge/FIPS%20204-ML--DSA-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
 [![ML-DSA levels](https://img.shields.io/badge/ML--DSA-44%20%7C%2065%20%7C%2087-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
+[![FIPS 205](https://img.shields.io/badge/FIPS%20205-SLH--DSA%2012--set%20dev-f59e0b?style=for-the-badge&logo=shield&logoColor=white)](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md)
 [![FIPS 202](https://img.shields.io/badge/FIPS%20202-partial%20SHA--3%2FSHAKE-f59e0b?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
-[![SP 800-185](https://img.shields.io/badge/SP%20800--185-planned%200.7.0-0969da?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
+[![SP 800-185](https://img.shields.io/badge/SP%20800--185-planned%200.6.0-0969da?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
 [![CMVP boundary](https://img.shields.io/badge/CMVP%20%2F%20FIPS%20140-not%20validated-bf8700?style=for-the-badge)](doc/FIPS_140_BOUNDARY.md)
 [![zero dependencies](https://img.shields.io/badge/runtime%20dependencies-0-2ea043?style=for-the-badge)](pubspec.yaml)
 
@@ -58,7 +59,28 @@
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.
 
-The supported release surface provides a **FIPS 203-aligned implementation of ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA (Dilithium)**, each with checked-in known-answer tests and focused unit coverage. ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is byte-exact against the official FIPS 204 KAT corpus across every parameter set, signing mode, and implementation flavour (see below). Neither algorithm claims CMVP/FIPS 140 module validation — see [doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is not claimed.
+The supported release surface provides a **FIPS 203-aligned implementation of
+ML-KEM (Kyber)** and a **FIPS 204-aligned implementation of ML-DSA
+(Dilithium)**, each with checked-in known-answer tests and focused unit
+coverage. The development source tree also exports all 12 FIPS 205 SLH-DSA
+parameter sets (both the SHAKE and SHA-2 hash families), which are byte-exact on
+the 1,248 official NIST ACVP sample cases. SLH-DSA remains a v0.4.0 release
+candidate until the full package platform and publish gates pass.
+
+> **SLH-DSA security notice:** except for the `*-128f` sets, the SLH-DSA
+> parameter sets do not provide the message-bound signature (BUFF) property
+> described by FIPS 205 Section 11. Authorization protocols must use a unique
+> application context and include a nonce or unique message identity in the
+> signed payload. The `s` sets also take roughly 29-56 seconds to sign in the
+> current single-sample VM/compiled-web baselines and require explicit
+> `allowSlowSigning: true`.
+
+ML-KEM additionally carries OpenSSL interoperability evidence. ML-DSA is
+byte-exact against the official FIPS 204 KAT corpus across every parameter set,
+signing mode, and implementation flavour (see below). No algorithm in this
+package claims CMVP/FIPS 140 module validation. See
+[doc/FIPS_140_BOUNDARY.md](doc/FIPS_140_BOUNDARY.md) for exactly what is and is
+not claimed.
 
 **📚 Documentation:** [Website](https://turkananation.github.io/pqcrypto/) · [Wiki](https://github.com/turkananation/pqcrypto/wiki) · [Quickstart](https://github.com/turkananation/pqcrypto/wiki/Quickstart) · [Cookbook (project ideas)](doc/cookbook/README.md) · [API reference](https://pub.dev/documentation/pqcrypto/latest/) · [Documentation index](doc/INDEX.md)
 
@@ -79,9 +101,18 @@ The supported release surface provides a **FIPS 203-aligned implementation of ML
   - **Hedged-by-default signing** with explicit deterministic and pre-hash paths and FIPS 204 context strings (≤ 255 bytes).
   - **Byte-exact** against the official FIPS 204 KAT corpus (1800 signatures + 300 key generations) and **vendored SHA-2** (SHA-256/384/512) for HashML-DSA pre-hashing.
   - **Defensive verification**: returns `false` (never throws) on malformed public keys, signatures, hints, or over-long contexts; unbounded XOF rejection sampling; best-effort secret zeroization.
+- **FIPS 205 SLH-DSA release candidate (all 12 sets)**:
+  - **Algorithm support**: all 12 sets — SLH-DSA-{SHAKE,SHA2}-128s/128f/192s/192f/256s/256f.
+  - **Byte-exact evidence**: all 1,248 cases in the pinned official NIST
+    ACVP sample corpus across keyGen, sigGen, and sigVer.
+  - **Hardened API**: hedged signing by default, explicit deterministic and
+    slow-signing paths, optional verify-after-sign, total malformed-input
+    verification, and source-only ACVP internals.
+  - **Measured costs**: 7,856-49,856 byte signatures; per-target
+    keygen/sign/verify baselines in [doc/PERFORMANCE.md](doc/PERFORMANCE.md).
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
-  - **Zero dependencies.** No third-party packages at all: the current FIPS 202 surface (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`; full FIPS 202 and SP 800-185 completion targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
+  - **Zero dependencies.** No third-party packages at all: the current FIPS 202 surface (SHA3-256/512, SHAKE128/256) is vendored in-tree, so `lib/` depends only on `dart:typed_data`; full FIPS 202 and SP 800-185 completion targets 0.6.0, with 0.7.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ---
 
@@ -139,6 +170,48 @@ final (pk, sk) = MlDsa.generateKeyPair(params);          // fresh randomness
 final sig = MlDsa.sign(sk, message, params, ctx: appCtx); // hedged by default
 final ok  = MlDsa.verify(pk, message, sig, params, ctx: appCtx);
 ```
+
+---
+
+## SLH-DSA Release Candidate (all 12 FIPS 205 sets)
+
+The package root now exports `SlhDsa`, `SlhDsaParams`, `SlhDsaParameter`, and
+`SlhDsaPreHash`. All 12 FIPS 205 parameter sets are implemented — both hash
+families (`SHAKE` and `SHA-2`), each across `128/192/256` and the small/fast
+(`s`/`f`) variants — and are listed in `SlhDsaParams.supportedValues`. The
+development tree is byte-exact on the checked-in official NIST ACVP corpus
+(1,248 keyGen/sigGen/sigVer cases). This surface is an unreleased v0.4.0
+development candidate; the package published on pub.dev is still 0.3.1
+(ML-KEM + ML-DSA).
+
+```dart
+final params = SlhDsaParams.shake128f;
+final context = Uint8List.fromList('com.example.artifact-signing/v1'.codeUnits);
+final message = Uint8List.fromList(<int>[
+  ...artifactDigest,
+  ...uniqueReleaseNonce,
+]);
+
+final (pk, sk) = SlhDsa.generateKeyPair(params);
+final sig = SlhDsa.sign(
+  sk,
+  message,
+  params,
+  context: context,
+  verifyAfterSign: true,
+);
+final ok = SlhDsa.verify(pk, message, sig, params, context: context);
+```
+
+`verifyAfterSign` is optional fault detection: it adds a full verification and
+does not prove resistance to hardware fault injection. Deterministic signing is
+also explicit because repeated computations can amplify fault attacks. See
+[doc/SLHDSA_FIPS205_RELEASE_GUIDE.md](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md),
+[doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md), and
+[doc/PERFORMANCE.md](doc/PERFORMANCE.md).
+
+This is checked-in KAT/regression evidence for an unreleased v0.4.0 surface, not
+a CMVP/FIPS 140 validation claim.
 
 ---
 
@@ -274,7 +347,7 @@ ML-DSA uses a different ring from ML-KEM:
   $\eta \in \{2,3\}$.
 - **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
   bounded sampling, mask expansion, and challenge sampling.
-- **Vendored FIPS 202 foundation**: SHA3-256/512 and SHAKE128/256 are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`. Full FIPS 202 plus SP 800-185 work targets 0.7.0, with 0.8.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
+- **Vendored FIPS 202 foundation**: SHA3-256/512 and SHAKE128/256 are implemented in-tree (`lib/src/common/keccak.dart`) with **no third-party dependency**, using web-safe 32-bit lane arithmetic verified on the VM, `dart2js`, and `dart2wasm`. Full FIPS 202 plus SP 800-185 work targets 0.6.0, with 0.7.0 spillover if needed, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 - **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
   (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
   pairs for SHA-384/512 portability across the VM and web compilers.
@@ -479,7 +552,10 @@ Benchmarks on commodity Linux x64 hardware (Dart 3.x VM, JIT):
 - ✅ **Phase 3: FIPS 203 Alignment** (NTT, Compression, ByteEncode)
 - ✅ **Phase 4: Full Suite** (ML-KEM-512/768/1024 support)
 - ✅ **Phase 5: ML-DSA validation** (byte-exact FIPS 204 KATs for 44/65/87 across raw/pure/hashed × det/hedged; external hedged API; HashML-DSA; repo-local corpus)
-- 🔄 **Phase 6: Hardening and expansion** (best-effort zeroization and constant-time review landed; ongoing side-channel review, SLH-DSA/HQC research)
+- 🔄 **Phase 6: Hardening and expansion** (SLH-DSA API for all 12 sets exported in
+  the development tree; all 1,248 ACVP cases byte-exact; verify-after-sign,
+  per-target benchmarks, VM/web matrix, and publish preflight complete;
+  v0.4.0 not yet tagged or published)
 
 See [doc/ROADMAP.md](doc/ROADMAP.md) for the evidence-scoped roadmap.
 

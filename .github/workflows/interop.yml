@@ -1,10 +1,8 @@
-name: Interop (OpenSSL)
+name: Interop (OpenSSL and liboqs)
 
-# Direct OpenSSL <-> pqcrypto ML-KEM interoperability proof across all three
-# parameter sets (ML-KEM-512/768/1024), tests A-G. Heavier than ci.yml because
-# it needs an OpenSSL >= 3.5 libcrypto (ML-KEM landed in 3.5; GitHub's runner
-# images ship OpenSSL 3.0.x), so it provisions one and caches it by version.
-# See doc/OPENSSL_INTEROP.md.
+# Independent native interoperability proof for every standardized algorithm
+# family exposed by pqcrypto. Provider builds are pinned and cached because
+# GitHub-hosted runners do not ship the required OpenSSL/liboqs versions.
 on:
   push:
   pull_request:
@@ -18,13 +16,18 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  OPENSSL_VERSION: "4.0.0"
+  OPENSSL_VERSION: "4.0.1"
   OPENSSL_PREFIX: ${{ github.workspace }}/.openssl-cache
+  LIBOQS_VERSION: "0.15.0"
+  LIBOQS_COMMIT: "97f6b86b1b6d109cfd43cf276ae39c2e776aed80"
+  LIBOQS_PREFIX: ${{ github.workspace }}/.liboqs-cache
+  NATIVE_BUILD_JOBS: "4"
 
 jobs:
   openssl-interop:
-    name: OpenSSL ↔ pqcrypto ML-KEM 512/768/1024 (Linux)
+    name: OpenSSL ↔ pqcrypto ML-KEM, ML-DSA, SLH-DSA
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -34,43 +37,94 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.OPENSSL_PREFIX }}
-          key: openssl-${{ env.OPENSSL_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+          key: openssl-${{ env.OPENSSL_VERSION }}-${{ hashFiles('tool/openssl_interop/tool/build_openssl.sh') }}-${{ runner.os }}-${{ runner.arch }}
 
       - name: Build OpenSSL ${{ env.OPENSSL_VERSION }} (cache miss only)
         if: steps.cache-openssl.outputs.cache-hit != 'true'
-        run: |
-          set -euxo pipefail
-          tag="openssl-${OPENSSL_VERSION}"
-          curl -fsSL "https://github.com/openssl/openssl/releases/download/${tag}/${tag}.tar.gz" -o /tmp/openssl.tar.gz
-          mkdir -p /tmp/openssl-src
-          tar xzf /tmp/openssl.tar.gz -C /tmp/openssl-src --strip-components=1
-          cd /tmp/openssl-src
-          ./Configure no-docs no-tests shared --prefix="${OPENSSL_PREFIX}" --libdir=lib
-          make -j"$(nproc)"
-          make install_sw
+        run: bash tool/build_openssl.sh
+        working-directory: tool/openssl_interop
 
-      - name: Verify libcrypto exposes ML-KEM
+      - name: Verify libcrypto exposes all pqcrypto families
         run: |
           set -euxo pipefail
           LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib" "${OPENSSL_PREFIX}/bin/openssl" list -kem-algorithms | grep -i 'ml-kem'
+          LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib" "${OPENSSL_PREFIX}/bin/openssl" list -signature-algorithms | grep -i 'ml-dsa'
+          LD_LIBRARY_PATH="${OPENSSL_PREFIX}/lib" "${OPENSSL_PREFIX}/bin/openssl" list -signature-algorithms | grep -i 'slh-dsa'
 
       - name: Set up Dart SDK (stable)
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
-      - name: Install interop tool dependencies
-        run: dart pub get
+      - name: Analyze shared interop package
+        run: |
+          dart pub get
+          dart analyze
+        working-directory: tool/interop_common
+
+      - name: Analyze OpenSSL interop package
+        run: |
+          dart pub get
+          dart analyze
         working-directory: tool/openssl_interop
 
-      - name: Run interop test suite (tests A-G × ML-KEM-512/768/1024)
-        run: dart test
+      - name: Run complete OpenSSL interop suite
+        run: dart test --concurrency=1
         working-directory: tool/openssl_interop
         env:
           LIBCRYPTO_PATH: ${{ env.OPENSSL_PREFIX }}/lib/libcrypto.so
 
-      - name: Run interop harness (human-readable, exit-code gate)
+      - name: Run ML-KEM human-readable harness
         run: dart run bin/openssl_pqcrypto_interop.dart
         working-directory: tool/openssl_interop
         env:
           LIBCRYPTO_PATH: ${{ env.OPENSSL_PREFIX }}/lib/libcrypto.so
+
+  liboqs-interop:
+    name: liboqs ↔ pqcrypto ML-KEM, ML-DSA, SLH-DSA
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Cache liboqs ${{ env.LIBOQS_VERSION }}
+        id: cache-liboqs
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.LIBOQS_PREFIX }}
+          key: liboqs-${{ env.LIBOQS_VERSION }}-${{ env.LIBOQS_COMMIT }}-${{ hashFiles('tool/liboqs_interop/tool/build_liboqs.sh') }}-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Build liboqs ${{ env.LIBOQS_VERSION }} (cache miss only)
+        if: steps.cache-liboqs.outputs.cache-hit != 'true'
+        run: bash tool/build_liboqs.sh
+        working-directory: tool/liboqs_interop
+
+      - name: Verify liboqs exports generic KEM and signature APIs
+        run: |
+          set -euxo pipefail
+          nm -D "${LIBOQS_PREFIX}/lib/liboqs.so" | grep ' OQS_KEM_keypair_derand$'
+          nm -D "${LIBOQS_PREFIX}/lib/liboqs.so" | grep ' OQS_SIG_sign_with_ctx_str$'
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Analyze shared interop package
+        run: |
+          dart pub get
+          dart analyze
+        working-directory: tool/interop_common
+
+      - name: Analyze liboqs interop package
+        run: |
+          dart pub get
+          dart analyze
+        working-directory: tool/liboqs_interop
+
+      - name: Run complete liboqs interop suite
+        run: dart test --concurrency=1
+        working-directory: tool/liboqs_interop
+        env:
+          LIBOQS_PATH: ${{ env.LIBOQS_PREFIX }}/lib/liboqs.so

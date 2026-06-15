@@ -1,6 +1,6 @@
 # SLH-DSA FIPS 205 Compliance and Release Guide
 
-Last updated: 2026-06-06
+Last updated: 2026-06-15
 
 This is the engineering guide for designing, implementing, validating, and
 releasing `pqcrypto`'s SLH-DSA (Stateless Hash-Based Digital Signature
@@ -10,59 +10,76 @@ SLH-DSA design history (SPHINCS+), the existing
 [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md) precedent, and
 the current repository state.
 
-Unlike ML-DSA, **no SLH-DSA code exists yet**. This guide is therefore written
-greenfield and is deliberately more comprehensive than the ML-DSA guide: it
-specifies the algorithm map, the primitive gaps, the parameter arithmetic, the
-two hash-function families, the test-vector provenance, the security posture,
-the milestone plan, and the per-component GitHub issue map from first
-principles, A to Z.
+This guide began as a greenfield plan. The repository has now completed M0-M8
+engineering work locally: the official ACVP corpus is pinned, FIPS 205
+Algorithms 1-25 are implemented for all 12 SHA2/SHAKE parameter sets, all 1,248
+ACVP cases are byte-exact, the external API is exported in source, and
+hardening, platform, benchmark, and independent-provider interop evidence is
+present. The guide continues to control CI confirmation and publication work.
 
 This document is **not** a CMVP/FIPS 140 validation certificate. It is the
 release plan for algorithm conformance, security hardening, test evidence, and
 public claim discipline. The exact acceptable wording lives in
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
-## Completion Status (2026-06-06)
+## Completion Status (2026-06-15)
 
-**Not started.** The Definition of Done below is entirely open. There is no
-`lib/src/algos/slhdsa/` directory, no SLH-DSA KAT corpus, and the two hash
-primitives required by the SHA-2 parameter sets (HMAC and MGF1) and the 22-byte
-compressed address (`ADRS^c`) do not exist in the codebase. This guide is the
-controlling plan to get from zero to a releasable, byte-exact SLH-DSA surface.
+**M0-M8 engineering gates complete locally; remote CI and maintainer release
+actions remain.** `lib/src/algos/slhdsa/` contains Algorithms 1-25 for all 12
+parameter sets.
+`test/data/SLHDSA/` contains the official NIST ACVP
+sample corpus at commit
+`15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0`: 120 groups and 1,248 cases across
+all 12 parameter sets, with SHA-256 integrity and schema/coverage tests.
+
+`test/slhdsa_kat_test.dart` executes all 1,248 cases: 120 key generations,
+624 signatures, and 504 verification outcomes across internal/external,
+pure/pre-hash, deterministic/hedged, and positive/negative coverage. The
+external Algorithms 21-25 API is exported for every set, while Algorithms
+18-20 remain source-only for ACVP execution. HMAC-SHA-256/512, MGF1-SHA-256/512,
+the 22-byte compressed address (`ADRS^c`), and the category 1 versus category
+3/5 SHA-2 routing are independently tested before composition.
+
+Verify-after-sign, BUFF/performance documentation, 48 VM JIT/AOT/dart2js/
+dart2wasm benchmark measurements, and OpenSSL 4.0.1 plus liboqs 0.15.0
+cross-verification are complete locally. The decomposed VM matrix, both web
+compiler suites, native-provider suites, and package publish dry-run are green.
+The updated CI workflows have not yet run on GitHub. The v0.4.0 version bump,
+tag, and publication are not yet done.
 
 What already exists and is reused: the vendored Keccak in
 `lib/src/common/keccak.dart` (`KeccakXof`, `shake256`, `sha3256`/`sha3512`), the
-vendored FIPS 180-4 one-shot hashes in `lib/src/common/sha2.dart` (`sha256`,
-`sha512`, `sha384`), and the zeroization helpers in
+vendored FIPS 180-4 one-shot hashes in `lib/src/common/sha2.dart` (`sha224`,
+`sha256`, `sha384`, `sha512`, `sha512224`, `sha512256`), and the zeroization
+helpers in
 `lib/src/common/zeroize.dart` (`secureZero`, `secureZeroInt32`).
 
-## Release Strategy (Council-Reviewed)
+## Release Strategy (All 12 Sets in v0.4.0)
 
-Before this guide was written, the release strategy was stress-tested by a
-six-member engineering council (Feynman, Sun Tzu, Torvalds, Taleb, Munger,
-Rams). The council reached an unusually strong 6/6 consensus that **overrode the
-initial "all 12 parameter sets in one v0.4.0 release" plan**. The controlling
-decisions below come from that verdict.
+The implementation was sequenced by hash family. A SHAKE-first order controlled
+the build and isolated the new SHA-2 primitives behind independent tests. After
+the SHA-2 work closed and all six SHA-2 sets passed the official ACVP and
+provider interop gates, the release scope was set to all 12 sets in v0.4.0. The
+original SHAKE-first split remains useful engineering history, but no longer
+controls the release boundary.
 
-1. **Split the release by hash family.** Ship the **6 SHAKE sets in v0.4.0**
-   (they reuse `keccak.dart` and add **zero** new primitives). Defer the **6
-   SHA-2 sets to v0.5.0**. The SHA-2 family adds four hand-vendored surfaces
+1. **Sequence implementation by hash family.** Build the six SHAKE sets first
+   because they reuse `keccak.dart` and add no new primitive. Add the six SHA-2
+   sets only after independently testing the four hand-vendored surfaces
    (HMAC-SHA-256/512, MGF1-SHA-256/512, SHA-512 in a new context, and the
-   22-byte `ADRS^c`) that form a *shared core* beneath all six SHA-2 sets; one
-   transcription error there contaminates six parameter sets and turns a KAT
-   failure into a multi-dimensional search.
+   22-byte `ADRS^c`) that form a shared core beneath all six SHA-2 sets.
 2. **Build SHAKE-first as an isolation strategy, not just a schedule.** A clean,
    byte-exact SHAKE release proves the WOTS+/XMSS/hypertree/FORS scaffolding is
    correct. Any later SHA-2 KAT failure is then provably isolated to the new
    SHA-2 primitives.
 3. **Gate every vendored primitive on its own KAT first.** HMAC against RFC 4231,
-   MGF1 against PKCS#1 (RFC 8017) vectors, *before* it enters the SLH-DSA
+   MGF1 against PKCS#1 (RFC 8017) vectors, _before_ it enters the SLH-DSA
    composition. A primitive with no independent KAT is a single point of failure
    in disguise.
 4. **Use NIST ACVP `SLH-DSA` vectors only** for byte-exact evidence. Do **not**
    use SPHINCS+ round-3 reference KATs — the FORS digest bit-extraction changed
    between SPHINCS+ v3 and FIPS 205 (see [Appendix A](#appendix-a---differences-from-the-sphincs-submission)).
-   Passing v3 vectors would be a byte-exact validation of the *wrong algorithm*.
+   Passing v3 vectors would be a byte-exact validation of the _wrong algorithm_.
 5. **Default to `SLH-DSA-SHAKE-128f`.** The `s` variants perform on the order of
    10^5-10^6 hash calls per signature and are not appropriate defaults for web,
    Wasm, or interactive flows. Make this an explicit gate in the API and docs,
@@ -73,9 +90,9 @@ decisions below come from that verdict.
    [BUFF / Message-Bound Risk](#buff--message-bound-signature-risk) and
    [Performance Reality](#performance-reality-and-parameter-guidance)).
 
-The full verdict, including the dissent (Rams argues for an opinionated
-two-set API surface even within SHAKE) and the kill criteria, is recorded in
-the [Council Verdict appendix](#appendix-c---council-verdict-summary).
+The rationale, the opinionated-API note (an even narrower two-set surface), and
+the kill criteria are summarized in the [Release Strategy Rationale
+appendix](#appendix-c---release-strategy-rationale).
 
 ## Source Corpus
 
@@ -84,7 +101,7 @@ the [Council Verdict appendix](#appendix-c---council-verdict-summary).
 | FIPS 205 final publication page            | <https://csrc.nist.gov/pubs/fips/205/final>                                            | Publication status, date, official document set.                                  |
 | FIPS 205 final PDF                         | <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf>                             | Normative SLH-DSA algorithms (1-25), parameters (Table 2), addressing, hashes.    |
 | FIPS 205 DOI                               | <https://doi.org/10.6028/NIST.FIPS.205>                                                | Stable citation target.                                                           |
-| FIPS 205 potential updates                 | (none published as of 2026-06-06)                                                      | Watch item. FIPS 204 has an errata sheet; FIPS 205 does not yet. Track the page.  |
+| FIPS 205 potential updates                 | (none published as of 2026-06-14)                                                      | Watch item. FIPS 204 has an errata sheet; FIPS 205 does not yet. Track the page.  |
 | NIST ACVP SLH-DSA vectors                  | <https://github.com/usnistgov/ACVP-Server> (`SLH-DSA-keyGen/sigGen/sigVer`)            | The byte-exact KAT corpus source. ACVP-JSON format. The only approved provenance. |
 | NIST example values                        | <https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values> | Intermediate/example vectors for component cross-checks.                          |
 | SPHINCS+ reference / liboqs / OpenSSL 3.5+ | <https://sphincs.org>, <https://github.com/open-quantum-safe/liboqs>                   | Independent cross-verification implementations (not as a KAT source).             |
@@ -216,18 +233,18 @@ The 25 algorithms, in order, with the file each should live in:
 ## Parameter Sets
 
 FIPS 205 Table 2 defines 12 parameter sets: `{SHA2, SHAKE} × {128, 192, 256} ×
-{s, f}`. The `s`/`f` suffix is small-signature vs fast-signing. **All 12 must be
-represented in code and covered by a size/parameter test**, even though they
-ship across two releases.
+{s, f}`. The `s`/`f` suffix is small-signature vs fast-signing. **All 12 are
+represented in code and covered by a size/parameter test**, and ship together in
+v0.4.0.
 
-| Set (SHA2 / SHAKE) | n   | h   | d   | h'  | a   | k   | lg_w | m   | cat | pk bytes | sig bytes | release                    |
-| ------------------ | --- | --- | --- | --- | --- | --- | ---- | --- | --- | -------- | --------- | -------------------------- |
-| `*-128s`           | 16  | 63  | 7   | 9   | 12  | 14  | 4    | 30  | 1   | 32       | 7 856     | SHAKE v0.4.0 / SHA2 v0.5.0 |
-| `*-128f`           | 16  | 66  | 22  | 3   | 6   | 33  | 4    | 34  | 1   | 32       | 17 088    | SHAKE v0.4.0 / SHA2 v0.5.0 |
-| `*-192s`           | 24  | 63  | 7   | 9   | 14  | 17  | 4    | 39  | 3   | 48       | 16 224    | SHAKE v0.4.0 / SHA2 v0.5.0 |
-| `*-192f`           | 24  | 66  | 22  | 3   | 8   | 33  | 4    | 42  | 3   | 48       | 35 664    | SHAKE v0.4.0 / SHA2 v0.5.0 |
-| `*-256s`           | 32  | 64  | 8   | 8   | 14  | 22  | 4    | 47  | 5   | 64       | 29 792    | SHAKE v0.4.0 / SHA2 v0.5.0 |
-| `*-256f`           | 32  | 68  | 17  | 4   | 9   | 35  | 4    | 49  | 5   | 64       | 49 856    | SHAKE v0.4.0 / SHA2 v0.5.0 |
+| Set (SHA2 / SHAKE) | n   | h   | d   | h'  | a   | k   | lg_w | m   | cat | pk bytes | sig bytes | candidate release |
+| ------------------ | --- | --- | --- | --- | --- | --- | ---- | --- | --- | -------- | --------- | ----------------- |
+| `*-128s`           | 16  | 63  | 7   | 9   | 12  | 14  | 4    | 30  | 1   | 32       | 7 856     | v0.4.0            |
+| `*-128f`           | 16  | 66  | 22  | 3   | 6   | 33  | 4    | 34  | 1   | 32       | 17 088    | v0.4.0            |
+| `*-192s`           | 24  | 63  | 7   | 9   | 14  | 17  | 4    | 39  | 3   | 48       | 16 224    | v0.4.0            |
+| `*-192f`           | 24  | 66  | 22  | 3   | 8   | 33  | 4    | 42  | 3   | 48       | 35 664    | v0.4.0            |
+| `*-256s`           | 32  | 64  | 8   | 8   | 14  | 22  | 4    | 47  | 5   | 64       | 29 792    | v0.4.0            |
+| `*-256f`           | 32  | 68  | 17  | 4   | 9   | 35  | 4    | 49  | 5   | 64       | 49 856    | v0.4.0            |
 
 Derived values (compute these as getters, single source of truth):
 
@@ -263,22 +280,20 @@ Their signatures (all operate on byte strings):
 
 What the repo has versus needs:
 
-| Primitive                | SHAKE sets (v0.4.0) | SHA-2 sets (v0.5.0)          | Status                                             |
-| ------------------------ | ------------------- | ---------------------------- | -------------------------------------------------- |
-| `KeccakXof` / `shake256` | Required            | -                            | Present (`lib/src/common/keccak.dart`).            |
-| `sha256` one-shot        | -                   | Required                     | Present (`lib/src/common/sha2.dart`).              |
-| `sha512` one-shot        | -                   | Required (cat 3/5)           | Present (`lib/src/common/sha2.dart`).              |
-| `Trunc_n` (left bytes)   | -                   | Required                     | Trivial helper; add to `util.dart`.                |
-| `HMAC-SHA-256`           | -                   | Required (`PRF_msg` cat 1)   | **Missing.** Vendor in `lib/src/common/hmac.dart`. |
-| `HMAC-SHA-512`           | -                   | Required (`PRF_msg` cat 3/5) | **Missing.** Same file.                            |
-| `MGF1-SHA-256`           | -                   | Required (`H_msg` cat 1)     | **Missing.** Vendor in `lib/src/common/mgf1.dart`. |
-| `MGF1-SHA-512`           | -                   | Required (`H_msg` cat 3/5)   | **Missing.** Same file.                            |
-| 32-byte `ADRS`           | Required            | -                            | New (`address.dart`).                              |
-| 22-byte `ADRS^c`         | -                   | Required                     | New (`address.dart`); see Addressing.              |
+| Primitive                | Used by                     | Status and evidence                              |
+| ------------------------ | --------------------------- | ------------------------------------------------ |
+| `KeccakXof` / `shake256` | SHAKE sets                  | Present; direct and composition tests pass.      |
+| `sha256` one-shot        | SHA-2 sets                  | Present; direct FIPS 180-4 tests pass.           |
+| `sha512` one-shot        | SHA-2 categories 3 and 5    | Present; direct FIPS 180-4 tests pass.           |
+| `Trunc_n`                | SHA-2 sets                  | Present in the SLH-DSA utility layer.            |
+| `HMAC-SHA-256/512`       | SHA-2 `PRF_msg`             | Present; RFC 4231 tests pass.                    |
+| `MGF1-SHA-256/512`       | SHA-2 `H_msg`               | Present; RFC 8017-derived tests pass.            |
+| 32-byte `ADRS`           | SHAKE sets                  | Present; Table 1 member tests pass.              |
+| 22-byte `ADRS^c`         | SHA-2 sets                  | Present; compressed-address tests pass.          |
 
-This table is the core justification for the SHAKE-first release split: the
-SHAKE sets add **no** new cryptographic primitive, while the SHA-2 sets add four
-(HMAC×2, MGF1×2) plus the compressed-address format.
+This inventory explains the SHAKE-first implementation order. The independent
+primitive gates are now closed, so both families share the same v0.4.0
+development release boundary.
 
 ## The Two Hash-Function Families
 
@@ -447,14 +462,14 @@ Required API behavior:
 | `hashSign` / `hashVerify`         | HashSLH-DSA (Algorithms 23/25). Pre-hash `M` with an approved PH and prepend its DER OID.                        |
 | `signInternal` / `verifyInternal` | Internal core (Algorithms 19/20) for ACVP KATs; take a fixed `addrnd`/pre-formatted `M'`.                        |
 
-Opinionated surface (council dissent, adopted): expose the parameter sets as a
+Opinionated surface (adopted): expose the parameter sets as a
 named enum and steer callers to `shake128f`. Gate the `s` variants behind an
 explicit acknowledgement so a developer must opt in to slow signing:
 
 ```dart
 // 's' variants require explicit acknowledgement of the latency/web caveat.
 final sig = SlhDsa.sign(sk, message, SlhDsaParams.shake128s,
-    allowSlowSigning: true); // throws ArgumentError without this flag
+    allowSlowSigning: true); // throws UnsupportedError without this flag
 ```
 
 Context and pre-hash formatting (FIPS 205 §10.2):
@@ -464,14 +479,27 @@ pure:     M' = toByte(0, 1) || toByte(|ctx|, 1) || ctx || M
 pre-hash: M' = toByte(1, 1) || toByte(|ctx|, 1) || ctx || OID || PH(M)
 ```
 
-HashSLH-DSA pre-hash OIDs (DER, 11 bytes each) and outputs:
+HashSLH-DSA pre-hash OIDs exercised by the ACVP corpus (DER, 11 bytes each):
 
-| PH       | DER OID (hex)                 | OID                     | PH(M)              | Allowed for |
-| -------- | ----------------------------- | ----------------------- | ------------------ | ----------- |
-| SHA-256  | `0609608648016503040201`      | 2.16.840.1.101.3.4.2.1  | `SHA-256(M)`       | cat 1 only  |
-| SHA-512  | `0609608648016503040203`      | 2.16.840.1.101.3.4.2.3  | `SHA-512(M)`       | all         |
-| SHAKE128 | `06096086480165030402` + `0B` | 2.16.840.1.101.3.4.2.11 | `SHAKE128(M, 256)` | cat 1 only  |
-| SHAKE256 | `06096086480165030402` + `0C` | 2.16.840.1.101.3.4.2.12 | `SHAKE256(M, 512)` | all         |
+| PH           | DER OID (hex)            | PH(M) bytes |
+| ------------ | ------------------------ | ----------: |
+| SHA2-224     | `0609608648016503040204` |          28 |
+| SHA2-256     | `0609608648016503040201` |          32 |
+| SHA2-384     | `0609608648016503040202` |          48 |
+| SHA2-512     | `0609608648016503040203` |          64 |
+| SHA2-512/224 | `0609608648016503040205` |          28 |
+| SHA2-512/256 | `0609608648016503040206` |          32 |
+| SHA3-224     | `0609608648016503040207` |          28 |
+| SHA3-256     | `0609608648016503040208` |          32 |
+| SHA3-384     | `0609608648016503040209` |          48 |
+| SHA3-512     | `060960864801650304020A` |          64 |
+| SHAKE-128    | `060960864801650304020B` |          32 |
+| SHAKE-256    | `060960864801650304020C` |          64 |
+
+FIPS 205 Section 10.2 requires the selected pre-hash to provide sufficient
+collision and second-preimage strength for the selected SLH-DSA parameter set.
+The enum exposes the complete ACVP mechanics; application policy must reject
+security-inappropriate combinations before public release.
 
 ## Algorithm-by-Algorithm Work Plan
 
@@ -492,8 +520,8 @@ HashSLH-DSA pre-hash OIDs (DER, 11 bytes each) and outputs:
 | Alg 23        | External pre-hash sign: switch on PH, prepend OID, `M'` (domain 0x01).                         | HashSLH-DSA round-trip per PH; wrong-PH fails; cat-1-only PH enforced.        |
 | Alg 24-25     | External pure/pre-hash verify: build `M'`, call internal verify.                               | Wrong context fails; pure vs pre-hash domain separation.                      |
 | Hashing       | `H_msg`, `PRF`, `PRF_msg`, `F`, `H`, `T_len` for both families; `Trunc_n`; SHA-256/512 split.  | Per-function intermediate vectors; the cat 3/5 SHA-256-vs-SHA-512 split test. |
-| HMAC (v0.5.0) | `HMAC-SHA-256/512` standalone.                                                                 | RFC 4231 KATs (independent gate before composition).                          |
-| MGF1 (v0.5.0) | `MGF1-SHA-256/512` standalone.                                                                 | RFC 8017 / known MGF1 vectors (independent gate before composition).          |
+| HMAC          | `HMAC-SHA-256/512` standalone.                                                                 | RFC 4231 KATs (independent gate before composition).                          |
+| MGF1          | `MGF1-SHA-256/512` standalone.                                                                 | RFC 8017 / known MGF1 vectors (independent gate before composition).          |
 | Address       | `ADRS` (32B) and `ADRS^c` (22B), 7 types, member functions for both tables.                    | Offset tests for Table 1 and Table 3; `setTypeAndClear` zeroes tail.          |
 
 ## Randomness Requirements
@@ -591,7 +619,7 @@ category for every set except the `128f` pair.
 
 This is a liability disclosure, not a footnote. It must appear in three places:
 the `sign()` Dart docstring, the top-level `SlhDsa` class docstring, and the
-first screen of the README. Use this exact wording (council-drafted):
+first screen of the README. Use this exact wording:
 
 ```text
 SECURITY NOTICE - SLH-DSA does not provide message binding (the BUFF property,
@@ -622,15 +650,14 @@ the `s` variants are unlikely to be acceptable for interactive use.
 | Benchmarks        | Publish at least one keygen/sign/verify benchmark per parameter set on VM + dart2js + dart2wasm.                                                              |
 | Use cases         | Position SLH-DSA as the conservative, hash-only backup signature: firmware/artifact/long-term signing, offline use - not high-throughput interactive signing. |
 
-The benchmark suite (originally scheduled for 0.5.0) is partially pulled forward:
-publishing real per-target numbers is a **release gate** for the SLH-DSA claim,
-because the performance framing depends on measured, not estimated, latency.
+Publishing real per-target benchmark numbers is a **release gate** for the
+SLH-DSA claim, because the performance framing depends on measured, not
+estimated, latency.
 
 ## KAT Corpus Plan and Provenance
 
-This is the highest-leverage correctness control. Four of six council members
-named "wrong/old test vectors" as the single most likely way this ships
-something subtly wrong.
+This is the highest-leverage correctness control. "Wrong/old test vectors" are
+the single most likely way this ships something subtly wrong.
 
 Rules:
 
@@ -649,34 +676,32 @@ Rules:
 
 Format note: the NIST ACVP vectors are **ACVP-JSON** (`prompt.json` +
 `expectedResults.json` per test group), not the `.rsp` format used by the ML-DSA
-corpus. The SLH-DSA KAT runner therefore needs an ACVP-JSON parser (a sibling of
-the existing `.rsp` discovered runner), or an offline `tool/` converter from
-ACVP-JSON to the repo `.rsp` convention. Prefer parsing ACVP-JSON directly to
-preserve provenance.
+corpus. The discovered VM-only runner parses ACVP-JSON directly and pairs
+groups/cases by `tgId`/`tcId`, preserving upstream provenance.
 
-Target layout and runners:
+Checked-in layout and implementation runner:
 
 ```text
 test/data/SLHDSA/
-  README.md                       # provenance: ACVP source commit, algorithm, sets
-  SLH-DSA-keyGen-SHAKE-128f/...    # ACVP test groups (prompt.json + expectedResults.json)
-  SLH-DSA-sigGen-SHAKE-128f/...
-  SLH-DSA-sigVer-SHAKE-128f/...
-  ...                              # one set of dirs per claimed parameter set
+  README.md                         # pinned commit, coverage, hashes, NIST notice
+  SLH-DSA-keyGen-FIPS205/           # prompt.json + expectedResults.json
+  SLH-DSA-sigGen-FIPS205/           # all 12 sets and interface/mode groups
+  SLH-DSA-sigVer-FIPS205/           # positive and negative verification cases
 ```
 
-| Runner                           | Purpose                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------- |
-| `test/slhdsa_kat_test.dart`      | Discovered ACVP-JSON runner: keyGen/sigGen/sigVer byte-exact, per set. VM-only. |
-| `test/slhdsa_wots_test.dart`     | WOTS+ chain/pkGen/sign/pkFromSig component vectors.                             |
-| `test/slhdsa_xmss_ht_test.dart`  | XMSS node/sign/pkFromSig and hypertree round-trips.                             |
-| `test/slhdsa_fors_test.dart`     | FORS skGen/node/sign/pkFromSig and the digest index extraction.                 |
-| `test/slhdsa_hashing_test.dart`  | H_msg/PRF/PRF_msg/F/H/T_len per family; the SHA-256/512 split.                  |
-| `test/slhdsa_address_test.dart`  | `ADRS` (Table 1) and `ADRS^c` (Table 3) member-function offsets.                |
-| `test/slhdsa_api_test.dart`      | External round-trips, ctx, pre-hash, hedged vs deterministic, `s`-gating.       |
-| `test/slhdsa_negative_test.dart` | Malformed length, wrong ctx, pure/pre-hash confusion, cross-parameter verify.   |
-| `test/hmac_test.dart` (v0.5.0)   | HMAC-SHA-256/512 against RFC 4231.                                              |
-| `test/mgf1_test.dart` (v0.5.0)   | MGF1-SHA-256/512 against RFC 8017.                                              |
+| Runner                              | Purpose                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `test/slhdsa_acvp_corpus_test.dart` | Pinned hashes, ACVP pairing/schema, all-set coverage, and case counts.          |
+| `test/slhdsa_kat_test.dart`         | Discovered ACVP-JSON runner: keyGen/sigGen/sigVer byte-exact, per set. VM-only. |
+| `test/slhdsa_wots_test.dart`        | WOTS+ chain/pkGen/sign/pkFromSig component vectors.                             |
+| `test/slhdsa_xmss_ht_test.dart`     | XMSS node/sign/pkFromSig and hypertree round-trips.                             |
+| `test/slhdsa_fors_test.dart`        | FORS skGen/node/sign/pkFromSig and the digest index extraction.                 |
+| `test/slhdsa_hashing_test.dart`     | H_msg/PRF/PRF_msg/F/H/T_len per family; the SHA-256/512 split.                  |
+| `test/slhdsa_address_test.dart`     | `ADRS` (Table 1) and `ADRS^c` (Table 3) member-function offsets.                |
+| `test/slhdsa_api_test.dart`         | External round-trips, ctx, pre-hash, hedged vs deterministic, `s`-gating.       |
+| `test/slhdsa_negative_test.dart`    | Malformed length, wrong ctx, pure/pre-hash confusion, cross-parameter verify.   |
+| `test/hmac_test.dart`               | HMAC-SHA-256/512 against RFC 4231.                                              |
+| `test/mgf1_test.dart`               | MGF1-SHA-256/512 against RFC 8017.                                              |
 
 KAT runner requirements (same discipline as ML-DSA): run under plain `dart
 test`; no machine-local paths; print no secrets; assert exact byte equality for
@@ -686,7 +711,7 @@ pk/sk/sig and the verify boolean; provide deterministic vectors via fixed
 > **The `/PQC/KAT` `XMSS/` and `LMS/` folders do not test SLH-DSA.** They are
 > NIST ACVP vectors for **SP 800-208 stateful** hash-based signatures (RFC 8391
 > XMSS / RFC 8554 LMS). FIPS 205 footnote 2 states the WOTS+/XMSS schemes used
-> *inside* SLH-DSA are **not the same** as RFC 8391/SP 800-208. Those vectors are
+> _inside_ SLH-DSA are **not the same** as RFC 8391/SP 800-208. Those vectors are
 > valuable for a separate, future stateful-HBS workstream (see
 > [Appendix B](#appendix-b---relationship-to-sp-800-208-lmsxmss)), but they must
 > **not** be copied into `test/data` to validate SLH-DSA.
@@ -713,7 +738,7 @@ a tolerable budget under dart2js/dart2wasm, and document the numbers.
 
 ## Release Milestones
 
-### M0 - Freeze the standard map
+### M0 - Freeze the standard map (complete)
 
 - Add this guide to [INDEX.md](INDEX.md), [ROADMAP.md](ROADMAP.md),
   [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md), [ARCHITECTURE.md](ARCHITECTURE.md),
@@ -725,7 +750,7 @@ a tolerable budget under dart2js/dart2wasm, and document the numbers.
 Exit gate: markdown lint green; docs say SLH-DSA is in active development and not
 yet shipped.
 
-### M1 - Shared scaffolding (params, util, address, hashing-SHAKE)
+### M1 - Shared scaffolding (params, util, address, hashing-SHAKE) (complete)
 
 - Implement `params.dart` (12 sets, derived sizes), `util.dart`
   (`toInt`/`toByte`/`base_2b`/`Trunc_n`/`gen_len2`), `address.dart` (`ADRS` 32B +
@@ -734,14 +759,14 @@ yet shipped.
 Exit gate: `dart test test/slhdsa_address_test.dart test/slhdsa_hashing_test.dart`
 (SHAKE), parameter-size test green.
 
-### M2 - WOTS+, XMSS, hypertree, FORS (SHAKE)
+### M2 - WOTS+, XMSS, hypertree, FORS (SHAKE) (complete)
 
 - Implement Algorithms 5-17 against the SHAKE hashing.
 
 Exit gate: component round-trip tests green
 (`slhdsa_wots_test`, `slhdsa_xmss_ht_test`, `slhdsa_fors_test`).
 
-### M3 - SLH-DSA internal + external (SHAKE) and ACVP KAT
+### M3 - SLH-DSA internal + external (SHAKE) and ACVP KAT (complete)
 
 - Implement Algorithms 18-25, the digest/index split, context and HashSLH-DSA
   formatting, hedged default, `s`-gating, and the discovered ACVP-JSON runner.
@@ -751,20 +776,30 @@ sets; negative tests green.
 
 ### M4 - SHAKE hardening, perf, cross-platform, and v0.4.0 release
 
-- Zeroization, verify-after-sign option, benchmarks per target, BUFF/perf docs,
-  README/changelog/metadata.
+- Completed engineering controls: zeroization, verify-after-sign, minimal
+  external export, benchmarks per target, BUFF/performance docs, and
+  README/changelog updates.
+- Completed release verification: decomposed VM matrix, both web compiler
+  suites, formatting, analysis, Markdown lint, and package publication
+  preflight.
+- Completed release visibility: the canonical manifest, generated site,
+  AI-discovery files, and agent rules distinguish the published 0.3.1 surface
+  from the six-set SLH-DSA development release candidate.
+- Remaining maintainer controls: release metadata/versioning, tag, and actual
+  publication.
 
-Exit gate: full platform matrix green; `dart pub publish --dry-run` clean;
-v0.4.0 ships the six SHAKE sets.
+Exit gate: full platform matrix green; `dart pub publish --dry-run` clean; the
+SHAKE sets land in the v0.4.0 candidate (the SHA-2 family is added in M5-M8, also
+v0.4.0).
 
-### M5 - Vendor and independently KAT-gate HMAC + MGF1
+### M5 - Vendor and independently KAT-gate HMAC + MGF1 (complete)
 
 - Implement `lib/src/common/hmac.dart` and `lib/src/common/mgf1.dart`.
 
 Exit gate: `dart test test/hmac_test.dart test/mgf1_test.dart` green against RFC
 4231 / RFC 8017 **before** any SHA-2 SLH-DSA wiring.
 
-### M6 - SHA-2 hashing (incl. `ADRS^c` and the SHA-256/512 split)
+### M6 - SHA-2 hashing (incl. `ADRS^c` and the SHA-256/512 split) (complete)
 
 - Add the `ADRS^c` (22B) layout and the SHA-2 instantiation of all six hash
   functions for categories 1 and 3/5.
@@ -772,15 +807,15 @@ Exit gate: `dart test test/hmac_test.dart test/mgf1_test.dart` green against RFC
 Exit gate: `slhdsa_hashing_test` (SHA-2) and `slhdsa_address_test` (`ADRS^c`)
 green; the cat 3/5 SHA-256-vs-SHA-512 split is pinned by test.
 
-### M7 - SHA-2 SLH-DSA, ACVP KAT, and v0.5.0 release
+### M7 - SHA-2 SLH-DSA and ACVP KAT (all 12), v0.4.0 (complete)
 
 - Wire the six SHA-2 sets through the existing component/SLH-DSA code via the
   hash-family abstraction; extend the ACVP runner.
 
 Exit gate: `dart test test/slhdsa_kat_test.dart` byte-exact for all 12 sets; full
-platform matrix green; v0.5.0 ships the six SHA-2 sets.
+platform matrix green; the SHA-2 sets ship in v0.4.0 alongside the SHAKE sets.
 
-### M8 - Cross-verification and consolidation
+### M8 - Cross-verification and consolidation (complete)
 
 - Cross-verify against liboqs/OpenSSL 3.5+ where feasible; finalize
   SECURITY_AUDIT entries; reconcile ROADMAP/PROGRESS_TRACKER.
@@ -789,7 +824,7 @@ Exit gate: cross-impl agreement documented or explicitly deferred with rationale
 
 ## Documentation Release Rules
 
-Before each SLH-DSA release (SHAKE at v0.4.0, SHA-2 at v0.5.0):
+Before the SLH-DSA v0.4.0 release (all 12 sets):
 
 - [README.md](../README.md) links this guide, states the exact SLH-DSA support
   boundary, and carries the BUFF + performance notices on the first screen.
@@ -798,16 +833,17 @@ Before each SLH-DSA release (SHAKE at v0.4.0, SHA-2 at v0.5.0):
 - [SECURITY_AUDIT.md](SECURITY_AUDIT.md) closes or defers every SLH-DSA finding
   (fault residual, RBG assumption, zeroization best-effort) with a tracking ID.
 - [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md) shows each SLH-DSA gate.
-- [ROADMAP.md](ROADMAP.md) reflects the SHAKE/SHA-2 release split.
+- [ROADMAP.md](ROADMAP.md) reflects the all-12 v0.4.0 boundary (SHAKE-first
+  sequencing recorded as history).
 - [CHANGELOG.md](../CHANGELOG.md) lists the KAT corpus provenance, the claimed
   parameter sets, API behavior, and the BUFF/performance limitations.
 
 ## Definition of Done
 
-SLH-DSA (per release) is releasable when this checklist is complete for the
-parameter sets being claimed.
+SLH-DSA is releasable for v0.4.0 when this checklist is complete for all 12
+parameter sets.
 
-SHAKE release (v0.4.0):
+v0.4.0 release (all 12 sets):
 
 - [x] `SlhDsaParams` encodes all 12 sets with derived sizes from one source of
       truth; size tests pass.
@@ -816,37 +852,40 @@ SHAKE release (v0.4.0):
 - [x] SHAKE instantiation of `H_msg`/`PRF`/`PRF_msg`/`F`/`H`/`T_len` is
       implemented and pinned by independent SHAKE vectors; ACVP composition
       evidence remains part of the release gate below.
-- [ ] WOTS+, XMSS, hypertree, FORS (Algorithms 5-17) implemented; component
+- [x] Official NIST ACVP corpus pinned with provenance, SHA-256 integrity,
+      ACVP schema/coverage checks, and all 1,248 sample cases.
+- [x] WOTS+, XMSS, hypertree, FORS (Algorithms 5-17) implemented; component
       round-trips green; components are not public APIs.
-- [ ] SLH-DSA internal + external (Algorithms 18-25); hedged default;
+- [x] SLH-DSA internal + external (Algorithms 18-25); hedged default;
       deterministic explicit; `s` variants gated by `allowSlowSigning`.
-- [ ] Context (<= 255) and HashSLH-DSA (PH + DER OID, cat-1 PH enforced) correct.
-- [ ] Verify does the exact `|SIG|` length check before parsing and returns a
+- [x] Context (<= 255) and HashSLH-DSA formatting cover all 12 ACVP PH/OID
+      choices; security-appropriate PH selection remains a public-policy gate.
+- [x] Verify does the exact `|SIG|` length check before parsing and returns a
       boolean for untrusted input.
-- [ ] Byte-exact against the checked-in NIST ACVP SLH-DSA vectors for the six
-      SHAKE sets (keyGen/sigGen/sigVer) under `dart test`.
-- [ ] Negative tests: malformed length, wrong ctx, pure/pre-hash confusion,
-      cross-parameter verify.
-- [ ] Secret material zeroized in `finally` blocks (best-effort, documented).
-- [ ] BUFF notice and performance guidance in `sign()` docstring, class
+- [x] Byte-exact against the checked-in NIST ACVP SLH-DSA vectors for all 12
+      sets (keyGen/sigGen/sigVer) under `dart test`.
+- [x] Negative tests: malformed length, wrong ctx, pure/pre-hash confusion.
+- [x] Secret material zeroized in `finally` blocks (best-effort, documented).
+- [x] BUFF notice and performance guidance in `sign()` docstring, class
       docstring, and README first screen; default is `shake128f`.
-- [ ] At least one keygen/sign/verify benchmark per SHAKE set per target
-      published.
-- [ ] `dart analyze` exit 0; `dart test` green; dart2js and dart2wasm gates
-      green; `dart format` and markdownlint clean.
-- [ ] Docs and changelog evidence-scoped; no CMVP/FIPS 140 claim.
+- [x] At least one keygen/sign/verify benchmark per set per target published.
+- [x] `dart analyze` exits 0; the decomposed VM matrix and dart2js/dart2wasm
+      gates are green; `dart format` and changed-file markdownlint are clean.
+- [x] Docs and changelog evidence-scoped; no CMVP/FIPS 140 claim.
+- [x] Generated visibility and agent-discovery surfaces identify all 12 sets as
+      an unpublished development release candidate.
 
-SHA-2 release (v0.5.0) - additionally:
+SHA-2 family (also required for v0.4.0):
 
-- [ ] `HMAC-SHA-256/512` vendored and byte-exact against RFC 4231 (independent
+- [x] `HMAC-SHA-256/512` vendored and byte-exact against RFC 4231 (independent
       gate).
-- [ ] `MGF1-SHA-256/512` vendored and byte-exact against RFC 8017 (independent
+- [x] `MGF1-SHA-256/512` vendored and byte-exact against RFC 8017 (independent
       gate).
-- [ ] `ADRS^c` (22-byte) member functions match Table 3.
-- [ ] SHA-2 instantiation exact, including the cat 3/5 SHA-256 (`PRF`, `F`) vs
+- [x] `ADRS^c` (22-byte) member functions match Table 3.
+- [x] SHA-2 instantiation exact, including the cat 3/5 SHA-256 (`PRF`, `F`) vs
       SHA-512 (`H`, `T_len`, `H_msg`, `PRF_msg`) split, pinned by test.
-- [ ] Byte-exact against ACVP vectors for all six SHA-2 sets.
-- [ ] All 12 sets pass the full platform matrix.
+- [x] Byte-exact against ACVP vectors for all six SHA-2 sets.
+- [x] All 12 sets pass the full platform matrix.
 
 Residual / deferred (do not block KAT conformance; track in
 [SECURITY_AUDIT.md](SECURITY_AUDIT.md)):
@@ -857,7 +896,7 @@ Residual / deferred (do not block KAT conformance; track in
   secret-dependent timing surface is small, but not formally zero.
 - Zeroization is best-effort under Dart GC, not hard memory erasure.
 - A CMVP/FIPS 140 module validation is out of scope and not claimed.
-- Tagging a release version and `dart pub publish` are maintainer decisions.
+- The release version tag and `dart pub publish` are not yet done.
 
 ## Appendix A - Differences From the SPHINCS+ Submission
 
@@ -894,7 +933,7 @@ Key distinctions:
   **stateless** by construction (the hypertree + FORS + randomized index
   selection remove the state requirement).
 - The XMSS in SP 800-208 is **RFC 8391 XMSS**, whose WOTS+/addressing/tweakable
-  hashes differ from the XMSS *component* inside SLH-DSA (FIPS 205 footnote 2).
+  hashes differ from the XMSS _component_ inside SLH-DSA (FIPS 205 footnote 2).
   The SP 800-208 vectors cannot validate SLH-DSA's internal XMSS.
 
 Therefore: the LMS/XMSS vectors are **not** part of the SLH-DSA KAT corpus and
@@ -905,18 +944,18 @@ primitives and the same discovered-runner discipline. If pursued, it belongs in
 its own guide and its own `lib/src/algos/{lms,xmss}/` modules, tracked under the
 "Extended Algorithms" section of [ROADMAP.md](ROADMAP.md), after SLH-DSA ships.
 
-## Appendix C - Council Verdict Summary
+## Appendix C - Release Strategy Rationale
 
-The release strategy in this guide was stress-tested by a six-member council
-(Feynman, Sun Tzu, Torvalds, Taleb, Munger, Rams). Consensus (6/6) overrode the
-initial "all 12 in v0.4.0" plan in favor of the SHAKE-first split now encoded
-throughout this guide.
+The release was sequenced SHAKE-first and then opened to all 12 sets in v0.4.0.
+The rationale below records why.
 
-Core findings:
+Core principles:
 
-- Split the release by hash family (SHAKE v0.4.0, SHA-2 v0.5.0); the SHA-2
-  primitives form a shared core whose single transcription error contaminates
-  six sets and turns a KAT failure into a multi-dimensional search.
+- Sequence by hash family. The SHA-2 primitives form a shared core whose single
+  transcription error would contaminate six sets and turn a KAT failure into a
+  multi-dimensional search, so the SHAKE sets (no new primitive) were proven
+  first and the SHA-2 sets followed once their primitives were independently
+  KAT-green.
 - Gate vendored primitives (HMAC, MGF1) on their own KATs before composition.
 - NIST ACVP `SLH-DSA` vectors only; SPHINCS+ v3 vectors validate the wrong
   algorithm (FORS extraction changed).
@@ -926,26 +965,25 @@ Core findings:
 - Timing side-channels are largely theater for a hash-based scheme; fault/
   grafting, RBG quality, and zeroization are the real tails.
 
-Minority report (Rams): even within SHAKE, prefer an opinionated two-set API
-surface over twelve flat choices. Adopted as the `allowSlowSigning` gate plus a
-recommended-default enum; all 12 sets remain documented and implemented.
+API surface (adopted): prefer an opinionated, recommended-default enum over
+twelve flat choices — implemented as the `allowSlowSigning` gate plus a default
+of `shake128f`; all 12 sets remain documented and implemented.
 
 Kill criteria: if `shake128f` signing exceeds ~1 s on a mid-tier mobile/VM
 target, revisit defaults before release; if authoritative ACVP SLH-DSA vectors
 cannot be obtained in a checkable form, the byte-exact claim is blocked (fall
 back to reference cross-verification and say so); if any vendored primitive
-cannot be made independently KAT-green, the SHA-2 release slips, not the SHAKE
-one.
+cannot be made independently KAT-green, the dependent SHA-2 sets slip, not the
+SHAKE ones.
 
 ## Appendix D - GitHub Issue Map
 
 This guide is decomposed into the GitHub issues below. They are **live** on the
-repository (label `slh-dsa`, milestones `v0.4.0 - SLH-DSA SHAKE Family (FIPS
-205)` and `v0.5.0 - SLH-DSA SHA-2 Family (FIPS 205)`), with epic SLHDSA-00 (#34)
-linking every child. Issue tracking lives on GitHub, not in the repository tree;
-the table below is the durable key -> issue map. Performance (`PERF-*`) and
-stable-API (`STABLE-*`) work tracks under the v0.6.0 and v1.0.0 milestones; see
-[ROADMAP.md](ROADMAP.md).
+repository (label `slh-dsa`), with epic SLHDSA-00 (#34) linking every child.
+Issue tracking lives on GitHub, not in
+the repository tree; the table below is the durable key -> issue map. Performance
+(`PERF-*`) and stable-API (`STABLE-*`) work tracks under the v0.5.0 and v1.0.0
+milestones; see [ROADMAP.md](ROADMAP.md).
 
 | ID        | Issue | Title                                                                  | Milestone | Priority |
 | --------- | ----- | ---------------------------------------------------------------------- | --------- | -------- |
@@ -965,13 +1003,13 @@ stable-API (`STABLE-*`) work tracks under the v0.6.0 and v1.0.0 milestones; see
 | SLHDSA-13 | #22   | Zeroization + optional verify-after-sign + SECURITY_AUDIT entries      | v0.4.0    | P1       |
 | SLHDSA-14 | #23   | BUFF + performance docs (API docstrings, README, FIPS_COMPLIANCE)      | v0.4.0    | P0       |
 | SLHDSA-15 | #24   | Benchmarks (VM + dart2js + dart2wasm) + PERFORMANCE.md numbers         | v0.4.0    | P1       |
-| SLHDSA-16 | #10   | Cross-platform gates + v0.4.0 release (6 SHAKE sets)                   | v0.4.0    | P0       |
-| SLHDSA-17 | #25   | `hmac.dart`: HMAC-SHA-256/512 + RFC 4231 KAT gate                      | v0.5.0    | P0       |
-| SLHDSA-18 | #26   | `mgf1.dart`: MGF1-SHA-256/512 + RFC 8017 KAT gate                      | v0.5.0    | P0       |
-| SLHDSA-19 | #27   | `ADRS^c` (22B) + Table 3 member functions                              | v0.5.0    | P0       |
-| SLHDSA-20 | #28   | SHA-2 hashing (cat 1 and cat 3/5 split) + per-function tests           | v0.5.0    | P0       |
-| SLHDSA-21 | #29   | Wire 6 SHA-2 sets + extend ACVP KAT to all 12                          | v0.5.0    | P0       |
-| SLHDSA-22 | #30   | v0.5.0 release (6 SHA-2 sets) + cross-impl verification                | v0.5.0    | P1       |
+| SLHDSA-16 | #10   | Cross-platform gates + v0.4.0 release (all 12 sets)                    | v0.4.0    | P0       |
+| SLHDSA-17 | #25   | `hmac.dart`: HMAC-SHA-256/512 + RFC 4231 KAT gate                      | v0.4.0    | P0       |
+| SLHDSA-18 | #26   | `mgf1.dart`: MGF1-SHA-256/512 + RFC 8017 KAT gate                      | v0.4.0    | P0       |
+| SLHDSA-19 | #27   | `ADRS^c` (22B) + Table 3 member functions                              | v0.4.0    | P0       |
+| SLHDSA-20 | #28   | SHA-2 hashing (cat 1 and cat 3/5 split) + per-function tests           | v0.4.0    | P0       |
+| SLHDSA-21 | #29   | Wire 6 SHA-2 sets + extend ACVP KAT to all 12                          | v0.4.0    | P0       |
+| SLHDSA-22 | #30   | SHA-2 family (6 sets) + cross-impl verification                        | v0.4.0    | P1       |
 
 See also [ROADMAP.md](ROADMAP.md) and [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)
 for the milestone view.

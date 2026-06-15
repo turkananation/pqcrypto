@@ -4,7 +4,11 @@
 
 ## Is pqcrypto FIPS validated?
 
-No. pqcrypto provides FIPS 203/204-aligned implementations with checked-in KAT and interop evidence, but it is not a CMVP/FIPS 140 validated module.
+No. pqcrypto provides FIPS 203/204-aligned implementations and a FIPS 205 SLH-DSA release candidate (all 12 sets) with checked-in KAT/ACVP and interop evidence, but it is not a CMVP/FIPS 140 validated module.
+
+## Is SLH-DSA available in the published pqcrypto package?
+
+Not yet. The development source tree exports all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) and is byte-exact on the 1,248 official NIST ACVP sample cases. The v0.4.0 version, tag, and publication are not yet done.
 
 ## Can I encrypt data with ML-KEM alone?
 

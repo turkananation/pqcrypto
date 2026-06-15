@@ -37,6 +37,7 @@ final class SlhDsaParams {
   int get a => _row.a;
   int get k => _row.k;
   bool get isFast => _row.isFast;
+  bool get isSupported => true;
   int get lgW => 4;
 
   static const _row128s = _SlhDsaParameterRow(1, 16, 63, 7, 12, 14, false);
@@ -108,6 +109,24 @@ final class SlhDsaParams {
   );
 
   static const List<SlhDsaParams> values = <SlhDsaParams>[
+    sha2128s,
+    sha2128f,
+    sha2192s,
+    sha2192f,
+    sha2256s,
+    sha2256f,
+    shake128s,
+    shake128f,
+    shake192s,
+    shake192f,
+    shake256s,
+    shake256f,
+  ];
+
+  /// Parameter sets implemented and supported by the package API. Currently all
+  /// 12 FIPS 205 sets (both the SHAKE and SHA-2 hash families); kept distinct
+  /// from [values] as a forward-compatibility hook.
+  static const List<SlhDsaParams> supportedValues = <SlhDsaParams>[
     sha2128s,
     sha2128f,
     sha2192s,

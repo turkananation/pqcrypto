@@ -111,12 +111,7 @@ String _llms(JsonMap manifest) {
       '${project['maintainer']}.',
     )
     ..writeln()
-    ..writeln(
-      'pqcrypto is a pure Dart package for ML-KEM key encapsulation '
-      '(FIPS 203) and ML-DSA digital signatures (FIPS 204). It is '
-      'byte-exact against checked-in Known-Answer-Test corpora, and ML-KEM '
-      'also has OpenSSL interoperability evidence.',
-    )
+    ..writeln(project['summary'])
     ..writeln()
     ..writeln('## Use This First')
     ..writeln()
@@ -138,7 +133,10 @@ String _llms(JsonMap manifest) {
     ..writeln()
     ..writeln('## Important Boundary')
     ..writeln()
-    ..writeln('- Provides only ML-KEM and ML-DSA primitives.')
+    ..writeln('- ${project['release_boundary']}')
+    ..writeln(
+      '- Provides cryptographic primitives, not a complete application protocol.',
+    )
     ..writeln('- Does not provide these application-layer pieces:');
 
   for (final item in doesNotProvide) {
@@ -255,9 +253,9 @@ String _llmsFull(JsonMap manifest) {
     ..writeln('## Algorithm Sizes')
     ..writeln()
     ..writeln(
-      '| Algorithm | Standard | API | Public key | Secret key | Ct/Sig | Shared secret |',
+      '| Algorithm | Standard | Status | API | Public key | Secret key | Ct/Sig | Shared secret |',
     )
-    ..writeln('| --- | --- | --- | ---: | ---: | ---: | ---: |');
+    ..writeln('| --- | --- | --- | --- | ---: | ---: | ---: | ---: |');
 
   for (final algorithm in algorithms) {
     final ctOrSig =
@@ -265,6 +263,7 @@ String _llmsFull(JsonMap manifest) {
     final ss = algorithm['shared_secret_bytes'] ?? '';
     buffer.writeln(
       '| ${algorithm['name']} | ${algorithm['standard']} | '
+      '${algorithm['status']} | '
       '`${algorithm['api']}` | ${algorithm['public_key_bytes']} | '
       '${algorithm['secret_key_bytes']} | $ctOrSig | $ss |',
     );
@@ -351,7 +350,7 @@ String _identityJson(JsonMap manifest) {
             '@type': 'DefinedTerm',
             'name': algorithm['name'],
             'termCode': algorithm['standard'],
-            'description': algorithm['type'],
+            'description': '${algorithm['type']}; ${algorithm['status']}',
             'identifier': algorithm['api'],
           },
         )
@@ -385,9 +384,8 @@ String _developerAi(JsonMap manifest) {
     ..writeln(
       '- Canonical docs live under `doc/`; the website and wiki are discovery surfaces.',
     )
-    ..writeln(
-      '- The source package exports ML-KEM and ML-DSA primitives, not a full protocol stack.',
-    )
+    ..writeln('- ${project['release_boundary']}')
+    ..writeln('- ${project['summary']}')
     ..writeln()
     ..writeln('## Claim Boundary')
     ..writeln()
@@ -527,6 +525,8 @@ String _robots(JsonMap manifest) {
 String _copilotInstructions(JsonMap manifest) {
   final project = _map(manifest['project']);
   final evidence = _map(manifest['evidence_boundary']);
+  final capabilities = _strings(manifest['capabilities']);
+  final commands = _strings(manifest['validation_commands']);
 
   return '''${_mdComment()}
 # GitHub Copilot Instructions for ${project['short_title']}
@@ -535,15 +535,20 @@ Read `AGENTS.md` first. This repository is a pure Dart cryptography package, not
 an application. Ground claims in live code, `CHANGELOG.md`, and `doc/`.
 
 Current facts:
+
 - Package version: ${project['version']}.
 - Runtime dependencies: zero.
-- ML-KEM support: 512/768/1024 with checked-in KAT and OpenSSL interop evidence.
-- ML-DSA support: 44/65/87, byte-exact on the checked-in KAT corpus.
+- ${project['release_boundary']}
 - Claim boundary: ${evidence['summary']}
 
+Current capabilities:
+
+${capabilities.map((capability) => '- $capability').join('\n')}
+
 Development rules:
+
 - Do not add runtime dependencies unless the package boundary is explicitly changed.
-- Keep ML-KEM and ML-DSA arithmetic, packing, parameter objects, and tests separate.
+- Keep each algorithm family's implementation, parameters, and tests separate.
 - Validate public inputs before crypto work.
 - Never add `print()` to `lib/`.
 - Update docs when APIs, evidence, tests, package metadata, or readiness wording change.
@@ -551,15 +556,13 @@ Development rules:
   and run `dart run tool/visibility/generate_visibility.dart`.
 
 Forbidden claims:
+
 ${_strings(evidence['forbidden_claims']).map((claim) => '- $claim').join('\n')}
 
 Validation ladder:
+
 ```bash
-dart run tool/visibility/generate_visibility.dart --check
-dart analyze
-dart test test/kat_evaluator_test.dart
-dart test test/mldsa_kat_test.dart
-dart test
+${commands.join('\n')}
 ```
 ''';
 }
@@ -579,15 +582,19 @@ Treat every change as evidence-sensitive.
   behavior changes.
 - For ML-DSA changes, run `dart test test/mldsa_kat_test.dart` and keep output
   byte-exact against `test/data/MLDSA`.
+- For SLH-DSA changes, run `dart test test/slhdsa_kat_test.dart` and preserve
+  the six-set SHAKE support boundary until the SHA-2 release gates are complete.
 - Do not replace repo-local KAT corpora with machine-local paths.
 - Do not upgrade assurance wording beyond checked-in KAT and interop evidence.
 - If you edit generated visibility or AI-agent files, edit
   `tool/visibility/visibility_manifest.json` and regenerate.
 
 Allowed wording:
+
 ${_strings(evidence['allowed_claims']).map((claim) => '- $claim').join('\n')}
 
 Forbidden wording:
+
 ${_strings(evidence['forbidden_claims']).map((claim) => '- $claim').join('\n')}
 ''';
 }
@@ -595,6 +602,7 @@ ${_strings(evidence['forbidden_claims']).map((claim) => '- $claim').join('\n')}
 String _cursorRule(JsonMap manifest) {
   final project = _map(manifest['project']);
   final evidence = _map(manifest['evidence_boundary']);
+  final commands = _strings(manifest['validation_commands']);
   return '''---
 description: pqcrypto evidence boundary, validation workflow, and generated visibility files
 globs: "**/*"
@@ -626,10 +634,7 @@ git diff --check
 
 Before finishing cryptographic work:
 ```bash
-dart analyze
-dart test test/kat_evaluator_test.dart
-dart test test/mldsa_kat_test.dart
-dart test
+${commands.join('\n')}
 ```
 ''';
 }
@@ -637,6 +642,7 @@ dart test
 String _windsurfRules(JsonMap manifest) {
   final project = _map(manifest['project']);
   final evidence = _map(manifest['evidence_boundary']);
+  final capabilities = _strings(manifest['capabilities']);
   return '''${_hashComment()}
 # Windsurf Rules for ${project['short_title']}
 
@@ -646,14 +652,17 @@ Start with `AGENTS.md`, `doc/INDEX.md`, and
 Project facts:
 - Version ${project['version']}.
 - Pure Dart, zero runtime dependencies.
-- ML-KEM 512/768/1024 and ML-DSA 44/65/87 are the supported primitives.
+- ${project['release_boundary']}
 - ${evidence['summary']}
+
+Current capabilities:
+${capabilities.map((capability) => '- $capability').join('\n')}
 
 Rules:
 - Edit the visibility manifest, not generated visibility outputs directly.
 - Run `dart run tool/visibility/generate_visibility.dart --check` after
   generated visibility changes.
-- Keep ML-KEM and ML-DSA implementation surfaces separate.
+- Keep each algorithm family's implementation and tests separate.
 - Never add `print()` to `lib/`.
 - Never claim FIPS validation, CMVP validation, certification, hard
   constant-time behavior, or hard memory erasure.
@@ -666,6 +675,7 @@ String _siteIndex(JsonMap manifest) {
   final evidence = _map(manifest['evidence_boundary']);
   final algorithms = _maps(manifest['algorithms']);
   final docs = _maps(manifest['docs']);
+  final statusCards = _maps(manifest['status_cards']);
   final keywords = _strings(manifest['keywords']).join(', ');
   final jsonLd = _scriptJson(jsonDecode(_identityJson(manifest)) as Object);
 
@@ -733,15 +743,16 @@ String _siteIndex(JsonMap manifest) {
       '      <img class="hero-diagram" src="assets/pqcrypto-protocol.svg" alt="ML-KEM establishes a shared secret and ML-DSA signs transcripts.">',
     )
     ..writeln('    </section>')
-    ..writeln('    <section class="status-grid" aria-label="Project status">')
-    ..writeln(
-      '      <div><span>Version</span><strong>${_html(project['version'])}</strong></div>',
-    )
-    ..writeln('      <div><span>Runtime deps</span><strong>0</strong></div>')
-    ..writeln('      <div><span>ML-KEM KATs</span><strong>3000</strong></div>')
-    ..writeln(
-      '      <div><span>ML-DSA KAT signatures</span><strong>1800</strong></div>',
-    )
+    ..writeln('    <section class="status-grid" aria-label="Project status">');
+
+  for (final card in statusCards) {
+    buffer.writeln(
+      '      <div><span>${_html(card['label'])}</span>'
+      '<strong>${_html(card['value'])}</strong></div>',
+    );
+  }
+
+  buffer
     ..writeln('    </section>')
     ..writeln('    <section class="split" id="evidence">')
     ..writeln('      <div>')
@@ -776,7 +787,7 @@ String _siteIndex(JsonMap manifest) {
     ..writeln('      <div class="table-wrap">')
     ..writeln('        <table>')
     ..writeln(
-      '          <thead><tr><th>Algorithm</th><th>Standard</th><th>API</th><th>Public key</th><th>Secret key</th><th>Ct/Sig</th><th>Shared secret</th></tr></thead>',
+      '          <thead><tr><th>Algorithm</th><th>Standard</th><th>Status</th><th>API</th><th>Public key</th><th>Secret key</th><th>Ct/Sig</th><th>Shared secret</th></tr></thead>',
     )
     ..writeln('          <tbody>');
 
@@ -787,6 +798,7 @@ String _siteIndex(JsonMap manifest) {
     buffer.writeln(
       '            <tr><td>${_html(algorithm['name'])}</td>'
       '<td>${_html(algorithm['standard'])}</td>'
+      '<td>${_html(algorithm['status'])}</td>'
       '<td><code>${_html(algorithm['api'])}</code></td>'
       '<td>${algorithm['public_key_bytes']}</td>'
       '<td>${algorithm['secret_key_bytes']}</td>'
@@ -1059,7 +1071,7 @@ h3 {
 .status-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   margin-top: -20px;
 }
 

@@ -11,12 +11,13 @@ roadmap and changelog before building.
 Status legend: **Planned** = on the roadmap with a target version; **Exploratory**
 = a candidate direction, not committed.
 
-## 0.4.0 / 0.5.0 — SLH-DSA (FIPS 205), hash-based signatures
+## 0.4.0 — SLH-DSA (FIPS 205), hash-based signatures
 
-**Planned.** Stateless hash-based signatures: SHAKE family first (0.4.0), then
-SHA-2 family (0.5.0). SLH-DSA uses only hash functions — no lattice arithmetic —
-so it is a strong *diversification* against any future lattice cryptanalysis. The
-trade-offs are large signatures and slower signing; verification stays reasonable.
+**Planned.** Stateless hash-based signatures: all 12 FIPS 205 parameter sets
+(both the SHAKE and SHA-2 hash families) ship together in 0.4.0. SLH-DSA uses
+only hash functions — no lattice arithmetic — so it is a strong *diversification*
+against any future lattice cryptanalysis. The trade-offs are large signatures and
+slower signing; verification stays reasonable.
 
 What it unlocks:
 
@@ -34,7 +35,7 @@ What it unlocks:
 Plan around: much larger signatures than ML-DSA, and slower signing — favor it
 for low-frequency, high-value signatures, not per-request tokens.
 
-## 0.6.0 — Performance and platform work
+## 0.5.0 — Performance and platform work
 
 **Planned.** Benchmark suite and platform measurement (AOT, dart2js, dart2wasm),
 plus candidate arithmetic optimizations. This does not add algorithms, but it
@@ -42,9 +43,9 @@ makes the **web** and **embedded-Linux** ideas in the catalog easier to size and
 justify with real numbers on your target. If your project's viability depends on
 throughput, this milestone is the one to watch.
 
-## 0.7.0 — Full FIPS 202 and SP 800-185 (SHA-3 family + KMAC)
+## 0.6.0 — Full FIPS 202 and SP 800-185 (SHA-3 family + KMAC)
 
-**Planned** (with 0.8.0 spillover if the evidence gate cannot close). Completes
+**Planned** (with 0.7.0 spillover if the evidence gate cannot close). Completes
 SHA3-224/384 and adds the SP 800-185 derived functions: cSHAKE, KMAC, TupleHash,
 ParallelHash. This is the milestone that **shrinks the "you supply" column** for
 several building blocks, because today the package exports no public hash or MAC.

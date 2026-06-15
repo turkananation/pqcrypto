@@ -35,6 +35,7 @@ final class Adrs {
   Adrs._(this._bytes) : _byteData = ByteData.sublistView(_bytes);
 
   static const int byteLength = 32;
+  static const int compressedByteLength = 22;
   static const int _layerOffset = 0;
   static const int _treeOffset = 4;
   static const int _typeOffset = 16;
@@ -46,6 +47,17 @@ final class Adrs {
   final ByteData _byteData;
 
   Uint8List toBytes() => Uint8List.fromList(_bytes);
+
+  /// Return the FIPS 205 Figure 18 compressed address `ADRS^c`.
+  ///
+  /// The canonical in-memory address remains the 32-byte Table 1 form. SHA-2
+  /// hashing compresses it at the hash boundary, avoiding two mutable address
+  /// layouts with different field offsets.
+  Uint8List toCompressedBytes() {
+    final output = Uint8List(compressedByteLength);
+    copyCompressedBytesTo(output, 0);
+    return output;
+  }
 
   Adrs copy() => Adrs.fromBytes(_bytes);
 
@@ -59,6 +71,21 @@ final class Adrs {
       'offset + byteLength',
     );
     destination.setRange(offset, offset + byteLength, _bytes);
+  }
+
+  /// Copy the FIPS 205 Figure 18 compressed address into [destination].
+  void copyCompressedBytesTo(Uint8List destination, int offset) {
+    RangeError.checkValidRange(
+      offset,
+      offset + compressedByteLength,
+      destination.length,
+      'offset',
+      'offset + compressedByteLength',
+    );
+    destination[offset] = _bytes[3];
+    destination.setRange(offset + 1, offset + 9, _bytes, 8);
+    destination[offset + 9] = _bytes[19];
+    destination.setRange(offset + 10, offset + 22, _bytes, 20);
   }
 
   void setLayerAddress(int layer) {

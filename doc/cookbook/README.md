@@ -48,7 +48,7 @@ own.
 | Key derivation (HKDF / KDF)               | No                       | You — HKDF from your stack                          |
 | Classical key exchange (X25519, ECDH)     | No                       | You — for a hybrid handshake                        |
 | Transcript / message hashing (SHA-256…)   | No (vendored internally) | You — a public hash from your stack                 |
-| Keyed MAC (HMAC / KMAC)                   | No (KMAC planned, 0.7.0) | You — until SP 800-185 ships                        |
+| Keyed MAC (HMAC / KMAC)                   | No (KMAC planned, 0.6.0) | You — until SP 800-185 ships                        |
 | Secure key storage, KMS/HSM, secrets mgmt | No                       | You — platform keystore / KMS / HSM                 |
 | Random beyond `Random.secure()`           | No                       | You — your platform CSPRNG for nonces/salts         |
 | Transport (TLS), sessions, replay windows | No                       | You — your server framework                         |

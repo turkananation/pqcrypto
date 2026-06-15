@@ -20,3 +20,6 @@ dart run tool/visibility/generate_visibility.dart --check
 The generated files intentionally repeat the same evidence boundary: `pqcrypto`
 has checked-in KAT and interoperability evidence, but does not claim CMVP/FIPS
 140 module validation, hard constant-time Dart behavior, or hard memory erasure.
+Algorithm records also carry an explicit publication status so unreleased
+development surfaces are not presented as capabilities of the current pub.dev
+version.

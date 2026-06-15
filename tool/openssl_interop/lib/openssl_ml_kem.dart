@@ -1,7 +1,7 @@
 /// OpenSSL ML-KEM bindings (via `dart:ffi` → `libcrypto`) plus the shared
 /// scaffolding used by both the runnable harness
 /// ([bin/openssl_pqcrypto_interop.dart]) and the rigorous test suite
-/// ([test/interop_test.dart]).
+/// ([test/mlkem_interop_test.dart]).
 ///
 /// IMPORTANT — purity boundary: this file lives in the **separate**
 /// `openssl_pqcrypto_interop` dev-tool package (`publish_to: none`), NOT in the
@@ -11,76 +11,75 @@
 ///
 /// The EVP API is algorithm-agnostic: every binding below is generic and the
 /// only thing that differs between ML-KEM-512/768/1024 is the algorithm *name*
-/// string passed to `EVP_PKEY_CTX_new_from_name`. So a single loaded
+/// string passed to `EvpPkeyCtx_new_from_name`. So a single loaded
 /// [OpenSslMlKem] instance serves all three parameter sets — the level is just
 /// a method argument.
 library;
 
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
-import 'package:pqcrypto/pqcrypto.dart';
+import 'package:pqcrypto_interop_common/pqcrypto_interop_common.dart';
 
 // ── OpenSSL EVP opaque types ──────────────────────────────────────────────────
-final class EVP_PKEY extends Opaque {}
+final class EvpPkey extends Opaque {}
 
-final class EVP_PKEY_CTX extends Opaque {}
+final class EvpPkeyCtx extends Opaque {}
 
-final class OSSL_PARAM extends Opaque {}
+final class OsslParam extends Opaque {}
 
-final class OSSL_PARAM_BLD extends Opaque {}
+final class OsslParamBld extends Opaque {}
 
 // ── FFI typedefs ─────────────────────────────────────────────────────────────
 
-// EVP_PKEY_CTX_new_from_name(NULL, "ML-KEM-768", NULL)
+// EvpPkeyCtx_new_from_name(NULL, "ML-KEM-768", NULL)
 typedef EvpPkeyCtxNewFromNameNative =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
+    Pointer<EvpPkeyCtx> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
 typedef EvpPkeyCtxNewFromNameDart =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
+    Pointer<EvpPkeyCtx> Function(Pointer<Void>, Pointer<Utf8>, Pointer<Void>);
 
-// EVP_PKEY_CTX_new(EVP_PKEY*, ENGINE*)  — for encaps/decaps ctx from a key
+// EvpPkeyCtx_new(EvpPkey*, ENGINE*)  — for encaps/decaps ctx from a key
 typedef EvpPkeyCtxNewNative =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<EVP_PKEY>, Pointer<Void>);
+    Pointer<EvpPkeyCtx> Function(Pointer<EvpPkey>, Pointer<Void>);
 typedef EvpPkeyCtxNewDart =
-    Pointer<EVP_PKEY_CTX> Function(Pointer<EVP_PKEY>, Pointer<Void>);
+    Pointer<EvpPkeyCtx> Function(Pointer<EvpPkey>, Pointer<Void>);
 
-typedef EvpPkeyCtxFreeNative = Void Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyCtxFreeDart = void Function(Pointer<EVP_PKEY_CTX>);
+typedef EvpPkeyCtxFreeNative = Void Function(Pointer<EvpPkeyCtx>);
+typedef EvpPkeyCtxFreeDart = void Function(Pointer<EvpPkeyCtx>);
 
-typedef EvpPkeyFreeNative = Void Function(Pointer<EVP_PKEY>);
-typedef EvpPkeyFreeDart = void Function(Pointer<EVP_PKEY>);
+typedef EvpPkeyFreeNative = Void Function(Pointer<EvpPkey>);
+typedef EvpPkeyFreeDart = void Function(Pointer<EvpPkey>);
 
-// EVP_PKEY_keygen_init(ctx)
-typedef EvpPkeyKeygenInitNative = Int32 Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyKeygenInitDart = int Function(Pointer<EVP_PKEY_CTX>);
+// EvpPkey_keygen_init(ctx)
+typedef EvpPkeyKeygenInitNative = Int32 Function(Pointer<EvpPkeyCtx>);
+typedef EvpPkeyKeygenInitDart = int Function(Pointer<EvpPkeyCtx>);
 
-// EVP_PKEY_encapsulate_init(ctx, params[]) / EVP_PKEY_decapsulate_init(ctx, params[])
+// EvpPkey_encapsulate_init(ctx, params[]) / EvpPkey_decapsulate_init(ctx, params[])
 typedef EvpPkeyKemInitNative =
-    Int32 Function(Pointer<EVP_PKEY_CTX>, Pointer<Void>);
-typedef EvpPkeyKemInitDart = int Function(Pointer<EVP_PKEY_CTX>, Pointer<Void>);
+    Int32 Function(Pointer<EvpPkeyCtx>, Pointer<Void>);
+typedef EvpPkeyKemInitDart = int Function(Pointer<EvpPkeyCtx>, Pointer<Void>);
 
-// EVP_PKEY_fromdata_init(ctx)
-typedef EvpPkeyFromdataInitNative = Int32 Function(Pointer<EVP_PKEY_CTX>);
-typedef EvpPkeyFromdataInitDart = int Function(Pointer<EVP_PKEY_CTX>);
+// EvpPkey_fromdata_init(ctx)
+typedef EvpPkeyFromdataInitNative = Int32 Function(Pointer<EvpPkeyCtx>);
+typedef EvpPkeyFromdataInitDart = int Function(Pointer<EvpPkeyCtx>);
 
-// EVP_PKEY_keygen(ctx, EVP_PKEY**)
+// EvpPkey_keygen(ctx, EvpPkey**)
 typedef EvpPkeyKeygenNative =
-    Int32 Function(Pointer<EVP_PKEY_CTX>, Pointer<Pointer<EVP_PKEY>>);
+    Int32 Function(Pointer<EvpPkeyCtx>, Pointer<Pointer<EvpPkey>>);
 typedef EvpPkeyKeygenDart =
-    int Function(Pointer<EVP_PKEY_CTX>, Pointer<Pointer<EVP_PKEY>>);
+    int Function(Pointer<EvpPkeyCtx>, Pointer<Pointer<EvpPkey>>);
 
-// EVP_PKEY_get1_encoded_public_key(pkey, unsigned char**) -> size_t
+// EvpPkey_get1_encoded_public_key(pkey, unsigned char**) -> size_t
 typedef EvpPkeyGet1EncodedPublicKeyNative =
-    IntPtr Function(Pointer<EVP_PKEY>, Pointer<Pointer<Uint8>>);
+    IntPtr Function(Pointer<EvpPkey>, Pointer<Pointer<Uint8>>);
 typedef EvpPkeyGet1EncodedPublicKeyDart =
-    int Function(Pointer<EVP_PKEY>, Pointer<Pointer<Uint8>>);
+    int Function(Pointer<EvpPkey>, Pointer<Pointer<Uint8>>);
 
-// EVP_PKEY_encapsulate(ctx, wrappedkey*, wrappedkeylen*, genkey*, genkeylen*)
+// EvpPkey_encapsulate(ctx, wrappedkey*, wrappedkeylen*, genkey*, genkeylen*)
 typedef EvpPkeyEncapsulateNative =
     Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
+      Pointer<EvpPkeyCtx>,
       Pointer<Uint8>,
       Pointer<IntPtr>,
       Pointer<Uint8>,
@@ -88,17 +87,17 @@ typedef EvpPkeyEncapsulateNative =
     );
 typedef EvpPkeyEncapsulateDart =
     int Function(
-      Pointer<EVP_PKEY_CTX>,
+      Pointer<EvpPkeyCtx>,
       Pointer<Uint8>,
       Pointer<IntPtr>,
       Pointer<Uint8>,
       Pointer<IntPtr>,
     );
 
-// EVP_PKEY_decapsulate(ctx, unwrapped*, unwrappedlen*, wrapped*, wrappedlen)
+// EvpPkey_decapsulate(ctx, unwrapped*, unwrappedlen*, wrapped*, wrappedlen)
 typedef EvpPkeyDecapsulateNative =
     Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
+      Pointer<EvpPkeyCtx>,
       Pointer<Uint8>,
       Pointer<IntPtr>,
       Pointer<Uint8>,
@@ -106,52 +105,52 @@ typedef EvpPkeyDecapsulateNative =
     );
 typedef EvpPkeyDecapsulateDart =
     int Function(
-      Pointer<EVP_PKEY_CTX>,
+      Pointer<EvpPkeyCtx>,
       Pointer<Uint8>,
       Pointer<IntPtr>,
       Pointer<Uint8>,
       int,
     );
 
-// OSSL_PARAM_BLD_new / free / to_param
-typedef OsslParamBldNewNative = Pointer<OSSL_PARAM_BLD> Function();
-typedef OsslParamBldNewDart = Pointer<OSSL_PARAM_BLD> Function();
+// OsslParamBld_new / free / to_param
+typedef OsslParamBldNewNative = Pointer<OsslParamBld> Function();
+typedef OsslParamBldNewDart = Pointer<OsslParamBld> Function();
 
-typedef OsslParamBldFreeNative = Void Function(Pointer<OSSL_PARAM_BLD>);
-typedef OsslParamBldFreeDart = void Function(Pointer<OSSL_PARAM_BLD>);
+typedef OsslParamBldFreeNative = Void Function(Pointer<OsslParamBld>);
+typedef OsslParamBldFreeDart = void Function(Pointer<OsslParamBld>);
 
 typedef OsslParamBldToParamNative =
-    Pointer<OSSL_PARAM> Function(Pointer<OSSL_PARAM_BLD>);
+    Pointer<OsslParam> Function(Pointer<OsslParamBld>);
 typedef OsslParamBldToParamDart =
-    Pointer<OSSL_PARAM> Function(Pointer<OSSL_PARAM_BLD>);
+    Pointer<OsslParam> Function(Pointer<OsslParamBld>);
 
 typedef OsslParamBldPushOctetStringNative =
     Int32 Function(
-      Pointer<OSSL_PARAM_BLD>,
+      Pointer<OsslParamBld>,
       Pointer<Utf8>,
       Pointer<Uint8>,
       IntPtr,
     );
 typedef OsslParamBldPushOctetStringDart =
-    int Function(Pointer<OSSL_PARAM_BLD>, Pointer<Utf8>, Pointer<Uint8>, int);
+    int Function(Pointer<OsslParamBld>, Pointer<Utf8>, Pointer<Uint8>, int);
 
-typedef OsslParamFreeNative = Void Function(Pointer<OSSL_PARAM>);
-typedef OsslParamFreeDart = void Function(Pointer<OSSL_PARAM>);
+typedef OsslParamFreeNative = Void Function(Pointer<OsslParam>);
+typedef OsslParamFreeDart = void Function(Pointer<OsslParam>);
 
-// EVP_PKEY_fromdata(ctx, EVP_PKEY**, selection, OSSL_PARAM[])
+// EvpPkey_fromdata(ctx, EvpPkey**, selection, OsslParam[])
 typedef EvpPkeyFromdataNative =
     Int32 Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Pointer<EVP_PKEY>>,
+      Pointer<EvpPkeyCtx>,
+      Pointer<Pointer<EvpPkey>>,
       Int32,
-      Pointer<OSSL_PARAM>,
+      Pointer<OsslParam>,
     );
 typedef EvpPkeyFromdataDart =
     int Function(
-      Pointer<EVP_PKEY_CTX>,
-      Pointer<Pointer<EVP_PKEY>>,
+      Pointer<EvpPkeyCtx>,
+      Pointer<Pointer<EvpPkey>>,
       int,
-      Pointer<OSSL_PARAM>,
+      Pointer<OsslParam>,
     );
 
 // CRYPTO_free
@@ -164,18 +163,13 @@ typedef OpenSslVersionDart = Pointer<Utf8> Function(int);
 
 // ── OpenSSL selection constants ───────────────────────────────────────────────
 // OSSL_KEYMGMT_SELECT_ALL_PARAMETERS = 0x04 | 0x80 = 0x84
-// EVP_PKEY_PUBLIC_KEY = ALL_PARAMETERS | PUBLIC_KEY(0x02)              = 0x86
-// EVP_PKEY_KEYPAIR    = ALL_PARAMETERS | PUBLIC_KEY | PRIVATE_KEY(0x01) = 0x87
+// EvpPkey_PUBLIC_KEY = ALL_PARAMETERS | PUBLIC_KEY(0x02)              = 0x86
+// EvpPkey_KEYPAIR    = ALL_PARAMETERS | PUBLIC_KEY | PRIVATE_KEY(0x01) = 0x87
 const int _evpPkeyPublicKey = 0x86;
 const int _evpPkeyKeypair = 0x87;
 
 /// Every ML-KEM shared secret (the KEM output `K`) is 32 bytes, regardless of
 /// parameter set (FIPS 203).
-const int kSharedSecretBytes = 32;
-
-/// FIPS 203 seed `(d ‖ z)` length used for deterministic key generation.
-const int kSeedBytes = 64;
-
 // ── OpenSSL FFI wrapper ───────────────────────────────────────────────────────
 
 /// Thin FFI wrapper over OpenSSL's EVP ML-KEM API. One instance is bound to a
@@ -281,8 +275,8 @@ class OpenSslMlKem {
   }
 
   /// Generate an ML-KEM keypair for [algName] (e.g. `"ML-KEM-768"`). Returns
-  /// `(publicKeyBytes, EVP_PKEY*)`. Caller must free the key with [freeKey].
-  (Uint8List, Pointer<EVP_PKEY>) generateKeypair(String algName) {
+  /// `(publicKeyBytes, EvpPkey*)`. Caller must free the key with [freeKey].
+  (Uint8List, Pointer<EvpPkey>) generateKeypair(String algName) {
     final algNamePtr = algName.toNativeUtf8();
     final ctx = _ctxNewFromName(nullptr, algNamePtr, nullptr);
     calloc.free(algNamePtr);
@@ -292,7 +286,7 @@ class OpenSslMlKem {
       if (_keygenInit(ctx) <= 0) {
         throw StateError('EVP_PKEY_keygen_init failed');
       }
-      final pkeyPtr = calloc<Pointer<EVP_PKEY>>();
+      final pkeyPtr = calloc<Pointer<EvpPkey>>();
       try {
         if (_keygen(ctx, pkeyPtr) <= 0) {
           throw StateError('EVP_PKEY_keygen failed');
@@ -308,8 +302,8 @@ class OpenSslMlKem {
   }
 
   /// Deterministically derive a full ML-KEM keypair for [algName] from a
-  /// 64-byte FIPS 203 seed `(d ‖ z)`, via `EVP_PKEY_fromdata` with the `"seed"`
-  /// `OSSL_PARAM` (`OSSL_PKEY_PARAM_ML_KEM_SEED`) and `EVP_PKEY_KEYPAIR`
+  /// 64-byte FIPS 203 seed `(d ‖ z)`, via `EvpPkey_fromdata` with the `"seed"`
+  /// `OsslParam` (`OSSL_PKEY_PARAM_ML_KEM_SEED`) and `EvpPkey_KEYPAIR`
   /// selection. The returned key can both encapsulate and decapsulate. Caller
   /// must free with [freeKey].
   ///
@@ -317,25 +311,27 @@ class OpenSslMlKem {
   /// to OpenSSL and to `pqcrypto` must yield byte-identical public keys, and a
   /// shared `z` makes the FIPS 203 implicit-rejection secret comparable across
   /// implementations.
-  Pointer<EVP_PKEY> keypairFromSeed(String algName, Uint8List seed) {
-    if (seed.length != kSeedBytes) {
-      throw ArgumentError('ML-KEM seed must be $kSeedBytes bytes (d‖z)');
+  Pointer<EvpPkey> keypairFromSeed(String algName, Uint8List seed) {
+    if (seed.length != mlKemKeyPairSeedBytes) {
+      throw ArgumentError(
+        'ML-KEM seed must be $mlKemKeyPairSeedBytes bytes (d||z)',
+      );
     }
     return _fromData(algName, 'seed', seed, _evpPkeyKeypair);
   }
 
-  /// Import a raw public key for [algName] and return an `EVP_PKEY*` (public
+  /// Import a raw public key for [algName] and return an `EvpPkey*` (public
   /// only). Caller must free with [freeKey].
-  Pointer<EVP_PKEY> importPublicKey(String algName, Uint8List pubKeyBytes) {
+  Pointer<EvpPkey> importPublicKey(String algName, Uint8List pubKeyBytes) {
     return _fromData(algName, 'pub', pubKeyBytes, _evpPkeyPublicKey);
   }
 
-  /// Shared `EVP_PKEY_fromdata` path: build a single-entry `OSSL_PARAM`
+  /// Shared `EvpPkey_fromdata` path: build a single-entry `OsslParam`
   /// (octet string [paramName] → [data]) and import it under [selection].
   ///
-  /// All native buffers must outlive the `EVP_PKEY_fromdata` call —
-  /// `OSSL_PARAM_BLD` stores pointers, not copies.
-  Pointer<EVP_PKEY> _fromData(
+  /// All native buffers must outlive the `EvpPkey_fromdata` call —
+  /// `OsslParamBld` stores pointers, not copies.
+  Pointer<EvpPkey> _fromData(
     String algName,
     String paramName,
     Uint8List data,
@@ -346,9 +342,9 @@ class OpenSslMlKem {
     final dataBuf = calloc<Uint8>(data.length);
     dataBuf.asTypedList(data.length).setAll(0, data);
 
-    Pointer<OSSL_PARAM>? params;
-    Pointer<EVP_PKEY_CTX>? ctx;
-    final pkeyPtr = calloc<Pointer<EVP_PKEY>>();
+    Pointer<OsslParam>? params;
+    Pointer<EvpPkeyCtx>? ctx;
+    final pkeyPtr = calloc<Pointer<EvpPkey>>();
 
     try {
       final bld = _bldNew();
@@ -382,8 +378,8 @@ class OpenSslMlKem {
     }
   }
 
-  /// Extract the raw encoded public key bytes from an `EVP_PKEY`.
-  Uint8List exportPublicKey(Pointer<EVP_PKEY> pkey) {
+  /// Extract the raw encoded public key bytes from an `EvpPkey`.
+  Uint8List exportPublicKey(Pointer<EvpPkey> pkey) {
     final ppub = calloc<Pointer<Uint8>>();
     try {
       final len = _get1EncodedPubKey(pkey, ppub);
@@ -396,8 +392,8 @@ class OpenSslMlKem {
     }
   }
 
-  /// Encapsulate against a public `EVP_PKEY*`. Returns `(ciphertext, sharedSecret)`.
-  (Uint8List, Uint8List) encapsulate(Pointer<EVP_PKEY> pubKey) {
+  /// Encapsulate against a public `EvpPkey*`. Returns `(ciphertext, sharedSecret)`.
+  (Uint8List, Uint8List) encapsulate(Pointer<EvpPkey> pubKey) {
     final ctx = _ctxNew(pubKey, nullptr);
     if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new failed');
     try {
@@ -436,11 +432,11 @@ class OpenSslMlKem {
     }
   }
 
-  /// Decapsulate [ciphertext] using a full keypair `EVP_PKEY*`. Returns the
+  /// Decapsulate [ciphertext] using a full keypair `EvpPkey*`. Returns the
   /// shared secret. Per FIPS 203 this never fails for a correctly-sized
   /// ciphertext: an invalid ciphertext yields the implicit-rejection secret
   /// `J(z ‖ c)` rather than an error.
-  Uint8List decapsulate(Pointer<EVP_PKEY> secretKey, Uint8List ciphertext) {
+  Uint8List decapsulate(Pointer<EvpPkey> secretKey, Uint8List ciphertext) {
     final ctx = _ctxNew(secretKey, nullptr);
     if (ctx == nullptr) throw StateError('EVP_PKEY_CTX_new failed');
     try {
@@ -474,7 +470,7 @@ class OpenSslMlKem {
     }
   }
 
-  void freeKey(Pointer<EVP_PKEY> pkey) => _pkeyFree(pkey);
+  void freeKey(Pointer<EvpPkey> pkey) => _pkeyFree(pkey);
 
   /// Full OpenSSL version string, e.g. `"OpenSSL 4.0.0 14 Apr 2026"`.
   String version() => _opensslVersion(0).toDartString();
@@ -482,7 +478,7 @@ class OpenSslMlKem {
   bool? _seedSupport;
 
   /// Whether this `libcrypto` supports deterministic ML-KEM keygen from a seed
-  /// (`EVP_PKEY_fromdata` with the `"seed"` param). Probed once and cached.
+  /// (`EvpPkey_fromdata` with the `"seed"` param). Probed once and cached.
   ///
   /// OpenSSL exposes this from 3.5; some builds may differ, so the seed-based
   /// conformance checks are gated on this rather than assumed.
@@ -493,7 +489,7 @@ class OpenSslMlKem {
     try {
       // A fixed, obviously-not-secret probe seed. ML-KEM-768 is always present
       // wherever ML-KEM is, so it is a safe probe target.
-      final probe = Uint8List(kSeedBytes);
+      final probe = Uint8List(mlKemKeyPairSeedBytes);
       for (var i = 0; i < probe.length; i++) {
         probe[i] = i & 0xFF;
       }
@@ -506,138 +502,3 @@ class OpenSslMlKem {
     return _seedSupport = ok;
   }
 }
-
-// ── ML-KEM parameter-set descriptor ───────────────────────────────────────────
-
-/// A single ML-KEM parameter set, pairing the OpenSSL algorithm name with the
-/// matching `pqcrypto` KEM and the **independent** FIPS 203 size constants.
-///
-/// The spec sizes are hard-coded from FIPS 203 (Table 2 / §8) rather than read
-/// from `pqcrypto`'s params, so a size assertion cross-checks both OpenSSL's
-/// output *and* `pqcrypto`'s params against the standard — a bug in either is
-/// caught.
-class MlKemLevel {
-  /// OpenSSL algorithm name, e.g. `"ML-KEM-512"`.
-  final String opensslName;
-
-  /// The matching `pqcrypto` KEM.
-  final KyberKem pq;
-
-  /// Encapsulation (public) key size in bytes, per FIPS 203.
-  final int specPublicKeyBytes;
-
-  /// Ciphertext size in bytes, per FIPS 203.
-  final int specCiphertextBytes;
-
-  /// Decapsulation (expanded secret) key size in bytes, per FIPS 203.
-  final int specSecretKeyBytes;
-
-  const MlKemLevel({
-    required this.opensslName,
-    required this.pq,
-    required this.specPublicKeyBytes,
-    required this.specCiphertextBytes,
-    required this.specSecretKeyBytes,
-  });
-
-  /// Shared secret size — always 32 bytes for ML-KEM.
-  int get specSharedSecretBytes => kSharedSecretBytes;
-}
-
-/// All three FIPS 203 ML-KEM parameter sets, with their standard sizes.
-///
-/// | Level       | pk   | ct   | sk   | ss |
-/// | :---------- | ---: | ---: | ---: | -: |
-/// | ML-KEM-512  |  800 |  768 | 1632 | 32 |
-/// | ML-KEM-768  | 1184 | 1088 | 2400 | 32 |
-/// | ML-KEM-1024 | 1568 | 1568 | 3168 | 32 |
-final List<MlKemLevel> mlKemLevels = <MlKemLevel>[
-  MlKemLevel(
-    opensslName: 'ML-KEM-512',
-    pq: PqcKem.kyber512,
-    specPublicKeyBytes: 800,
-    specCiphertextBytes: 768,
-    specSecretKeyBytes: 1632,
-  ),
-  MlKemLevel(
-    opensslName: 'ML-KEM-768',
-    pq: PqcKem.kyber768,
-    specPublicKeyBytes: 1184,
-    specCiphertextBytes: 1088,
-    specSecretKeyBytes: 2400,
-  ),
-  MlKemLevel(
-    opensslName: 'ML-KEM-1024',
-    pq: PqcKem.kyber1024,
-    specPublicKeyBytes: 1568,
-    specCiphertextBytes: 1568,
-    specSecretKeyBytes: 3168,
-  ),
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/// Hex-encode [bytes], truncating after [maxBytes] with a length suffix.
-String hex(List<int> bytes, {int maxBytes = 16}) {
-  final shown = bytes.length > maxBytes ? bytes.sublist(0, maxBytes) : bytes;
-  final h = shown.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  return bytes.length > maxBytes ? '$h... (${bytes.length} bytes)' : h;
-}
-
-/// Constant-time-ish byte equality (length + content). Adequate for a test
-/// harness; not a security-sensitive comparison.
-bool bytesEqual(List<int> a, List<int> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
-}
-
-/// Resolves a path to an OpenSSL >= 3.5 `libcrypto` that exposes ML-KEM.
-///
-/// Honors the `LIBCRYPTO_PATH` environment variable first; otherwise probes
-/// common per-platform locations. ML-KEM landed in OpenSSL 3.5, so a distro's
-/// system `libcrypto` (often OpenSSL 3.0.x) will NOT work — set `LIBCRYPTO_PATH`
-/// to a 3.5+ build in that case. Returns `null` if nothing is found (callers
-/// decide whether that is fatal or a skip).
-String? resolveLibcryptoPath() {
-  final override = Platform.environment['LIBCRYPTO_PATH'];
-  if (override != null && override.isNotEmpty) {
-    return File(override).existsSync() ? override : null;
-  }
-
-  final candidates = <String>[
-    if (Platform.isMacOS) ...[
-      '/opt/homebrew/opt/openssl@3.6/lib/libcrypto.dylib',
-      '/opt/homebrew/opt/openssl@3.5/lib/libcrypto.dylib',
-      '/opt/homebrew/opt/openssl/lib/libcrypto.dylib',
-      '/usr/local/opt/openssl@3.6/lib/libcrypto.dylib',
-      '/usr/local/opt/openssl/lib/libcrypto.dylib',
-    ],
-    if (Platform.isLinux) ...[
-      '/usr/local/lib64/libcrypto.so',
-      '/usr/local/lib/libcrypto.so',
-    ],
-  ];
-
-  for (final candidate in candidates) {
-    if (File(candidate).existsSync()) return candidate;
-  }
-  return null;
-}
-
-/// The list of paths [resolveLibcryptoPath] probes, for diagnostics.
-List<String> libcryptoProbePaths() => <String>[
-  if (Platform.isMacOS) ...[
-    '/opt/homebrew/opt/openssl@3.6/lib/libcrypto.dylib',
-    '/opt/homebrew/opt/openssl@3.5/lib/libcrypto.dylib',
-    '/opt/homebrew/opt/openssl/lib/libcrypto.dylib',
-    '/usr/local/opt/openssl@3.6/lib/libcrypto.dylib',
-    '/usr/local/opt/openssl/lib/libcrypto.dylib',
-  ],
-  if (Platform.isLinux) ...[
-    '/usr/local/lib64/libcrypto.so',
-    '/usr/local/lib/libcrypto.so',
-  ],
-];

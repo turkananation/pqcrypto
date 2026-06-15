@@ -5,7 +5,7 @@
 > Pure Dart, zero-dependency post-quantum cryptography for Dart, Flutter, and the web.
 > Version 0.3.1; MIT licensed; maintained by Turkana Nation.
 
-pqcrypto is a pure Dart package for ML-KEM key encapsulation (FIPS 203) and ML-DSA digital signatures (FIPS 204). It is byte-exact against checked-in Known-Answer-Test corpora, and ML-KEM also has OpenSSL interoperability evidence.
+pqcrypto provides NIST-standardized ML-KEM key encapsulation and ML-DSA digital signatures, plus all 12 FIPS 205 SLH-DSA parameter sets as an unreleased development release candidate in the source tree, as pure Dart with zero runtime dependencies.
 
 ## Use This First
 
@@ -17,7 +17,8 @@ pqcrypto is a pure Dart package for ML-KEM key encapsulation (FIPS 203) and ML-D
 
 ## Important Boundary
 
-- Provides only ML-KEM and ML-DSA primitives.
+- Version 0.3.1 on pub.dev exposes ML-KEM and ML-DSA; all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) are exported only in the development source tree pending the v0.4.0 maintainer release.
+- Provides cryptographic primitives, not a complete application protocol.
 - Does not provide these application-layer pieces:
   - AEAD encryption such as AES-GCM or ChaCha20-Poly1305
   - HKDF or another application-facing KDF
@@ -45,10 +46,10 @@ pqcrypto is a pure Dart package for ML-KEM key encapsulation (FIPS 203) and ML-D
 - [Documentation Index](https://github.com/turkananation/pqcrypto/blob/develop/doc/INDEX.md): Canonical map of all maintained project documentation.
 - [ML-KEM Testing](https://github.com/turkananation/pqcrypto/blob/develop/doc/MLKEM_TESTING.md): Checked-in ML-KEM KAT corpus, hashes, and release gates.
 - [ML-DSA FIPS 204 Release Guide](https://github.com/turkananation/pqcrypto/blob/develop/doc/MLDSA_FIPS204_RELEASE_GUIDE.md): ML-DSA implementation, validation, and hardening checklist.
+- [SLH-DSA FIPS 205 Release Guide](https://github.com/turkananation/pqcrypto/blob/develop/doc/SLHDSA_FIPS205_RELEASE_GUIDE.md): SLH-DSA implementation, ACVP evidence, hardening, performance, and release checklist.
+- [Performance](https://github.com/turkananation/pqcrypto/blob/develop/doc/PERFORMANCE.md): Portable benchmark results and operational guidance, including all 12 SLH-DSA sets.
 - [OpenSSL Interop](https://github.com/turkananation/pqcrypto/blob/develop/doc/OPENSSL_INTEROP.md): ML-KEM A-G interoperability harness and evidence.
 - [FIPS 140 Boundary](https://github.com/turkananation/pqcrypto/blob/develop/doc/FIPS_140_BOUNDARY.md): Precise wording boundary for algorithm evidence versus module validation.
-- [Security Audit](https://github.com/turkananation/pqcrypto/blob/develop/doc/SECURITY_AUDIT.md): Resolved issues, residual risks, and side-channel posture.
-- [Cookbook](https://github.com/turkananation/pqcrypto/blob/develop/doc/cookbook/README.md): Builder-facing recipes and project ideas for safe composition.
 
 ## AI Discovery Files
 

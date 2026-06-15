@@ -14,6 +14,15 @@ const _m112 =
     'hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu';
 
 void main() {
+  group('SHA-224 (FIPS 180-4)', () {
+    test('abc', () {
+      expect(
+        _hex(sha224(_ascii('abc'))),
+        '23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7',
+      );
+    });
+  });
+
   group('SHA-256 (FIPS 180-4)', () {
     test('empty', () {
       expect(
@@ -72,6 +81,22 @@ void main() {
         _hex(sha512(_ascii(_m112))),
         '8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018'
         '501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909',
+      );
+    });
+  });
+
+  group('SHA-512 truncated variants (FIPS 180-4)', () {
+    test('SHA-512/224 abc', () {
+      expect(
+        _hex(sha512224(_ascii('abc'))),
+        '4634270f707b6a54daae7530460842e20e37ed265ceee9a43e8924aa',
+      );
+    });
+
+    test('SHA-512/256 abc', () {
+      expect(
+        _hex(sha512256(_ascii('abc'))),
+        '53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23',
       );
     });
   });
