@@ -1,6 +1,6 @@
 # Known Bugs and Validation Gaps
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This file tracks bugs that affect current claims, tests, or release planning.
 For security prioritization, also read [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
@@ -45,6 +45,6 @@ No open bugs currently affect the documented release claims.
 4. Update this file, [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md), and any affected
    readiness wording in README or [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md).
 
-Keep ML-KEM and ML-DSA evidence separate, and keep all claims scoped to KAT/
-regression evidence (no CMVP/FIPS 140 claim; see
+Keep ML-KEM, ML-DSA, and SLH-DSA evidence separate, and keep all claims scoped
+to KAT/ACVP/regression evidence (no CMVP/FIPS 140 claim; see
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md)).

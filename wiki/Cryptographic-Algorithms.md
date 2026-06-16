@@ -56,13 +56,28 @@ the secret key. Signing is **hedged by default**.
 `HashML-DSA` (FIPS 204 §5.4) pre-hashes large messages with the level's approved
 hash (SHA-256/384/512). Full details: **[ML-DSA](ML-DSA)**.
 
-## SLH-DSA (FIPS 205) — planned
+## SLH-DSA (FIPS 205)
 
 Stateless Hash-Based Digital Signatures (formerly SPHINCS+). It derives security
 *entirely* from hash-function assumptions, making it a conservative
 diversifier against any future lattice cryptanalysis. It features tiny keys but
-large signatures and slow signing. The SHAKE family targets release 0.4.0 and
-the SHA-2 family 0.5.0 — see the [Roadmap](Roadmap). **Not yet implemented.**
+large signatures and slow signing. All 12 parameter sets — both hash families
+(SHAKE and SHA-2) across 128/192/256 and the small/fast (`s`/`f`) variants —
+ship in 0.4.0, byte-exact on the 1,248-case official NIST ACVP sample corpus.
+Signing is **hedged by default**, with explicit deterministic and slow-signing
+paths and optional verify-after-sign.
+
+| Parameter set | NIST category | Public key | Secret key | Signature |
+| ------------- | ------------- | ---------- | ---------- | --------- |
+| *-128s        | 1             | 32         | 64         | 7856      |
+| *-128f        | 1             | 32         | 64         | 17088     |
+| *-192s        | 3             | 48         | 96         | 16224     |
+| *-192f        | 3             | 48         | 96         | 35664     |
+| *-256s        | 5             | 64         | 128        | 29792     |
+| *-256f        | 5             | 64         | 128        | 49856     |
+
+Each row is available in both the `SHAKE` and `SHA-2` hash families
+(`SlhDsaParams.shake128s`, `SlhDsaParams.sha2128s`, and so on).
 
 ## Shared primitives
 

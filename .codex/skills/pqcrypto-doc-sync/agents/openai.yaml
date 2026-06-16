@@ -1,0 +1,4 @@
+interface:
+  display_name: "pqcrypto Doc Sync"
+  short_description: "Evidence-scoped pqcrypto documentation updates"
+  default_prompt: "Use $pqcrypto-doc-sync to audit pqcrypto docs against live code before editing."

@@ -77,10 +77,11 @@ New here? Read [Installation](Installation) → [Quickstart](Quickstart) →
 
 | Area          | State                                                             |
 | ------------- | ----------------------------------------------------------------- |
-| Version       | 0.3.1                                                             |
+| Version       | 0.4.0                                                             |
 | Dependencies  | Zero runtime dependencies (pure Dart)                             |
 | ML-KEM        | 512 / 768 / 1024 — byte-exact KATs + OpenSSL interop A–G          |
 | ML-DSA        | 44 / 65 / 87 — byte-exact KATs (raw/pure/hashed × det/hedged)     |
+| SLH-DSA       | All 12 sets (SHAKE + SHA-2) — byte-exact on 1,248 ACVP cases      |
 | Platforms     | Dart VM, Flutter (iOS/Android/desktop), Web (dart2js / dart2wasm) |
 | Certification | Not CMVP/FIPS 140 validated — algorithm/KAT evidence only         |
 
@@ -90,7 +91,8 @@ New here? Read [Installation](Installation) → [Quickstart](Quickstart) →
 [Quickstart](Quickstart) · [Cookbook (project ideas)](Cookbook)
 
 **Algorithms** · [Cryptographic Algorithms](Cryptographic-Algorithms) ·
-[ML-KEM (FIPS 203)](ML-KEM) · [ML-DSA (FIPS 204)](ML-DSA)
+[ML-KEM (FIPS 203)](ML-KEM) · [ML-DSA (FIPS 204)](ML-DSA) ·
+[SLH-DSA (FIPS 205)](Cryptographic-Algorithms#slh-dsa-fips-205)
 
 **Design & internals** · [Design Philosophy](Design-Philosophy) ·
 [Architecture](Architecture) · [Performance](Performance)

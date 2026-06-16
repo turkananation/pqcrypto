@@ -1,11 +1,11 @@
 schema_version: 1
 catalog_id: pqcrypto-project-ideas
 catalog_version: 0.1.0
-last_updated: "2026-06-06"
+last_updated: "2026-06-16"
 
 generated_for_package:
   name: pqcrypto
-  version: 0.3.1
+  version: 0.4.0
   runtime_dependencies: 0
 
 canonical_docs:
@@ -39,6 +39,8 @@ evidence_boundary:
     - "FIPS 203-aligned ML-KEM with checked-in KAT evidence."
     - "FIPS 204-aligned ML-DSA, byte-exact on the checked-in KAT corpus."
     - "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
+    - "Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary."
+    - "FIPS 205-aligned SLH-DSA (all 12 sets) is byte-exact on the checked-in ACVP sample corpus."
     - "Best-effort zeroization in Dart."
   forbidden_claims:
     - "FIPS validated"
@@ -48,7 +50,7 @@ evidence_boundary:
     - "memory is securely erased"
     - "ML-KEM is authenticated/secure transport on its own"
   key_facts:
-    - "Package exports ONLY ML-KEM (PqcKem/KyberKem) and ML-DSA (MlDsa) plus DilithiumParams."
+    - "Version 0.4.0 exports ML-KEM (PqcKem/KyberKem), ML-DSA (MlDsa) plus DilithiumParams, and all 12 SLH-DSA sets (SlhDsa)."
     - "HKDF, AEAD, X25519, public hashing, KMAC, secure storage are NOT provided; the app supplies them."
     - "ML-KEM yields a 32-byte shared secret; it is not encryption by itself (needs KDF + AEAD)."
     - "Public keys must be authenticated; a self-provided key is not an identity."
@@ -160,11 +162,11 @@ building_blocks:
   - id: BB9
     name: Hybrid and dual signatures
     anchor: doc/cookbook/BUILDING_BLOCKS.md#bb9-hybrid-and-dual-signatures
-    algos: [ml-dsa]
+    algos: [ml-dsa, slh-dsa]
     you_supply: [a classical signature scheme (Ed25519/ECDSA)]
     caveats:
       - "Decide require-both vs accept-either explicitly; opposite failure modes."
-      - "A second post-quantum scheme (SLH-DSA) is future work."
+      - "For PQ x PQ, pair ML-DSA with SLH-DSA (0.4.0); SLH-DSA signatures are large and slow, so favor low-frequency use."
   - id: BB10
     name: Offloading heavy work
     anchor: doc/cookbook/BUILDING_BLOCKS.md#bb10-offloading-heavy-work
@@ -174,7 +176,7 @@ building_blocks:
       - "Flutter web does not offload isolates; compute() does not move CPU off the main thread."
       - "Passing a secret key to an isolate copies sensitive bytes."
 
-# status: available = buildable on 0.3.1; future = needs a roadmap release.
+# status: available = buildable on 0.4.0; future = needs a roadmap release.
 ideas:
   # --- servers and backends ---
   - id: srv-handshake
@@ -609,18 +611,18 @@ ideas:
     caveats: ["Source protection is mostly opsec, not encryption; metadata/seizure defeat crypto-only designs."]
     forbidden_claims: ["guaranteed anonymity"]
 
-# These require a future release; do NOT design against them yet.
+# These require a release newer than 0.4.0; do NOT design against them yet.
 future:
   - id: fut-dual-pq-signature
     name: Dual post-quantum signatures (ML-DSA + SLH-DSA)
     required_release: "0.4.0"
-    status: planned
-    note: "Diversify across two different hardness families via BB9."
+    status: source_tree_rc
+    note: "Diversify across two different hardness families via BB9 after 0.4.0 is published."
   - id: fut-archival-signing
     name: Long-term / archival hash-based signing
     required_release: "0.4.0"
-    status: planned
-    note: "SLH-DSA for decades-long signature trust."
+    status: source_tree_rc
+    note: "SLH-DSA for decades-long signature trust after 0.4.0 is published."
   - id: fut-native-kmac
     name: Native keyed MAC / transcript hashing
     required_release: "0.6.0"
@@ -630,7 +632,7 @@ future:
     name: Standalone SHA-3 utility surface
     required_release: "0.6.0"
     status: planned
-    note: "Full FIPS 202 (incl. SHA3-224/384) as public API."
+    note: "Complete FIPS 202 / SP 800-185 public surface; SHA3-224/384 byte-oriented internals already exist."
   - id: fut-hqc-kem-agility
     name: Code-based KEM diversification (HQC)
     required_release: "tbd"

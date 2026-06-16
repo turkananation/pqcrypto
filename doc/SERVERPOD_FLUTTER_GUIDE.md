@@ -1,6 +1,6 @@
 # Serverpod and Flutter ML-KEM + ML-DSA Integration Guide
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This guide shows an evidence-scoped pattern for combining `pqcrypto` with a
 Serverpod backend and a Flutter client. It uses:
@@ -23,7 +23,7 @@ Add `pqcrypto` to the Serverpod server package and the Flutter client package:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.3.1
+  pqcrypto: ^0.4.0
 ```
 
 No `pointycastle` dependency is needed. `pqcrypto` vendors the FIPS 202

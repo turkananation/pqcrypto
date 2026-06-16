@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-06-15",
+  "last_updated": "2026-06-16",
   "generated_by": "dart run tool/visibility/generate_visibility.dart",
   "project": {
     "name": "pqcrypto",
     "title": "pqcrypto: Pure Dart Post-Quantum Cryptography",
     "short_title": "pqcrypto",
     "tagline": "Pure Dart, zero-dependency post-quantum cryptography for Dart, Flutter, and the web.",
-    "summary": "pqcrypto provides NIST-standardized ML-KEM key encapsulation and ML-DSA digital signatures, plus all 12 FIPS 205 SLH-DSA parameter sets as an unreleased development release candidate in the source tree, as pure Dart with zero runtime dependencies.",
-    "release_boundary": "Version 0.3.1 on pub.dev exposes ML-KEM and ML-DSA; all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) are exported only in the development source tree pending the v0.4.0 maintainer release.",
-    "version": "0.3.1",
+    "summary": "pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.",
+    "release_boundary": "Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.",
+    "version": "0.4.0",
     "license": "MIT",
     "maintainer": "Turkana Nation",
     "canonical_url": "https://turkananation.github.io/pqcrypto/",
@@ -27,10 +27,10 @@
     "ML-DSA-44, ML-DSA-65, and ML-DSA-87 digital signatures",
     "Hedged-by-default ML-DSA signing with context strings",
     "HashML-DSA with level-bound SHA-256, SHA-384, and SHA-512 pre-hash paths",
-    "All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures in the development source tree",
+    "All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures",
     "Hedged-by-default SLH-DSA signing with context strings, HashSLH-DSA, and optional verify-after-sign",
     "Dart VM, Flutter, dart2js, and dart2wasm portability",
-    "OpenSSL ML-KEM interoperability harness under tool/openssl_interop"
+    "Native-provider interop tooling for ML-KEM, ML-DSA, and SLH-DSA under tool/openssl_interop and tool/liboqs_interop"
   ],
   "does_not_provide": [
     "AEAD encryption such as AES-GCM or ChaCha20-Poly1305",
@@ -44,8 +44,9 @@
     "allowed_claims": [
       "FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.",
       "OpenSSL interop A-G passes for ML-KEM-512/768/1024.",
+      "Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.",
       "FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.",
-      "FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases; unpublished development release candidate.",
+      "FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.",
       "Best-effort zeroization in Dart."
     ],
     "forbidden_claims": [
@@ -70,7 +71,7 @@
       "ciphertext_bytes": 768,
       "shared_secret_bytes": 32,
       "api": "PqcKem.kyber512",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "ML-KEM-768",
@@ -82,7 +83,7 @@
       "ciphertext_bytes": 1088,
       "shared_secret_bytes": 32,
       "api": "PqcKem.kyber768",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "ML-KEM-1024",
@@ -94,7 +95,7 @@
       "ciphertext_bytes": 1568,
       "shared_secret_bytes": 32,
       "api": "PqcKem.kyber1024",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "ML-DSA-44",
@@ -105,7 +106,7 @@
       "secret_key_bytes": 2560,
       "signature_bytes": 2420,
       "api": "DilithiumParams.mlDsa44",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "ML-DSA-65",
@@ -116,7 +117,7 @@
       "secret_key_bytes": 4032,
       "signature_bytes": 3309,
       "api": "DilithiumParams.mlDsa65",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "ML-DSA-87",
@@ -127,7 +128,7 @@
       "secret_key_bytes": 4896,
       "signature_bytes": 4627,
       "api": "DilithiumParams.mlDsa87",
-      "status": "published in 0.3.1"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-128s",
@@ -138,7 +139,7 @@
       "secret_key_bytes": 64,
       "signature_bytes": 7856,
       "api": "SlhDsaParams.shake128s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-128f",
@@ -149,7 +150,7 @@
       "secret_key_bytes": 64,
       "signature_bytes": 17088,
       "api": "SlhDsaParams.shake128f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-192s",
@@ -160,7 +161,7 @@
       "secret_key_bytes": 96,
       "signature_bytes": 16224,
       "api": "SlhDsaParams.shake192s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-192f",
@@ -171,7 +172,7 @@
       "secret_key_bytes": 96,
       "signature_bytes": 35664,
       "api": "SlhDsaParams.shake192f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-256s",
@@ -182,7 +183,7 @@
       "secret_key_bytes": 128,
       "signature_bytes": 29792,
       "api": "SlhDsaParams.shake256s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHAKE-256f",
@@ -193,7 +194,7 @@
       "secret_key_bytes": 128,
       "signature_bytes": 49856,
       "api": "SlhDsaParams.shake256f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-128s",
@@ -204,7 +205,7 @@
       "secret_key_bytes": 64,
       "signature_bytes": 7856,
       "api": "SlhDsaParams.sha2128s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-128f",
@@ -215,7 +216,7 @@
       "secret_key_bytes": 64,
       "signature_bytes": 17088,
       "api": "SlhDsaParams.sha2128f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-192s",
@@ -226,7 +227,7 @@
       "secret_key_bytes": 96,
       "signature_bytes": 16224,
       "api": "SlhDsaParams.sha2192s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-192f",
@@ -237,7 +238,7 @@
       "secret_key_bytes": 96,
       "signature_bytes": 35664,
       "api": "SlhDsaParams.sha2192f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-256s",
@@ -248,7 +249,7 @@
       "secret_key_bytes": 128,
       "signature_bytes": 29792,
       "api": "SlhDsaParams.sha2256s",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     },
     {
       "name": "SLH-DSA-SHA2-256f",
@@ -259,13 +260,13 @@
       "secret_key_bytes": 128,
       "signature_bytes": 49856,
       "api": "SlhDsaParams.sha2256f",
-      "status": "development release candidate"
+      "status": "available in 0.4.0"
     }
   ],
   "status_cards": [
     {
-      "label": "Published version",
-      "value": "0.3.1"
+      "label": "Version",
+      "value": "0.4.0"
     },
     {
       "label": "Runtime deps",
@@ -284,8 +285,8 @@
       "value": "1248/1248"
     },
     {
-      "label": "SLH-DSA status",
-      "value": "Development RC"
+      "label": "SLH-DSA sets",
+      "value": "12 (SHAKE + SHA-2)"
     }
   ],
   "docs": [
@@ -317,12 +318,12 @@
     {
       "title": "Performance",
       "url": "doc/PERFORMANCE.md",
-      "description": "Portable benchmark results and operational guidance, including all 12 SLH-DSA sets."
+      "description": "Portable benchmark tooling and published SHAKE single-sample baselines for SLH-DSA."
     },
     {
-      "title": "OpenSSL Interop",
+      "title": "Native Interop",
       "url": "doc/OPENSSL_INTEROP.md",
-      "description": "ML-KEM A-G interoperability harness and evidence."
+      "description": "OpenSSL and liboqs interop matrix, commands, and package-boundary notes."
     },
     {
       "title": "FIPS 140 Boundary",
@@ -377,11 +378,11 @@
   "faq": [
     {
       "question": "Is pqcrypto FIPS validated?",
-      "answer": "No. pqcrypto provides FIPS 203/204-aligned implementations and a FIPS 205 SLH-DSA release candidate (all 12 sets) with checked-in KAT/ACVP and interop evidence, but it is not a CMVP/FIPS 140 validated module."
+      "answer": "No. pqcrypto provides FIPS 203/204/205-aligned implementations (ML-KEM, ML-DSA, and all 12 SLH-DSA sets) with checked-in KAT/ACVP and interop evidence, but it is not a CMVP/FIPS 140 validated module."
     },
     {
-      "question": "Is SLH-DSA available in the published pqcrypto package?",
-      "answer": "Not yet. The development source tree exports all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) and is byte-exact on the 1,248 official NIST ACVP sample cases. The v0.4.0 version, tag, and publication are not yet done."
+      "question": "Is SLH-DSA available in pqcrypto?",
+      "answer": "Yes. Version 0.4.0 exports all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) as pure Dart, byte-exact on the 1,248 official NIST ACVP sample cases, alongside ML-KEM and ML-DSA."
     },
     {
       "question": "Can I encrypt data with ML-KEM alone?",
@@ -414,6 +415,7 @@
     "FIPS 205",
     "PQC",
     "quantum-safe cryptography",
-    "OpenSSL ML-KEM interop"
+    "OpenSSL ML-KEM interop",
+    "liboqs post-quantum interop"
   ]
 }

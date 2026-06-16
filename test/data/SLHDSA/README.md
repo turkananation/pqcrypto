@@ -32,9 +32,9 @@ The signature vectors cover the ACVP internal interface and the external pure
 and pre-hash interfaces. Signature generation includes deterministic and
 hedged groups. Signature verification includes both passing and failing cases.
 
-The v0.4.0 release gate consumes the six SHAKE parameter sets. The six SHA-2
-sets remain checked in now so the later v0.5.0 gate uses the same pinned corpus
-revision.
+The v0.4.0 release gate consumes all 12 parameter sets. SHAKE was implemented
+first, but the SHA-2 sets now use the same pinned corpus revision and are
+byte-exact in the same runner.
 
 ## Integrity
 
@@ -55,8 +55,7 @@ dart test test/slhdsa_acvp_corpus_test.dart
 
 The byte-exact implementation runner is `test/slhdsa_kat_test.dart`. It pairs
 prompt and expected-result groups by `tgId` and cases by `tcId`, and executes
-all 624 cases for the six SHAKE parameter sets. The SHA-2 groups remain pinned
-for the later v0.5.0 implementation.
+all 1,248 keyGen/sigGen/sigVer cases for all 12 SHA2/SHAKE parameter sets.
 
 The runner accepts optional diagnostic filters:
 

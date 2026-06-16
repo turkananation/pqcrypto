@@ -45,7 +45,10 @@ It verifies:
 - `test/poly_test.dart` checks that `Poly.barrettReduce` returns canonical residues in `[0, q - 1]`.
 - `test/kem_validation_test.dart` checks public-key length/modulus validation, secret-key length/hash validation, and ciphertext length validation.
 - `test/cbd_test.dart` checks CBD sampling distribution.
-- `test/keccak_test.dart` checks the vendored FIPS 202 primitives (SHA3-256/512, SHAKE128/256) against published NIST known-answer values, including a multi-block message and the SHAKE stream-prefix property.
+- `test/keccak_test.dart` checks the vendored FIPS 202 primitives
+  (SHA3-224/256/384/512, SHAKE128/256) against published NIST known-answer
+  values, including multi-block messages, parameter-table coverage, and the
+  SHAKE stream-prefix property.
 - `test/roundtrip_test.dart` checks end-to-end keygen → encaps → decaps shared-secret agreement (and implicit rejection of a tampered ciphertext) for all three parameter sets, with no `dart:io`, so it runs on the web compilers too.
 
 ## Platform coverage

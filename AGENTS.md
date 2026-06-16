@@ -8,23 +8,23 @@ documentation root [doc/](doc/).
 
 ## Current Truth
 
-- Package version: `0.3.1`.
-- Runtime dependencies: none. FIPS 202 SHA3/SHAKE is vendored in
-  `lib/src/common/keccak.dart`.
+- Package version: `0.4.0`.
+- Runtime dependencies: none. FIPS 202 SHA3/SHAKE and FIPS 180-4 SHA-2 are
+  vendored in `lib/src/common/`.
 - ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,
   focused unit tests, web tests, and OpenSSL interop.
 - ML-DSA: FIPS 204-aligned for ML-DSA-44/65/87 and byte-exact against the
   checked-in KAT corpus (`test/data/MLDSA`) across raw/pure/hashed × det/hedged
   (300 key generations + 1800 signatures). The full `dart test` suite is green.
   This is KAT/regression evidence, not a CMVP/FIPS 140 validation claim.
-- SLH-DSA: in development. Algorithms 1-25 are implemented for all 12 parameter
-  sets (SHAKE and SHA-2 families), and `test/slhdsa_kat_test.dart` is byte-exact
-  on the 1,248 cases in the pinned official NIST ACVP sample corpus. The external
-  API is exported in the development tree; verify-after-sign, BUFF/performance
-  docs, and VM/dart2js/dart2wasm benchmark baselines are complete. The decomposed
-  VM matrix, both web compiler suites, and publication preflight are green; the
-  v0.4.0 version, tag, and publication are not yet done. This is KAT/regression
-  evidence, not a CMVP/FIPS 140 validation claim.
+- SLH-DSA: FIPS 205-aligned for all 12 parameter sets (SHAKE and SHA-2
+  families). Algorithms 1-25 are implemented, and `test/slhdsa_kat_test.dart` is
+  byte-exact on the 1,248 cases in the pinned official NIST ACVP sample corpus.
+  The external API (`SlhDsa`) is exported at the package root; verify-after-sign,
+  BUFF/performance docs, OpenSSL/liboqs interop, and VM/dart2js/dart2wasm
+  benchmark baselines are complete; the decomposed VM matrix and both web
+  compiler suites are green. SLH-DSA ships in 0.4.0 alongside ML-KEM and ML-DSA.
+  This is KAT/ACVP/regression evidence, not a CMVP/FIPS 140 validation claim.
 - Documentation root: `doc/`; the older documentation directory has been retired.
 
 ## Exploration Phase

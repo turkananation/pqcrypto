@@ -10,22 +10,27 @@ repository-artifact: "https://pub.dev/packages/pqcrypto"
 abstract: >-
   pqcrypto is a pure Dart, zero-dependency post-quantum cryptography library
   implementing the NIST-standardized algorithms ML-KEM (FIPS 203) for key
-  encapsulation and ML-DSA (FIPS 204) for digital signatures. It is byte-exact
-  against the official NIST Known-Answer-Test vectors, and its ML-KEM
-  implementation interoperates with OpenSSL. It targets Dart servers, Flutter
-  (iOS/Android/desktop), and the web (dart2js and dart2wasm). It provides
-  algorithm/KAT-conformance and interoperability evidence, not a CMVP/FIPS 140
-  module validation.
+  encapsulation, ML-DSA (FIPS 204) for digital signatures, and all 12 SLH-DSA
+  (FIPS 205) parameter sets for stateless hash-based signatures. It is byte-exact
+  against the official NIST Known-Answer-Test and ACVP vectors, and its ML-KEM,
+  ML-DSA, and SLH-DSA implementations interoperate with OpenSSL and liboqs. It
+  targets Dart servers, Flutter (iOS/Android/desktop), and the web (dart2js and
+  dart2wasm). It provides algorithm/KAT-conformance and interoperability
+  evidence, not a CMVP/FIPS 140 module validation.
 keywords:
   - post-quantum cryptography
   - ML-KEM
   - ML-DSA
+  - SLH-DSA
   - FIPS 203
   - FIPS 204
+  - FIPS 205
   - Kyber
   - Dilithium
+  - SPHINCS+
   - lattice cryptography
+  - hash-based signatures
   - Dart
   - Flutter
 license: MIT
-version: "0.3.1"
+version: "0.4.0"

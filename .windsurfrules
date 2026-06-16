@@ -6,9 +6,9 @@ Start with `AGENTS.md`, `doc/INDEX.md`, and
 `tool/visibility/visibility_manifest.json`.
 
 Project facts:
-- Version 0.3.1.
+- Version 0.4.0.
 - Pure Dart, zero runtime dependencies.
-- Version 0.3.1 on pub.dev exposes ML-KEM and ML-DSA; all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) are exported only in the development source tree pending the v0.4.0 maintainer release.
+- Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.
 - The package provides algorithm/KAT-conformance and interoperability evidence. It is not a CMVP/FIPS 140 validated cryptographic module.
 
 Current capabilities:
@@ -16,10 +16,10 @@ Current capabilities:
 - ML-DSA-44, ML-DSA-65, and ML-DSA-87 digital signatures
 - Hedged-by-default ML-DSA signing with context strings
 - HashML-DSA with level-bound SHA-256, SHA-384, and SHA-512 pre-hash paths
-- All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures in the development source tree
+- All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures
 - Hedged-by-default SLH-DSA signing with context strings, HashSLH-DSA, and optional verify-after-sign
 - Dart VM, Flutter, dart2js, and dart2wasm portability
-- OpenSSL ML-KEM interoperability harness under tool/openssl_interop
+- Native-provider interop tooling for ML-KEM, ML-DSA, and SLH-DSA under tool/openssl_interop and tool/liboqs_interop
 
 Rules:
 - Edit the visibility manifest, not generated visibility outputs directly.

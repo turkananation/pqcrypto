@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0
+
 ### Added
 
 - Added FIPS 205 SLH-DSA for **all 12 parameter sets** — both hash families
@@ -42,10 +44,10 @@
   slow-parameter, RBG, and best-effort zeroization boundaries in API and release
   documentation. This remains KAT/regression evidence, not a CMVP/FIPS 140
   validation claim.
-- Updated the generated website, AI-discovery files, and coding-agent rules to
-  list all 12 SLH-DSA sets with 1,248/1,248 ACVP evidence while explicitly
-  distinguishing the development release candidate from published version
-  0.3.1.
+- Promoted SLH-DSA to a first-class released algorithm alongside ML-KEM and
+  ML-DSA: the package version is now `0.4.0`, and the generated website,
+  AI-discovery files, and coding-agent rules list all 12 SLH-DSA sets with
+  1,248/1,248 ACVP evidence as part of the 0.4.0 surface.
 
 ## 0.3.1
 

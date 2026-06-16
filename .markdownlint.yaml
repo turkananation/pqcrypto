@@ -13,7 +13,9 @@ MD013: false
 MD024:
   siblings_only: true
 
-# Keep tables readable in source. This setting used to live in
-# .markdownlint.json; keep it here so CLI and editor tools share one config.
-MD060:
-  style: aligned
+# MD060 (table column alignment) is intentionally disabled. It is the only rule
+# with no auto-fixer, table source alignment renders identically on GitHub and
+# pub.dev, and enforcing "aligned" was the sole cause of recurring table churn.
+# Every other rule stays enabled and is auto-fixable via
+# `markdownlint-cli2 --fix`.
+MD060: false

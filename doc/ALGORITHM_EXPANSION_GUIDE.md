@@ -1,25 +1,27 @@
 # Algorithm Expansion Guide
 
-Last updated: 2026-06-14
+Last updated: 2026-06-16
 
 This guide describes how to expand `pqcrypto` beyond ML-KEM without weakening
 the existing assurance boundary.
 
 ## Current Algorithm State
 
-| Algorithm | Standard/status           | Repository state                                              |
-| --------- | ------------------------- | ------------------------------------------------------------- |
-| ML-KEM    | FIPS 203                  | Supported with checked-in KAT and OpenSSL interop evidence.   |
-| ML-DSA    | FIPS 204                  | Supported; byte-exact on the checked-in KAT corpus.           |
-| SLH-DSA   | FIPS 205                  | In development; SHAKE Algorithms 1-25 and ACVP M3 complete.   |
-| HQC       | NIST additional KEM track | Not started; wait for final implementation guidance.          |
-| FN-DSA    | FALCON/FIPS 206 direction | Not started; high sampler and side-channel risk.              |
+| Algorithm | Standard/status           | Repository state                                             |
+| --------- | ------------------------- | ------------------------------------------------------------ |
+| ML-KEM    | FIPS 203                  | Supported with checked-in KAT and native interop evidence.   |
+| ML-DSA    | FIPS 204                  | Supported; byte-exact on the checked-in KAT corpus.          |
+| SLH-DSA   | FIPS 205                  | Shipped in 0.4.0; all 12 SHA2/SHAKE sets byte-exact on ACVP. |
+| HQC       | NIST additional KEM track | Not started; wait for final implementation guidance.         |
+| FN-DSA    | FALCON/FIPS 206 direction | Not started; high sampler and side-channel risk.             |
 
 ## Priority Recommendation
 
-1. Close SLH-DSA hardening, benchmark, and cross-platform release gates.
-2. Export the SHAKE API only after the v0.4.0 release gate is complete.
-3. Maintain ML-KEM/ML-DSA KAT, interop, and security regressions.
+1. Cut the SLH-DSA 0.4.0 release: release branch, tag, and pub.dev publication.
+2. Keep SLH-DSA artifact/archival guidance separate from interactive handshake
+   defaults because of signature size, slow `s` sets, and the BUFF caveat.
+3. Maintain ML-KEM, ML-DSA, and SLH-DSA KAT/ACVP, interop, and security
+   regressions.
 4. Consider HQC for KEM diversity after spec stability.
 5. Defer FN-DSA until the sampler/precision/side-channel strategy is credible.
 
@@ -31,7 +33,7 @@ the existing assurance boundary.
 | Constant-time helpers | ML-KEM, ML-DSA, future | P0       | Comparisons, select, norm checks.                |
 | KAT fixture policy    | All algorithms         | P0       | Use repo-local corpus under `test/data`.         |
 | Benchmark suite       | All algorithms         | P2       | Required before speed claims.                    |
-| HMAC/MGF1 + `ADRS^c`  | SLH-DSA SHA2 variants  | P2       | Required for the later SHA-2 family release.     |
+| HMAC/MGF1 + `ADRS^c`  | SLH-DSA SHA2 variants  | P2       | Done; keep KAT-gated for all SHA-2 set changes.  |
 | GF(2^m) library       | HQC                    | P3       | Keep separate from lattice arithmetic.           |
 | FFT/complex support   | FN-DSA                 | P4       | High implementation risk in pure Dart.           |
 
@@ -61,7 +63,7 @@ Completed foundation:
 - official NIST ACVP sample corpus with integrity/schema gate;
 - all 1,248 ACVP cases byte-exact, plus focused component/API tests.
 
-Remaining release work is tracked in
+Remaining release action work is tracked in
 [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md).
 
 ## HQC Direction

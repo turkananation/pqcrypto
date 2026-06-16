@@ -582,8 +582,8 @@ Treat every change as evidence-sensitive.
   behavior changes.
 - For ML-DSA changes, run `dart test test/mldsa_kat_test.dart` and keep output
   byte-exact against `test/data/MLDSA`.
-- For SLH-DSA changes, run `dart test test/slhdsa_kat_test.dart` and preserve
-  the six-set SHAKE support boundary until the SHA-2 release gates are complete.
+- For SLH-DSA changes, run `dart test test/slhdsa_kat_test.dart` and keep output
+  byte-exact against the official ACVP corpus across all 12 parameter sets.
 - Do not replace repo-local KAT corpora with machine-local paths.
 - Do not upgrade assurance wording beyond checked-in KAT and interop evidence.
 - If you edit generated visibility or AI-agent files, edit

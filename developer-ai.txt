@@ -6,11 +6,11 @@ Use this file when an AI coding agent needs fast, scoped context for pqcrypto.
 
 ## Ground Truth
 
-- Package version: 0.3.1.
+- Package version: 0.4.0.
 - Runtime dependencies: zero.
 - Canonical docs live under `doc/`; the website and wiki are discovery surfaces.
-- Version 0.3.1 on pub.dev exposes ML-KEM and ML-DSA; all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) are exported only in the development source tree pending the v0.4.0 maintainer release.
-- pqcrypto provides NIST-standardized ML-KEM key encapsulation and ML-DSA digital signatures, plus all 12 FIPS 205 SLH-DSA parameter sets as an unreleased development release candidate in the source tree, as pure Dart with zero runtime dependencies.
+- Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.
+- pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.
 
 ## Claim Boundary
 
@@ -20,8 +20,9 @@ Allowed:
 
 - FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.
 - OpenSSL interop A-G passes for ML-KEM-512/768/1024.
+- Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.
 - FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.
-- FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases; unpublished development release candidate.
+- FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.
 - Best-effort zeroization in Dart.
 
 Forbidden:

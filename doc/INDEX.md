@@ -1,6 +1,6 @@
 # pqcrypto Documentation Index
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 This is the canonical documentation root for `pqcrypto`. Use `doc/` links for
 project documentation; the older documentation directory has been retired.
@@ -9,13 +9,13 @@ project documentation; the older documentation directory has been retired.
 
 | Area                         | Current state                                                                                                                                     |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package version              | `0.3.1`                                                                                                                                           |
+| Package version              | `0.4.0`                                                                                                                                           |
 | Runtime dependencies         | None. Partial FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                                                                    |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence.                                                   |
 | ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated.        |
-| FIPS 202 / SP 800-185        | FIPS 202 is partial today (SHA3-256/512, SHAKE128/256). Full FIPS 202 and SP 800-185 target 0.6.0, with 0.7.0 spillover if needed.                |
-| SLH-DSA                      | FIPS 205 release candidate. All 12 sets (SHAKE + SHA-2) are exported in source and 1,248/1,248 ACVP cases pass; v0.4.0 gates remain.              |
-| OpenSSL interop              | ML-KEM A-G suite for all three parameter sets.                                                                                                    |
+| FIPS 202 / SP 800-185        | FIPS 202 is partial today (SHA3-224/256/384/512, SHAKE128/256, incremental SHAKE XOFs). SP 800-185 targets 0.6.0, with 0.7.0 spillover if needed. |
+| SLH-DSA                      | FIPS 205-aligned. All 12 sets (SHAKE + SHA-2) ship in 0.4.0; 1,248/1,248 ACVP cases pass. Not CMVP/FIPS 140 validated.                            |
+| Native interop               | OpenSSL and liboqs tool suites cover ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.                                            |
 | Certification claim boundary | Implementation/KAT evidence, not CMVP/FIPS 140 module validation. See [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).                               |
 
 ## Read This First
@@ -26,7 +26,7 @@ project documentation; the older documentation directory has been retired.
 | FIPS 202 / SP 800-185 work      | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md)           | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)               |
 | ML-DSA release work             | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md)                 | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)               |
 | SLH-DSA release work            | [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)               | [ROADMAP.md](ROADMAP.md)                                 |
-| OpenSSL interoperability        | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)             |
+| Native interoperability         | [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)             |
 | Architecture and code layout    | [ARCHITECTURE.md](ARCHITECTURE.md)                                               | [PERFORMANCE.md](PERFORMANCE.md)                         |
 | Security review                 | [SECURITY_AUDIT.md](SECURITY_AUDIT.md)                                           | [BUGS.md](BUGS.md)                                       |
 | Implementation planning         | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                                       | [ROADMAP.md](ROADMAP.md)                                 |
@@ -43,8 +43,8 @@ project documentation; the older documentation directory has been retired.
 | [MLKEM_TESTING.md](MLKEM_TESTING.md)                                             | Checked-in ML-KEM KAT corpus, hashes, coverage, release gates, and claim boundary.   |
 | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md)           | A-Z compliance and release plan for full FIPS 202 plus SP 800-185 support.           |
 | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md)                 | FIPS 204 implementation, validation, hardening, and release guide for ML-DSA.        |
-| [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)               | FIPS 205 implementation and release plan for SLH-DSA (SHAKE then SHA-2).             |
-| [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | OpenSSL ML-KEM interop matrix, harness, platform notes, and results.                 |
+| [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)               | FIPS 205 implementation and release plan for all 12 SLH-DSA parameter sets.          |
+| [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md)                                         | OpenSSL and liboqs native-provider interop matrix, harness commands, and boundaries. |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                                               | Current module layout, API surface, data flow, and package boundaries.               |
 | [FIPS_COMPLIANCE.md](FIPS_COMPLIANCE.md)                                         | Evidence-scoped FIPS 203/204/202/180-4/SP 800-185 status.                            |
 | [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md)                                     | Why we claim algorithm conformance but not CMVP/FIPS 140 module validation.          |
@@ -52,7 +52,7 @@ project documentation; the older documentation directory has been retired.
 | [BUGS.md](BUGS.md)                                                               | Known bugs and regressions, especially ML-DSA blockers.                              |
 | [IMPROVEMENTS.md](IMPROVEMENTS.md)                                               | Prioritized engineering improvements with current status.                            |
 | [PROGRESS_TRACKER.md](PROGRESS_TRACKER.md)                                       | Cross-document tracker for open work and validation gates.                           |
-| [ROADMAP.md](ROADMAP.md)                                                         | Release direction after 0.3.1.                                                       |
+| [ROADMAP.md](ROADMAP.md)                                                         | Release direction after 0.4.0.                                                       |
 | [PERFORMANCE.md](PERFORMANCE.md)                                                 | Performance baseline, optimization ideas, and benchmark guidance.                    |
 | [ENGINEERING_GUIDE.md](ENGINEERING_GUIDE.md)                                     | Contributor setup, test commands, coding conventions, and security practices.        |
 | [ALGORITHM_EXPANSION_GUIDE.md](ALGORITHM_EXPANSION_GUIDE.md)                     | Guidance for SLH-DSA, HQC, FN-DSA, and future PQC work.                              |
@@ -74,19 +74,21 @@ The current local verification snapshot used for this documentation pass:
   504 sigVer) across all 12 sets, plus component/API/negative regressions.
   Optional verify-after-sign has focused coverage. The full `s`-set runner is
   intentionally expensive.
-- The portable SLH-DSA benchmark records keygen/sign/verify for all 12 sets
-  under VM JIT, compiled JavaScript, and compiled Wasm. Results and exact
+- The portable SLH-DSA benchmark tool supports all 12 sets. The published
+  single-sample table currently records the SHAKE sets under VM JIT, compiled
+  JavaScript, and compiled Wasm. Results and exact
   commands are in [PERFORMANCE.md](PERFORMANCE.md).
 - The complete portable package suite is green under both `dart2js` and
   `dart2wasm` (217/217 each). The VM suite is green as a decomposed matrix:
   256/256 non-SLH-KAT tests plus all six per-parameter SLH-DSA ACVP gates.
-- Package publication dry-run validates the 189 KB archive; its only warning is
+- Package publication dry-run validates the approximately 190 KB archive; its only warning is
   the expected uncommitted feature-worktree state.
 - `dart format --set-exit-if-changed .` passes; the 12 files touched by this
   SLH-DSA milestone pass the configured Markdown lint. Repository-wide Markdown
   cleanup remains separate from the SLH-DSA evidence gate.
-- The OpenSSL interop workflow is maintained separately in
-  `.github/workflows/interop.yml` and `tool/openssl_interop/`.
+- The native interop workflow is maintained separately in
+  `.github/workflows/interop.yml`, `tool/openssl_interop/`, and
+  `tool/liboqs_interop/`.
 
 Do not upgrade readiness wording unless a fresh verification run supports it.
 The KAT corpora are described in `test/data/MLKEM/README.md` and

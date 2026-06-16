@@ -1,8 +1,8 @@
 # pqcrypto Project Catalog
 
-Last updated: 2026-06-06
+Last updated: 2026-06-16
 
-A broad catalog of things you can build with `pqcrypto` 0.3.1 today, grouped by
+A broad catalog of things you can build with `pqcrypto` 0.4.0 today, grouped by
 domain. Each idea is composed from the recipes in
 [BUILDING_BLOCKS.md](BUILDING_BLOCKS.md) (referenced as **BB1**…**BB10**) and is
 scoped to the package's real API and
@@ -394,10 +394,12 @@ signing, and verification of small inputs are usually fine.
 
 ## 6. Cross-language interop and polyglot systems
 
-Backed by the verified OpenSSL interop suite (A–G, all three ML-KEM levels) in
-[../OPENSSL_INTEROP.md](../OPENSSL_INTEROP.md). This is *correctness/wire*
-evidence — public keys, ciphertexts, and 64-byte seeds are byte-identical across
-implementations.
+Backed by the native-provider interop tooling in
+[../OPENSSL_INTEROP.md](../OPENSSL_INTEROP.md). The OpenSSL suite includes the
+ML-KEM A-G matrix for all three levels plus seeded ML-DSA and SLH-DSA signature
+checks; the liboqs suite covers bidirectional ML-KEM, ML-DSA, and SLH-DSA
+verification. This is *correctness/wire* evidence, not side-channel or module
+validation evidence.
 
 ### Dart client ↔ OpenSSL/C server key exchange
 
@@ -436,10 +438,12 @@ implementations.
 - **Pitch.** Run the interop suite in CI so a change that breaks wire
   compatibility is caught immediately.
 - **Platforms.** CI.
-- **Uses.** interop harness in `tool/openssl_interop/`.
+- **Uses.** interop harnesses in `tool/openssl_interop/` and
+  `tool/liboqs_interop/`.
 - **You supply.** CI wiring (an example workflow already exists in the repo).
 - **Feasibility.** Already implemented; reuse it.
-- **Caveats.** Needs OpenSSL ≥ 3.5.
+- **Caveats.** Needs the pinned native provider builds described in the interop
+  guide.
 
 ---
 

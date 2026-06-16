@@ -1,15 +1,16 @@
 # Performance Notes
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 This document records performance direction, not a certified benchmark report.
 Run fresh benchmarks before publishing timing claims.
 
 ## Current Measurement Boundary
 
-The package is pure Dart and has no runtime dependencies. ML-KEM uses the
-vendored FIPS 202 implementation in `lib/src/common/keccak.dart`; OpenSSL FFI is
-confined to `tool/openssl_interop/` and is not part of runtime performance.
+The package is pure Dart and has no runtime dependencies. ML-KEM, ML-DSA, and
+SLH-DSA use vendored primitives under `lib/src/common/`; OpenSSL and liboqs FFI
+are confined to `tool/openssl_interop/` and `tool/liboqs_interop/` and are not
+part of runtime performance.
 
 `example/main.dart` is a functional demo for ML-KEM, ML-DSA, and a signed
 ML-KEM-768 handshake transcript. It is useful for local sanity checks, but it is
@@ -18,7 +19,9 @@ not an automated benchmark suite.
 SLH-DSA has a portable benchmark entrypoint at
 `tool/bench/slhdsa_bench.dart`. It measures one key generation, deterministic
 signature, and verification operation through the public API and verifies the
-generated signature before reporting a result.
+generated signature before reporting a result. The tool supports all 12 FIPS
+205 parameter sets; the table below publishes a SHAKE-only single-sample
+baseline.
 
 ## SLH-DSA SHAKE Baseline
 
@@ -101,7 +104,7 @@ Future statistical benchmark work should report:
 
 ## Optimization Rules
 
-1. Keep KAT and OpenSSL interop green before and after every optimization.
+1. Keep KAT and native-provider interop green before and after every optimization.
 2. Do not trade constant-time or validation behavior for speed.
 3. Avoid runtime dependencies unless the package boundary changes deliberately.
 4. Keep web behavior explicit; `dart2js` uses a different integer backend from

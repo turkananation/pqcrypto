@@ -1,6 +1,6 @@
 # pqcrypto Building Blocks
 
-Last updated: 2026-06-06
+Last updated: 2026-06-16
 
 These are the reusable recipes that every project in
 [PROJECT_CATALOG.md](PROJECT_CATALOG.md) is composed from. Learn the ten blocks
@@ -422,7 +422,7 @@ bool dualVerify(Uint8List mlDsaPk, Object classicalPk, Uint8List message,
 ```
 
 **You supply.** A classical signature scheme (Ed25519/ECDSA). A second
-**post-quantum** scheme (SLH-DSA) is planned — see
+**post-quantum** scheme (SLH-DSA) ships in 0.4.0 via `SlhDsa` — see
 [FUTURE_RELEASES.md](FUTURE_RELEASES.md).
 
 **Caveats.**

@@ -1,10 +1,11 @@
 # Why `pqcrypto` Does Not Claim FIPS 140 Validation
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This document explains, precisely and permanently, why `pqcrypto` states that it
 is **not** CMVP/FIPS 140 validated even though it is byte-exact against the
-official NIST known-answer tests for ML-KEM (FIPS 203) and ML-DSA (FIPS 204).
+checked-in NIST evidence for ML-KEM (FIPS 203), ML-DSA (FIPS 204), and
+SLH-DSA (FIPS 205, all 12 parameter sets).
 Every place in this repository that says "not CMVP/FIPS 140 validated" links
 here.
 
@@ -12,10 +13,10 @@ here.
 
 There are two distinct, easily-confused claims:
 
-| Claim                                     | Question it answers                                              | What `pqcrypto` has                                                                   |
-| ----------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Algorithm conformance**                 | "Does the math match the FIPS 203/204 standard?"                 | Yes — byte-exact against the checked-in KAT corpora, plus OpenSSL interop for ML-KEM. |
-| **Module validation (FIPS 140-3 / CMVP)** | "Is this a *validated cryptographic module* with a certificate?" | No — and it structurally cannot be one as a portable pure-Dart library.               |
+| Claim                                     | Question it answers                                              | What `pqcrypto` has                                                                                     |
+| ----------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Algorithm conformance**                 | "Does the math match the FIPS 203/204/205 standard?"             | Yes — byte-exact against checked-in KAT/ACVP corpora for claimed surfaces, plus native interop tooling. |
+| **Module validation (FIPS 140-3 / CMVP)** | "Is this a *validated cryptographic module* with a certificate?" | No — and it structurally cannot be one as a portable pure-Dart library.                                 |
 
 Passing the algorithm KATs is necessary but **not sufficient** for FIPS 140.
 FIPS 140-3 validates a *module* — a specific, bounded artifact in a specific
@@ -71,9 +72,10 @@ have without a great deal of additional, environment-specific machinery.
 
 **Acceptable (true) wording:**
 
-> `pqcrypto` provides FIPS 203-aligned ML-KEM and FIPS 204-aligned ML-DSA
-> implementations that are byte-exact against the checked-in NIST KAT corpora
-> and regression suite described in this repository.
+> `pqcrypto` provides FIPS 203-aligned ML-KEM, FIPS 204-aligned ML-DSA, and
+> FIPS 205-aligned SLH-DSA (all 12 parameter sets) implementations that are
+> byte-exact against the checked-in NIST KAT/ACVP corpora and regression suite
+> described in this repository.
 
 **Unacceptable (false) wording — never use these:**
 
@@ -91,9 +93,9 @@ If your deployment contractually or legally requires a validated module:
 
 1. Use a **CMVP-validated module** for the cryptography (for example, a
    validated OpenSSL provider, platform crypto, or HSM), and treat `pqcrypto` as
-   a reference / interop / non-validated path. The ML-KEM
-   [OpenSSL interop](OPENSSL_INTEROP.md) evidence is intended to make this
-   substitution straightforward.
+   a reference / interop / non-validated path. The native-provider
+   [interop](OPENSSL_INTEROP.md) evidence is intended to make this substitution
+   straightforward.
 2. Or pursue your **own CMVP validation** of a module that embeds this code in a
    fixed operational environment with a validated entropy source, self-tests,
    and a security policy. That is a separate, formal effort this repository does

@@ -44,12 +44,13 @@ enum SlhDsaPreHash {
 /// explicit opt-in. The `s` parameter sets also require an explicit
 /// slow-signing opt-in.
 ///
-/// SECURITY NOTICE: except for SLH-DSA-SHAKE-128f, the supported parameter sets
-/// do not provide the message-bound signature (BUFF) property described by
-/// FIPS 205 Section 11. In adversarial signer scenarios, a signature may be
-/// valid for more than one message. Authorization protocols must use a unique
-/// application context and include a nonce or unique message identity in the
-/// signed payload. The library cannot enforce protocol-level message binding.
+/// Message binding (BUFF): SLH-DSA's message-bound property is
+/// parameter-dependent. Only the `*-128f` sets reach the category-1
+/// message-binding bound (FIPS 205 Section 11); for other sets a signature may
+/// be valid for more than one message in adversarial signer scenarios. When a
+/// signature authorizes an action, bind it to its purpose with a unique context
+/// and a nonce or unique message identity in the signed payload. The library
+/// cannot enforce protocol-level message binding.
 final class SlhDsa {
   SlhDsa._();
 
@@ -122,10 +123,10 @@ final class SlhDsa {
   /// before it is returned. This adds the full verification cost and is not a
   /// substitute for platform fault protections.
   ///
-  /// Except for SLH-DSA-SHAKE-128f, applications that authorize actions,
-  /// transfers, or consents must use a unique context and include a nonce or
-  /// unique message identity in [message] to compensate for the lack of the
-  /// message-bound signature (BUFF) property.
+  /// SLH-DSA's message-bound (BUFF) property is parameter-dependent: only the
+  /// `*-128f` sets reach the category-1 bound (FIPS 205 Section 11). When a
+  /// signature authorizes an action, transfer, or consent, bind it with a unique
+  /// context and a nonce or unique message identity in [message].
   static Uint8List sign(
     Uint8List secretKey,
     Uint8List message,

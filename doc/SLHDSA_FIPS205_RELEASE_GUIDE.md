@@ -1,6 +1,6 @@
 # SLH-DSA FIPS 205 Compliance and Release Guide
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 This is the engineering guide for designing, implementing, validating, and
 releasing `pqcrypto`'s SLH-DSA (Stateless Hash-Based Digital Signature
@@ -22,7 +22,7 @@ release plan for algorithm conformance, security hardening, test evidence, and
 public claim discipline. The exact acceptable wording lives in
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
-## Completion Status (2026-06-15)
+## Completion Status (2026-06-16)
 
 **M0-M8 engineering gates complete locally; remote CI and maintainer release
 actions remain.** `lib/src/algos/slhdsa/` contains Algorithms 1-25 for all 12
@@ -40,12 +40,12 @@ external Algorithms 21-25 API is exported for every set, while Algorithms
 the 22-byte compressed address (`ADRS^c`), and the category 1 versus category
 3/5 SHA-2 routing are independently tested before composition.
 
-Verify-after-sign, BUFF/performance documentation, 48 VM JIT/AOT/dart2js/
-dart2wasm benchmark measurements, and OpenSSL 4.0.1 plus liboqs 0.15.0
-cross-verification are complete locally. The decomposed VM matrix, both web
-compiler suites, native-provider suites, and package publish dry-run are green.
-The updated CI workflows have not yet run on GitHub. The v0.4.0 version bump,
-tag, and publication are not yet done.
+Verify-after-sign, BUFF/performance documentation, a portable benchmark harness
+for all 12 sets, published SHAKE single-sample VM/dart2js/dart2wasm baselines,
+and OpenSSL 4.0.1 plus liboqs 0.15.0 cross-verification are complete locally.
+The decomposed VM matrix, both web compiler suites, native-provider suites, and
+package publish dry-run are green. The updated CI workflows have not yet run on
+GitHub. The v0.4.0 version bump, tag, and publication are not yet done.
 
 What already exists and is reused: the vendored Keccak in
 `lib/src/common/keccak.dart` (`KeccakXof`, `shake256`, `sha3256`/`sha3512`), the
@@ -280,16 +280,16 @@ Their signatures (all operate on byte strings):
 
 What the repo has versus needs:
 
-| Primitive                | Used by                     | Status and evidence                              |
-| ------------------------ | --------------------------- | ------------------------------------------------ |
-| `KeccakXof` / `shake256` | SHAKE sets                  | Present; direct and composition tests pass.      |
-| `sha256` one-shot        | SHA-2 sets                  | Present; direct FIPS 180-4 tests pass.           |
-| `sha512` one-shot        | SHA-2 categories 3 and 5    | Present; direct FIPS 180-4 tests pass.           |
-| `Trunc_n`                | SHA-2 sets                  | Present in the SLH-DSA utility layer.            |
-| `HMAC-SHA-256/512`       | SHA-2 `PRF_msg`             | Present; RFC 4231 tests pass.                    |
-| `MGF1-SHA-256/512`       | SHA-2 `H_msg`               | Present; RFC 8017-derived tests pass.            |
-| 32-byte `ADRS`           | SHAKE sets                  | Present; Table 1 member tests pass.              |
-| 22-byte `ADRS^c`         | SHA-2 sets                  | Present; compressed-address tests pass.          |
+| Primitive                | Used by                  | Status and evidence                         |
+| ------------------------ | ------------------------ | ------------------------------------------- |
+| `KeccakXof` / `shake256` | SHAKE sets               | Present; direct and composition tests pass. |
+| `sha256` one-shot        | SHA-2 sets               | Present; direct FIPS 180-4 tests pass.      |
+| `sha512` one-shot        | SHA-2 categories 3 and 5 | Present; direct FIPS 180-4 tests pass.      |
+| `Trunc_n`                | SHA-2 sets               | Present in the SLH-DSA utility layer.       |
+| `HMAC-SHA-256/512`       | SHA-2 `PRF_msg`          | Present; RFC 4231 tests pass.               |
+| `MGF1-SHA-256/512`       | SHA-2 `H_msg`            | Present; RFC 8017-derived tests pass.       |
+| 32-byte `ADRS`           | SHAKE sets               | Present; Table 1 member tests pass.         |
+| 22-byte `ADRS^c`         | SHA-2 sets               | Present; compressed-address tests pass.     |
 
 This inventory explains the SHAKE-first implementation order. The independent
 primitive gates are now closed, so both families share the same v0.4.0
@@ -503,26 +503,26 @@ security-inappropriate combinations before public release.
 
 ## Algorithm-by-Algorithm Work Plan
 
-| FIPS item     | Implementation work                                                                            | Tests required                                                                |
-| ------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Alg 1         | `gen_len2`; assert it returns 3 for all sets; precompute.                                      | Equality test against Table 2 derived `len`.                                  |
-| Alg 2-3       | `toInt`, `toByte` big-endian conversions (no floating point).                                  | Exhaustive small values; round-trip.                                          |
-| Alg 4         | `base_2b` (used for WOTS+ with `b=lg_w` and FORS with `b=a`).                                  | Vector tests for both `b` values; the FORS index extraction.                  |
-| Alg 5-8       | WOTS+ `chain`, `pkGen`, `sign`, `pkFromSig`; the checksum `csum` left-shift per Appendix A.    | Per-set WOTS+ pk and sig vectors; checksum boundary.                          |
-| Alg 9-11      | XMSS `node` (recursive), `sign` (auth path), `pkFromSig`.                                      | XMSS root from sig; auth-path index parity (`floor(idx/2^j)`).                |
-| Alg 12-13     | Hypertree `ht_sign` (d stacked XMSS), `ht_verify` (return bool).                               | HT round-trip; layer index shifting (`idx_tree >> h'`).                       |
-| Alg 14-17     | FORS `skGen`, `node`, `sign`, `pkFromSig`; `FORS_PRF`/`FORS_TREE` addressing.                  | FORS pk from sig; per-tree index `i·2^a + indices[i]`.                        |
-| Alg 18        | Internal keygen: `xmss_node` at layer `d-1` for `PK.root`; bundle SK/PK.                       | ACVP `keyGen` byte-exact pk/sk.                                               |
-| Alg 19        | Internal sign: `opt_rand` select, `R`, `H_msg`, digest split, FORS sign, HT sign.              | ACVP `sigGen` byte-exact (hedged with given `addrnd`, and deterministic).     |
-| Alg 20        | Internal verify: exact length check first, recompute digest/indices, FORS pk, `ht_verify`.     | ACVP `sigVer` accept/reject; malformed length returns false before parse.     |
-| Alg 21        | External keygen: fresh RBG for `SK.seed`/`SK.prf`/`PK.seed`; single error path on RBG failure. | Key sizes; deterministic equivalence to seeded; RBG smoke test.               |
-| Alg 22        | External pure sign: `ctx<=255`, hedged `addrnd`, `M'` (domain 0x00).                           | Round-trip; ctx empty/nonempty/too-long; hedged sigs differ but verify.       |
-| Alg 23        | External pre-hash sign: switch on PH, prepend OID, `M'` (domain 0x01).                         | HashSLH-DSA round-trip per PH; wrong-PH fails; cat-1-only PH enforced.        |
-| Alg 24-25     | External pure/pre-hash verify: build `M'`, call internal verify.                               | Wrong context fails; pure vs pre-hash domain separation.                      |
-| Hashing       | `H_msg`, `PRF`, `PRF_msg`, `F`, `H`, `T_len` for both families; `Trunc_n`; SHA-256/512 split.  | Per-function intermediate vectors; the cat 3/5 SHA-256-vs-SHA-512 split test. |
-| HMAC          | `HMAC-SHA-256/512` standalone.                                                                 | RFC 4231 KATs (independent gate before composition).                          |
-| MGF1          | `MGF1-SHA-256/512` standalone.                                                                 | RFC 8017 / known MGF1 vectors (independent gate before composition).          |
-| Address       | `ADRS` (32B) and `ADRS^c` (22B), 7 types, member functions for both tables.                    | Offset tests for Table 1 and Table 3; `setTypeAndClear` zeroes tail.          |
+| FIPS item | Implementation work                                                                            | Tests required                                                                |
+| --------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Alg 1     | `gen_len2`; assert it returns 3 for all sets; precompute.                                      | Equality test against Table 2 derived `len`.                                  |
+| Alg 2-3   | `toInt`, `toByte` big-endian conversions (no floating point).                                  | Exhaustive small values; round-trip.                                          |
+| Alg 4     | `base_2b` (used for WOTS+ with `b=lg_w` and FORS with `b=a`).                                  | Vector tests for both `b` values; the FORS index extraction.                  |
+| Alg 5-8   | WOTS+ `chain`, `pkGen`, `sign`, `pkFromSig`; the checksum `csum` left-shift per Appendix A.    | Per-set WOTS+ pk and sig vectors; checksum boundary.                          |
+| Alg 9-11  | XMSS `node` (recursive), `sign` (auth path), `pkFromSig`.                                      | XMSS root from sig; auth-path index parity (`floor(idx/2^j)`).                |
+| Alg 12-13 | Hypertree `ht_sign` (d stacked XMSS), `ht_verify` (return bool).                               | HT round-trip; layer index shifting (`idx_tree >> h'`).                       |
+| Alg 14-17 | FORS `skGen`, `node`, `sign`, `pkFromSig`; `FORS_PRF`/`FORS_TREE` addressing.                  | FORS pk from sig; per-tree index `i·2^a + indices[i]`.                        |
+| Alg 18    | Internal keygen: `xmss_node` at layer `d-1` for `PK.root`; bundle SK/PK.                       | ACVP `keyGen` byte-exact pk/sk.                                               |
+| Alg 19    | Internal sign: `opt_rand` select, `R`, `H_msg`, digest split, FORS sign, HT sign.              | ACVP `sigGen` byte-exact (hedged with given `addrnd`, and deterministic).     |
+| Alg 20    | Internal verify: exact length check first, recompute digest/indices, FORS pk, `ht_verify`.     | ACVP `sigVer` accept/reject; malformed length returns false before parse.     |
+| Alg 21    | External keygen: fresh RBG for `SK.seed`/`SK.prf`/`PK.seed`; single error path on RBG failure. | Key sizes; deterministic equivalence to seeded; RBG smoke test.               |
+| Alg 22    | External pure sign: `ctx<=255`, hedged `addrnd`, `M'` (domain 0x00).                           | Round-trip; ctx empty/nonempty/too-long; hedged sigs differ but verify.       |
+| Alg 23    | External pre-hash sign: switch on PH, prepend OID, `M'` (domain 0x01).                         | HashSLH-DSA round-trip per PH; wrong-PH fails; cat-1-only PH enforced.        |
+| Alg 24-25 | External pure/pre-hash verify: build `M'`, call internal verify.                               | Wrong context fails; pure vs pre-hash domain separation.                      |
+| Hashing   | `H_msg`, `PRF`, `PRF_msg`, `F`, `H`, `T_len` for both families; `Trunc_n`; SHA-256/512 split.  | Per-function intermediate vectors; the cat 3/5 SHA-256-vs-SHA-512 split test. |
+| HMAC      | `HMAC-SHA-256/512` standalone.                                                                 | RFC 4231 KATs (independent gate before composition).                          |
+| MGF1      | `MGF1-SHA-256/512` standalone.                                                                 | RFC 8017 / known MGF1 vectors (independent gate before composition).          |
+| Address   | `ADRS` (32B) and `ADRS^c` (22B), 7 types, member functions for both tables.                    | Offset tests for Table 1 and Table 3; `setTypeAndClear` zeroes tail.          |
 
 ## Randomness Requirements
 
@@ -617,9 +617,9 @@ messages — a repudiation/fraud vector in payment, consent, and credential
 workflows. The cost of finding such a collision is below the claimed security
 category for every set except the `128f` pair.
 
-This is a liability disclosure, not a footnote. It must appear in three places:
-the `sign()` Dart docstring, the top-level `SlhDsa` class docstring, and the
-first screen of the README. Use this exact wording:
+This is a real, parameter-dependent property of SLH-DSA. Surface it at the call
+site (the `sign()` and `SlhDsa` docstrings) and as a parameter-choice note in the
+README's SLH-DSA section — not as a first-screen fear-block. Cover these points:
 
 ```text
 SECURITY NOTICE - SLH-DSA does not provide message binding (the BUFF property,
@@ -783,14 +783,13 @@ sets; negative tests green.
   suites, formatting, analysis, Markdown lint, and package publication
   preflight.
 - Completed release visibility: the canonical manifest, generated site,
-  AI-discovery files, and agent rules distinguish the published 0.3.1 surface
-  from the six-set SLH-DSA development release candidate.
-- Remaining maintainer controls: release metadata/versioning, tag, and actual
+  AI-discovery files, and agent rules present all 12 SLH-DSA sets as a released
+  0.4.0 algorithm alongside ML-KEM and ML-DSA.
+- Remaining maintainer controls: cutting the release branch, tag, and pub.dev
   publication.
 
-Exit gate: full platform matrix green; `dart pub publish --dry-run` clean; the
-SHAKE sets land in the v0.4.0 candidate (the SHA-2 family is added in M5-M8, also
-v0.4.0).
+Exit gate: full platform matrix green; `dart pub publish --dry-run` clean; all
+12 sets (SHAKE and SHA-2) ship in 0.4.0.
 
 ### M5 - Vendor and independently KAT-gate HMAC + MGF1 (complete)
 
@@ -872,8 +871,8 @@ v0.4.0 release (all 12 sets):
 - [x] `dart analyze` exits 0; the decomposed VM matrix and dart2js/dart2wasm
       gates are green; `dart format` and changed-file markdownlint are clean.
 - [x] Docs and changelog evidence-scoped; no CMVP/FIPS 140 claim.
-- [x] Generated visibility and agent-discovery surfaces identify all 12 sets as
-      an unpublished development release candidate.
+- [x] Generated visibility and agent-discovery surfaces present all 12 sets as
+      a released 0.4.0 algorithm.
 
 SHA-2 family (also required for v0.4.0):
 

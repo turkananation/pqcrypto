@@ -1,6 +1,6 @@
 # Security Audit and Risk Register
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 This document tracks security-relevant findings against the current repository
 state. It is evidence-scoped: when a finding is not directly verified in this
@@ -8,50 +8,50 @@ pass, it is marked as open or needs verification.
 
 ## Executive Summary
 
-| Component | Current security posture                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------- |
-| ML-KEM    | Supported surface with KAT, input-validation, Keccak, web, and OpenSSL interop evidence.                |
-| ML-DSA    | FIPS 204-aligned; byte-exact on the checked-in KAT corpus; best-effort hardening.                       |
-| SLH-DSA   | Release candidate (all 12 sets); external API exported in source, 1,248 ACVP cases complete, v0.4.0 not released. |
-| Common    | Partial vendored FIPS 202 + FIPS 180-4 SHA-2; SP 800-185 planned; no runtime dependencies.              |
-| Package   | Not FIPS 140/CMVP validated (see FIPS_140_BOUNDARY.md); zero runtime deps.                              |
+| Component | Current security posture                                                                        |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| ML-KEM    | Supported surface with KAT, input-validation, Keccak, web, and OpenSSL/liboqs interop evidence. |
+| ML-DSA    | FIPS 204-aligned; byte-exact on the checked-in KAT corpus; best-effort hardening.               |
+| SLH-DSA   | FIPS 205-aligned (all 12 sets); external API shipped in 0.4.0; 1,248 ACVP cases complete.       |
+| Common    | Partial vendored FIPS 202 + FIPS 180-4 SHA-2; SP 800-185 planned; no runtime dependencies.      |
+| Package   | Not FIPS 140/CMVP validated (see FIPS_140_BOUNDARY.md); zero runtime deps.                      |
 
 ## Current Verification Snapshot
 
 - `dart analyze`: exits 0 with no issues.
 - Focused VM gates are green for ML-KEM, ML-DSA, and SLH-DSA. The SLH-DSA
-  evidence includes 60 byte-exact SHAKE key generations, 312 byte-exact
-  signatures, and 252 exact verification outcomes.
+  evidence includes 120 byte-exact key generations, 624 byte-exact signatures,
+  and 504 exact verification outcomes across all 12 sets.
 
 ## Resolved or Evidence-Backed Improvements
 
-| ID         | Area                       | Current evidence                                                              |
-| ---------- | -------------------------- | ----------------------------------------------------------------------------- |
-| KEM-01     | ML-KEM input validation    | `kem_validation_test.dart` covers pk/sk/ct validation paths.                  |
-| KEM-02     | Canonical ML-KEM reduction | `poly_test.dart` covers `Poly.barrettReduce` canonical residues.              |
-| KEM-03     | KAT runner discovery       | Runner is `test/kat_evaluator_test.dart`, so it is discovered by `dart test`. |
-| HASH-01    | Vendored SHA3/SHAKE        | `keccak_test.dart` covers current FIPS 202 SHA3-256/512 and SHAKE behavior.   |
-| INTEROP-01 | OpenSSL interoperability   | `tool/openssl_interop/` covers A-G interop for all ML-KEM parameter sets.     |
-| DSA-01     | Per-level `tau` values     | `DilithiumParams` contains 39/49/60 for ML-DSA-44/65/87.                      |
-| DSA-02     | Production `print` leakage | `rg "print\\(" lib` shows no production-library `print()` calls.              |
-| DSA-10     | ML-DSA correctness         | `mldsa_kat_test.dart`: 300 keygens + 1800 signatures byte-exact, all verify.  |
-| DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner.            |
-| DSA-12     | Norm-check side channel    | `_checkNorm` replaced by no-early-exit `_normExceeds` (all 256 coeffs).       |
-| DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` squeeze an incremental XOF.      |
-| SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`; applied in keygen/sign `finally` blocks.       |
-| SHA2-01    | HashML-DSA pre-hash        | `sha2_test.dart` pins SHA-256/384/512 against direct NIST vectors.            |
-| KEM-10     | Decapsulation selection    | Constant-time branchless select of K' vs implicit-rejection; 3000 KATs exact. |
-| KEM-11     | RNG allocation             | `_secureRng` is a cached `Random.secure()` reused across calls.               |
+| ID         | Area                       | Current evidence                                                                                   |
+| ---------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| KEM-01     | ML-KEM input validation    | `kem_validation_test.dart` covers pk/sk/ct validation paths.                                       |
+| KEM-02     | Canonical ML-KEM reduction | `poly_test.dart` covers `Poly.barrettReduce` canonical residues.                                   |
+| KEM-03     | KAT runner discovery       | Runner is `test/kat_evaluator_test.dart`, so it is discovered by `dart test`.                      |
+| HASH-01    | Vendored SHA3/SHAKE        | `keccak_test.dart` and `fips202_examples_test.dart` cover SHA3-224/256/384/512 and SHAKE behavior. |
+| INTEROP-01 | Native interoperability    | `tool/openssl_interop/` and `tool/liboqs_interop/` cover ML-KEM, ML-DSA, and SLH-DSA.              |
+| DSA-01     | Per-level `tau` values     | `DilithiumParams` contains 39/49/60 for ML-DSA-44/65/87.                                           |
+| DSA-02     | Production `print` leakage | `rg "print\\(" lib` shows no production-library `print()` calls.                                   |
+| DSA-10     | ML-DSA correctness         | `mldsa_kat_test.dart`: 300 keygens + 1800 signatures byte-exact, all verify.                       |
+| DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner.                                 |
+| DSA-12     | Norm-check side channel    | `_checkNorm` replaced by no-early-exit `_normExceeds` (all 256 coeffs).                            |
+| DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` squeeze an incremental XOF.                           |
+| SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`; applied in keygen/sign `finally` blocks.                            |
+| SHA2-01    | HashML-DSA pre-hash        | `sha2_test.dart` pins SHA-256/384/512 against direct NIST vectors.                                 |
+| KEM-10     | Decapsulation selection    | Constant-time branchless select of K' vs implicit-rejection; 3000 KATs exact.                      |
+| KEM-11     | RNG allocation             | `_secureRng` is a cached `Random.secure()` reused across calls.                                    |
 
 ## Open Findings
 
-| ID      | Severity | Area                  | Finding                                                             | Required action                                          |
-| ------- | -------- | --------------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| DSA-20  | Medium   | ML-DSA side channels  | No early exit, but not provably constant-time in Dart.              | Deeper review; document best-effort.                     |
-| DSA-21  | Low      | HashML-DSA coverage   | Only the level-bound SHA-2 pre-hash is exposed.                     | Add SHAKE pre-hash paths if needed.                      |
-| DOC-01  | Medium   | Assurance wording     | Any broad "FIPS validated" claim exceeds the evidence.              | Keep wording evidence-scoped.                            |
-| HASH-20 | Medium   | FIPS 202 completeness | SHA3-224/384 and official NIST example-corpus coverage are missing. | Complete FIPS 202 guide gates before broad SHA-3 claims. |
-| HASH-21 | Medium   | SP 800-185            | cSHAKE, KMAC, TupleHash, and ParallelHash are not implemented.      | Implement only behind NIST example-vector gates.         |
+| ID      | Severity | Area                  | Finding                                                                    | Required action                                          |
+| ------- | -------- | --------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------- |
+| DSA-20  | Medium   | ML-DSA side channels  | No early exit, but not provably constant-time in Dart.                     | Deeper review; document best-effort.                     |
+| DSA-21  | Low      | HashML-DSA coverage   | Only the level-bound SHA-2 pre-hash is exposed.                            | Add SHAKE pre-hash paths if needed.                      |
+| DOC-01  | Medium   | Assurance wording     | Any broad "FIPS validated" claim exceeds the evidence.                     | Keep wording evidence-scoped.                            |
+| HASH-20 | Medium   | FIPS 202 completeness | Non-byte examples and complete official corpus coverage remain incomplete. | Complete FIPS 202 guide gates before broad SHA-3 claims. |
+| HASH-21 | Medium   | SP 800-185            | cSHAKE, KMAC, TupleHash, and ParallelHash are not implemented.             | Implement only behind NIST example-vector gates.         |
 
 DOC-01 detail: the acceptable/unacceptable wording list is in
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
@@ -66,24 +66,25 @@ ML-KEM is the package's supported security surface. Current evidence covers:
 - public-key, secret-key, and ciphertext validation;
 - vendored FIPS 202 primitives;
 - web compiler round-trips;
-- OpenSSL interop for ML-KEM-512/768/1024.
+- OpenSSL/liboqs interop for ML-KEM-512/768/1024.
 
-Remaining hardening work should focus on secret lifetime, constant-time output
-selection, benchmarking the RNG allocation path, and maintaining interop/KAT
-coverage as the code changes.
+Remaining hardening work should focus on maintaining KAT/native-interop
+coverage, monitoring secret lifetime, and deepening side-channel review as the
+code changes.
 
 ## FIPS 202 / SP 800-185 Security Boundary
 
 Current FIPS 202 support is a shared primitive surface used by ML-KEM, ML-DSA,
-and future SLH-DSA. It is not yet a complete standalone SHA-3 release surface.
+and SLH-DSA. It is not yet a complete standalone SHA-3 release surface.
 The planned completion work is controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 Security controls to verify before expanding public claims:
 
-- SHA3-224 and SHA3-384 must be added with NIST example-vector coverage.
-- FIPS 202 tests must cover rates, capacities, suffixes, Keccak constants, and
-  official byte/non-byte examples.
+- The complete FIPS 202 example corpus, including non-byte cases, must be
+  covered or explicitly scoped before broad FIPS 202 claims.
+- FIPS 202 tests must continue to cover rates, capacities, suffixes, Keccak
+  constants, and official byte/non-byte examples.
 - SP 800-185 encodings must be tested before cSHAKE, KMAC, TupleHash, or
   ParallelHash are built on them.
 - KMAC API docs must warn about key length and tag length selection.
@@ -114,25 +115,25 @@ Residual, accepted risks (do not affect KAT conformance):
 - HashML-DSA exposes only the level-bound SHA-2 pre-hash (DSA-21).
 - This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140 validation.
 
-## SLH-DSA Security Boundary (release candidate)
+## SLH-DSA Security Boundary
 
-SLH-DSA is **not yet shipped**, but its external API is exported from the
-development source tree. Algorithms 1-25 are implemented for both hash families,
+SLH-DSA ships in 0.4.0. Its external API is exported from the package root.
+Algorithms 1-25 are implemented for both hash families,
 and all 1,248 cases in the pinned official NIST ACVP sample corpus are
 byte-exact. Hedged signing, explicit deterministic signing, context/pre-hash
 domain separation, total verification, slow-set opt-in, and optional
 verify-after-sign have focused regressions.
 BUFF/performance guidance and per-target benchmark baselines are published.
-The decomposed VM matrix, both web compiler suites, and publication preflight
-are green. Release metadata, tagging, and publication are not yet done.
+The decomposed VM matrix and both web compiler suites are green. Cutting the
+release branch, tag, and publication remain maintainer actions.
 
-| ID     | Severity | Area                    | Status and residual                                                                                                                          |
-| ------ | -------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| SLH-01 | High     | Message-bound (BUFF)    | Mitigated/documented: API + README require context and unique payload identity except for SHAKE-128f; protocol enforcement remains external. |
-| SLH-02 | Medium   | Fault / grafting        | Mitigated/documented: hedged default plus optional verify-after-sign; hardware/mobile fault resistance remains best-effort.                  |
-| SLH-03 | Medium   | RBG strength            | Documented: fresh `addrnd` from `Random.secure()`; no SP 800-90 validation claim; deterministic mode remains explicit.                       |
-| SLH-04 | Low      | `s`-variant performance | Mitigated/measured: explicit opt-in and 29-56 second signing baselines; deployment-specific latency remains the caller's concern.            |
-| SLH-05 | Low      | Secret zeroization      | Mitigated/documented: generated secret material is wiped in `finally`; Dart GC prevents a hard memory-erasure guarantee.                     |
+| ID     | Severity | Area                    | Status and residual                                                                                                                   |
+| ------ | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| SLH-01 | High     | Message-bound (BUFF)    | Mitigated/documented: context + unique payload identity required except for the `*-128f` sets; protocol enforcement remains external. |
+| SLH-02 | Medium   | Fault / grafting        | Mitigated/documented: hedged default plus optional verify-after-sign; hardware/mobile fault resistance remains best-effort.           |
+| SLH-03 | Medium   | RBG strength            | Documented: fresh `addrnd` from `Random.secure()`; no SP 800-90 validation claim; deterministic mode remains explicit.                |
+| SLH-04 | Low      | `s`-variant performance | Mitigated/measured: explicit opt-in and 29-56 second signing baselines; deployment-specific latency remains the caller's concern.     |
+| SLH-05 | Low      | Secret zeroization      | Mitigated/documented: generated secret material is wiped in `finally`; Dart GC prevents a hard memory-erasure guarantee.              |
 
 The hash-based threat model differs from ML-DSA: there is no secret-dependent
 rejection-sampling timing loop (WOTS+ chain lengths and FORS leaf selection
@@ -148,7 +149,7 @@ rg "Random\\.secure|_normExceeds|secureZero|fillRange" lib
 dart analyze
 dart test test/kat_evaluator_test.dart   # ML-KEM KAT
 dart test test/mldsa_kat_test.dart       # ML-DSA KAT
-dart test test/slhdsa_kat_test.dart      # SLH-DSA SHAKE ACVP (expensive)
+dart test test/slhdsa_kat_test.dart      # SLH-DSA all-set ACVP (expensive)
 dart test
 ```
 
