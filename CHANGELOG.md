@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Changed
+
+- Reworked `example/main.dart` into a full-family walkthrough for ML-KEM,
+  ML-DSA, SLH-DSA, and a signed ML-KEM + ML-DSA handshake composition.
+- Collapsed the README badge deck to reduce repetitive per-surface badges while
+  preserving package, standards, evidence, interop, runtime, workflow, docs, and
+  AI-discovery signals.
+- Scoped CI, interop, visibility, and CodeQL workflow concurrency/triggers so
+  pull requests validate before merge while push runs are reserved for
+  integration branches, reducing duplicate branch-and-PR workflow work.
+
 ## 0.4.0
 
 ### Added

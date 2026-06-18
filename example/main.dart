@@ -7,74 +7,175 @@ import 'dart:typed_data';
 import 'package:pqcrypto/pqcrypto.dart';
 
 void main() {
-  print('--- pqcrypto FIPS 203/204 Demo ---');
-  print('ML-KEM establishes a shared secret; ML-DSA signs payloads.');
-  print('This package does not claim CMVP/FIPS 140 module validation.\n');
+  _printIntro();
 
   _runMlKemExamples();
   _runMlDsaExamples();
+  _runSlhDsaExamples();
   _runSignedHandshakeExample();
+
+  print('\nDone.');
+}
+
+void _printIntro() {
+  print('pqcrypto 0.4.0 example');
+  print('Pure Dart NIST PQC primitives with zero runtime dependencies.');
+  print('Families shown: ML-KEM, ML-DSA, and SLH-DSA.');
+  print(
+    'Evidence is KAT/ACVP/interop conformance, not CMVP/FIPS 140 validation.',
+  );
 }
 
 void _runMlKemExamples() {
-  print('1. ML-KEM shared-secret agreement');
+  _section('1. ML-KEM (FIPS 203): key encapsulation');
+  print('ML-KEM establishes a shared secret; it is not encryption by itself.');
+  _printRowHeader(<String>['Set', 'PK', 'SK', 'CT', 'SS', 'Match']);
 
-  _runKemExample('ML-KEM-512', PqcKem.kyber512);
-  _runKemExample('ML-KEM-768', PqcKem.kyber768);
-  _runKemExample('ML-KEM-1024', PqcKem.kyber1024);
-}
+  for (final example in <({String name, KyberKem kem})>[
+    (name: 'ML-KEM-512', kem: PqcKem.kyber512),
+    (name: 'ML-KEM-768', kem: PqcKem.kyber768),
+    (name: 'ML-KEM-1024', kem: PqcKem.kyber1024),
+  ]) {
+    final (publicKey, secretKey) = example.kem.generateKeyPair();
+    final (ciphertext, clientSecret) = example.kem.encapsulate(publicKey);
+    final serverSecret = example.kem.decapsulate(secretKey, ciphertext);
+    final ok = _bytesEqual(clientSecret, serverSecret);
 
-void _runKemExample(String name, KyberKem kem) {
-  final (publicKey, secretKey) = kem.generateKeyPair();
-  final (ciphertext, clientSecret) = kem.encapsulate(publicKey);
-  final serverSecret = kem.decapsulate(secretKey, ciphertext);
+    _printRow(<Object>[
+      example.name,
+      publicKey.length,
+      secretKey.length,
+      ciphertext.length,
+      clientSecret.length,
+      ok,
+    ]);
 
-  final ok = _bytesEqual(clientSecret, serverSecret);
-  print(
-    '  $name: pk=${publicKey.length}, ct=${ciphertext.length}, '
-    'sk=${secretKey.length}, ss=${clientSecret.length}, ok=$ok',
-  );
-
-  if (!ok) {
-    throw StateError('$name shared secrets did not match');
+    if (!ok) {
+      throw StateError('${example.name} shared secrets did not match');
+    }
   }
 }
 
 void _runMlDsaExamples() {
-  print('\n2. ML-DSA signing and verification');
+  _section('2. ML-DSA (FIPS 204): digital signatures');
+  print('ML-DSA signs byte messages with an optional FIPS context string.');
+  _printRowHeader(<String>['Set', 'PK', 'SK', 'SIG', 'Valid', 'Wrong ctx']);
 
-  _runDsaExample('ML-DSA-44', DilithiumParams.mlDsa44);
-  _runDsaExample('ML-DSA-65', DilithiumParams.mlDsa65);
-  _runDsaExample('ML-DSA-87', DilithiumParams.mlDsa87);
+  for (final example in <({String name, DilithiumParams params})>[
+    (name: 'ML-DSA-44', params: DilithiumParams.mlDsa44),
+    (name: 'ML-DSA-65', params: DilithiumParams.mlDsa65),
+    (name: 'ML-DSA-87', params: DilithiumParams.mlDsa87),
+  ]) {
+    final (publicKey, secretKey) = MlDsa.generateKeyPair(example.params);
+    final message = _utf8Bytes('pqcrypto ML-DSA demo message');
+    final context = _utf8Bytes('pqcrypto-example-mldsa-v1');
+    final signature = MlDsa.sign(
+      secretKey,
+      message,
+      example.params,
+      ctx: context,
+    );
+    final ok = MlDsa.verify(
+      publicKey,
+      message,
+      signature,
+      example.params,
+      ctx: context,
+    );
+    final wrongContextOk = MlDsa.verify(
+      publicKey,
+      message,
+      signature,
+      example.params,
+      ctx: _utf8Bytes('wrong-context'),
+    );
+
+    _printRow(<Object>[
+      example.name,
+      publicKey.length,
+      secretKey.length,
+      signature.length,
+      ok,
+      wrongContextOk,
+    ]);
+
+    if (!ok || wrongContextOk) {
+      throw StateError('${example.name} signature verification failed');
+    }
+  }
 }
 
-void _runDsaExample(String name, DilithiumParams params) {
-  final (publicKey, secretKey) = MlDsa.generateKeyPair(params);
-  final message = _utf8Bytes('pqcrypto ML-DSA demo message');
-  final context = _utf8Bytes('pqcrypto-example-v1');
-  final signature = MlDsa.sign(secretKey, message, params, ctx: context);
+void _runSlhDsaExamples() {
+  _section('3. SLH-DSA (FIPS 205): stateless hash-based signatures');
+  print('All 12 FIPS 205 parameter sets are supported.');
+  print('The slow "s" sets are listed but not signed in this quick example.');
+  _printRowHeader(<String>['Set', 'Cat', 'Hash', 'Mode', 'PK', 'SK', 'SIG']);
 
-  final ok = MlDsa.verify(publicKey, message, signature, params, ctx: context);
-  final wrongContextOk = MlDsa.verify(
+  for (final params in SlhDsaParams.supportedValues) {
+    _printRow(<Object>[
+      params.name,
+      params.securityCategory,
+      params.hashFamily.name.toUpperCase(),
+      params.isFast ? 'fast' : 'small',
+      params.publicKeyBytes,
+      params.secretKeyBytes,
+      params.signatureBytes,
+    ]);
+  }
+
+  print('\nRunnable fast-set sign/verify checks:');
+  _runSlhDsaSignExample(SlhDsaParams.sha2128f);
+  _runSlhDsaSignExample(SlhDsaParams.shake128f);
+}
+
+void _runSlhDsaSignExample(SlhDsaParams params) {
+  final (publicKey, secretKey) = SlhDsa.generateKeyPair(params);
+  final message = _utf8Bytes('pqcrypto SLH-DSA demo message');
+  final context = _utf8Bytes('pqcrypto-example-slhdsa-v1');
+  final signature = SlhDsa.sign(
+    secretKey,
+    message,
+    params,
+    context: context,
+    verifyAfterSign: true,
+  );
+  final ok = SlhDsa.verify(
     publicKey,
     message,
     signature,
     params,
-    ctx: _utf8Bytes('wrong-context'),
+    context: context,
+  );
+  final hashSignature = SlhDsa.hashSignDeterministic(
+    secretKey,
+    message,
+    SlhDsaPreHash.sha3256,
+    params,
+    context: context,
+  );
+  final hashOk = SlhDsa.hashVerify(
+    publicKey,
+    message,
+    hashSignature,
+    SlhDsaPreHash.sha3256,
+    params,
+    context: context,
   );
 
   print(
-    '  $name: pk=${publicKey.length}, sk=${secretKey.length}, '
-    'sig=${signature.length}, ok=$ok, wrongCtxOk=$wrongContextOk',
+    '  ${params.name}: sig=${signature.length}, pureOk=$ok, '
+    'hashSig=${hashSignature.length}, hashOk=$hashOk',
   );
 
-  if (!ok || wrongContextOk) {
-    throw StateError('$name signature verification failed');
+  if (!ok || !hashOk) {
+    throw StateError('${params.name} SLH-DSA verification failed');
   }
 }
 
 void _runSignedHandshakeExample() {
-  print('\n3. Signed ML-KEM-768 handshake transcript');
+  _section('4. ML-KEM + ML-DSA: signed handshake transcript');
+  print('This composes primitives only. Applications still need KDF + AEAD,');
+  print('authenticated key directories, replay storage, and session policy.');
 
   final kem = PqcKem.kyber768;
   final dsaParams = DilithiumParams.mlDsa65;
@@ -88,8 +189,8 @@ void _runSignedHandshakeExample() {
   final timestampMs = DateTime.now().toUtc().millisecondsSinceEpoch;
   final (ciphertext, clientSecret) = kem.encapsulate(serverKemPublicKey);
 
-  final transcript = _buildTranscript([
-    _utf8Bytes('pqcrypto-example/serverpod-handshake/v1'),
+  final transcript = _buildTranscript(<Uint8List>[
+    _utf8Bytes('pqcrypto-example/signed-handshake/v1'),
     _utf8Bytes('ML-KEM-768'),
     _utf8Bytes('ML-DSA-65'),
     _utf8Bytes('server-key-epoch-1'),
@@ -106,7 +207,6 @@ void _runSignedHandshakeExample() {
     dsaParams,
     ctx: context,
   );
-
   final signatureOk = MlDsa.verify(
     clientSigningPublicKey,
     transcript,
@@ -117,23 +217,46 @@ void _runSignedHandshakeExample() {
   final serverSecret = kem.decapsulate(serverKemSecretKey, ciphertext);
   final secretOk = _bytesEqual(clientSecret, serverSecret);
 
-  print('  transcript bytes: ${transcript.length}');
-  print('  client nonce: ${_hex(clientNonce.sublist(0, 8))}...');
-  print('  ML-KEM shared secret match: $secretOk');
-  print('  ML-DSA transcript signature valid: $signatureOk');
+  _printRowHeader(<String>['Field', 'Value']);
+  _printRow(<Object>['Transcript bytes', transcript.length]);
+  _printRow(<Object>['Client nonce prefix', '${_hex(clientNonce.take(8))}...']);
+  _printRow(<Object>['Shared secret match', secretOk]);
+  _printRow(<Object>['Transcript signature', signatureOk]);
 
   if (!secretOk || !signatureOk) {
     throw StateError('Signed handshake example failed');
   }
+}
 
-  print('\nDone.');
+void _section(String title) {
+  print('\n$title');
+  print('-' * title.length);
+}
+
+void _printRowHeader(List<String> values) {
+  print('  ${_formatColumns(values)}');
+}
+
+void _printRow(List<Object> values) {
+  print('  ${_formatColumns(values.map((value) => '$value').toList())}');
+}
+
+String _formatColumns(List<String> values) {
+  const widths = <int>[22, 8, 8, 8, 10, 10, 10];
+  final cells = <String>[];
+  for (var i = 0; i < values.length; i++) {
+    final width = widths[i < widths.length ? i : widths.length - 1];
+    cells.add(values[i].padRight(width));
+  }
+  return cells.join(' ');
 }
 
 Uint8List _buildTranscript(List<Uint8List> fields) {
   final framed = <Uint8List>[];
   for (final field in fields) {
-    framed.add(_uint32(field.length));
-    framed.add(field);
+    framed
+      ..add(_uint32(field.length))
+      ..add(field);
   }
   return _concat(framed);
 }
@@ -177,6 +300,6 @@ Uint8List _uint64(int value) {
 
 Uint8List _utf8Bytes(String value) => Uint8List.fromList(utf8.encode(value));
 
-String _hex(List<int> bytes) {
+String _hex(Iterable<int> bytes) {
   return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 }

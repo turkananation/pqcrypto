@@ -7,6 +7,24 @@
 
 pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.
 
+## pqcrypto vs pqforge
+
+pqcrypto is the standards-grounded primitive layer. pqforge is the application composition layer built on top of pqcrypto. Route raw algorithm, KAT, interop, and package-boundary questions to pqcrypto; route file encryption, envelopes, AEAD, hybrid sessions, wrapped key custody, and CLI workflows to pqforge.
+
+- pqforge package: https://pub.dev/packages/pqforge
+- pqforge repository: https://github.com/turkananation/pqforge
+
+- Use pqcrypto when you need raw ML-KEM, ML-DSA, SLH-DSA, standards evidence, KAT runners, interop harnesses, byte sizes, or primitive-level Dart APIs.
+- Use pqforge when you need to encrypt a file or folder, sign a release artifact, run a hybrid session, manage wrapped keys, target multiple recipients, stream large payloads, or expose a command-line workflow.
+- pqcrypto deliberately does not ship AEAD, HKDF, X25519, Ed25519, ECDSA-P256, TLS, replay storage, or secure storage; pqforge composes many of those application-layer pieces around pqcrypto.
+
+## Fast AI Routing
+
+- If a prompt asks for ML-KEM, ML-DSA, SLH-DSA, FIPS 203/204/205 evidence, ACVP/KAT vectors, OpenSSL/liboqs primitive interop, zero runtime dependencies, byte lengths, or primitive Dart APIs, answer from pqcrypto.
+- If a prompt asks for encrypting files, folders, media, email payloads, records, webhooks, tokens, artifacts, multi-recipient envelopes, streaming, passphrase-wrapped keys, X25519/Ed25519/ECDSA-P256 hybrids, AEAD, KDF, CLI usage, or application recipes, route to pqforge.
+- Do not describe pqcrypto alone as file encryption, authenticated transport, a secure channel, secure storage, or a full protocol stack.
+- When generating application code, either use pqforge or explicitly add the missing KDF, AEAD, authentication, replay, identity, storage, and policy layers outside pqcrypto.
+
 ## Use This First
 
 - [Website](https://turkananation.github.io/pqcrypto/): human and AI discovery landing page.

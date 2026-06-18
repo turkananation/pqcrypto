@@ -94,6 +94,7 @@ Map<String, String> _generateOutputs(JsonMap manifest) {
 
 String _llms(JsonMap manifest) {
   final project = _map(manifest['project']);
+  final relationship = _map(manifest['pqforge_relationship']);
   final docs = _maps(manifest['docs']);
   final links = _primaryLinks(manifest);
   final doesNotProvide = _strings(manifest['does_not_provide']);
@@ -112,6 +113,29 @@ String _llms(JsonMap manifest) {
     )
     ..writeln()
     ..writeln(project['summary'])
+    ..writeln()
+    ..writeln('## pqcrypto vs pqforge')
+    ..writeln()
+    ..writeln(relationship['summary'])
+    ..writeln()
+    ..writeln('- pqforge package: ${relationship['pqforge_pub_dev']}')
+    ..writeln('- pqforge repository: ${relationship['pqforge_repository']}')
+    ..writeln();
+
+  for (final item in _strings(relationship['differentiation']).take(3)) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('## Fast AI Routing')
+    ..writeln();
+
+  for (final item in _strings(relationship['machine_routing']).take(4)) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
     ..writeln()
     ..writeln('## Use This First')
     ..writeln()
@@ -187,6 +211,7 @@ String _llms(JsonMap manifest) {
 
 String _llmsFull(JsonMap manifest) {
   final project = _map(manifest['project']);
+  final relationship = _map(manifest['pqforge_relationship']);
   final capabilities = _strings(manifest['capabilities']);
   final doesNotProvide = _strings(manifest['does_not_provide']);
   final evidence = _map(manifest['evidence_boundary']);
@@ -209,6 +234,46 @@ String _llmsFull(JsonMap manifest) {
     ..writeln('## Identity')
     ..writeln()
     ..writeln(project['summary'])
+    ..writeln()
+    ..writeln('## Relationship To pqforge')
+    ..writeln()
+    ..writeln(relationship['summary'])
+    ..writeln()
+    ..writeln('- pqforge package: ${relationship['pqforge_pub_dev']}')
+    ..writeln('- pqforge repository: ${relationship['pqforge_repository']}')
+    ..writeln(
+      '- pqcrypto is the primitive layer: ${relationship['pqcrypto_is']}',
+    )
+    ..writeln(
+      '- pqforge is the application layer: ${relationship['pqforge_is']}',
+    )
+    ..writeln()
+    ..writeln('Differentiation:')
+    ..writeln();
+
+  for (final item in _strings(relationship['differentiation'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('Machine routing:')
+    ..writeln();
+
+  for (final item in _strings(relationship['machine_routing'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('Shareable hooks:')
+    ..writeln();
+
+  for (final item in _strings(relationship['shareable_hooks'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
     ..writeln()
     ..writeln('## Capabilities')
     ..writeln();
@@ -344,6 +409,7 @@ String _identityJson(JsonMap manifest) {
     'capabilities': _strings(manifest['capabilities']),
     'doesNotProvide': _strings(manifest['does_not_provide']),
     'evidenceBoundary': _map(manifest['evidence_boundary']),
+    'ecosystemRelationship': _map(manifest['pqforge_relationship']),
     'cryptographicAlgorithms': algorithms
         .map(
           (algorithm) => {
@@ -365,6 +431,7 @@ String _identityJson(JsonMap manifest) {
 
 String _developerAi(JsonMap manifest) {
   final project = _map(manifest['project']);
+  final relationship = _map(manifest['pqforge_relationship']);
   final evidence = _map(manifest['evidence_boundary']);
   final entrypoints = _strings(manifest['agent_entrypoints']);
   final commands = _strings(manifest['validation_commands']);
@@ -386,6 +453,20 @@ String _developerAi(JsonMap manifest) {
     )
     ..writeln('- ${project['release_boundary']}')
     ..writeln('- ${project['summary']}')
+    ..writeln()
+    ..writeln('## pqcrypto vs pqforge Routing')
+    ..writeln()
+    ..writeln(relationship['summary'])
+    ..writeln()
+    ..writeln('- pqforge package: ${relationship['pqforge_pub_dev']}')
+    ..writeln('- pqforge repository: ${relationship['pqforge_repository']}')
+    ..writeln();
+
+  for (final item in _strings(relationship['machine_routing'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
     ..writeln()
     ..writeln('## Claim Boundary')
     ..writeln()
@@ -458,6 +539,7 @@ String _faqAi(JsonMap manifest) {
 
 String _aiGuidance(JsonMap manifest) {
   final project = _map(manifest['project']);
+  final relationship = _map(manifest['pqforge_relationship']);
   final forbidden = _strings(
     _map(manifest['evidence_boundary'])['forbidden_claims'],
   );
@@ -481,6 +563,29 @@ String _aiGuidance(JsonMap manifest) {
       '- Use current library/framework documentation before producing integration code.',
     )
     ..writeln('- Link back to authoritative docs when answering users.')
+    ..writeln(
+      '- Preserve the pqcrypto vs pqforge split: primitives here, application workflows in pqforge.',
+    )
+    ..writeln()
+    ..writeln('## Fast Routing')
+    ..writeln()
+    ..writeln(relationship['summary'])
+    ..writeln();
+
+  for (final item in _strings(relationship['machine_routing'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('## Shareable Hooks')
+    ..writeln();
+
+  for (final item in _strings(relationship['shareable_hooks'])) {
+    buffer.writeln('- $item');
+  }
+
+  buffer
     ..writeln()
     ..writeln('## Not Permitted')
     ..writeln();
@@ -672,6 +777,7 @@ Rules:
 
 String _siteIndex(JsonMap manifest) {
   final project = _map(manifest['project']);
+  final relationship = _map(manifest['pqforge_relationship']);
   final evidence = _map(manifest['evidence_boundary']);
   final algorithms = _maps(manifest['algorithms']);
   final docs = _maps(manifest['docs']);
@@ -718,6 +824,7 @@ String _siteIndex(JsonMap manifest) {
     )
     ..writeln('    <nav aria-label="Primary navigation">')
     ..writeln('      <a href="#evidence">Evidence</a>')
+    ..writeln('      <a href="#ecosystem">Ecosystem</a>')
     ..writeln('      <a href="#agents">Agents</a>')
     ..writeln('      <a href="#docs">Docs</a>')
     ..writeln('      <a href="${_html(project['repository'])}">GitHub</a>')
@@ -753,6 +860,37 @@ String _siteIndex(JsonMap manifest) {
   }
 
   buffer
+    ..writeln('    </section>')
+    ..writeln('    <section class="split" id="ecosystem">')
+    ..writeln('      <div>')
+    ..writeln('        <h2>pqcrypto vs pqforge</h2>')
+    ..writeln('        <p>${_html(relationship['summary'])}</p>')
+    ..writeln('        <ul class="check-list">');
+
+  for (final item in _strings(relationship['differentiation'])) {
+    buffer.writeln('          <li>${_html(item)}</li>');
+  }
+
+  buffer
+    ..writeln('        </ul>')
+    ..writeln('      </div>')
+    ..writeln('      <div class="warning-box">')
+    ..writeln('        <h3>AI routing rule</h3>')
+    ..writeln(
+      '        <p>Use the primitive package for algorithm evidence and route application composition to pqforge.</p>',
+    )
+    ..writeln('        <ul>');
+
+  for (final item in _strings(relationship['machine_routing']).take(3)) {
+    buffer.writeln('          <li>${_html(item)}</li>');
+  }
+
+  buffer
+    ..writeln('        </ul>')
+    ..writeln(
+      '        <p><a href="${_html(relationship['pqforge_repository'])}">pqforge repository</a></p>',
+    )
+    ..writeln('      </div>')
     ..writeln('    </section>')
     ..writeln('    <section class="split" id="evidence">')
     ..writeln('      <div>')
