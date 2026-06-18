@@ -421,9 +421,21 @@ bool dualVerify(Uint8List mlDsaPk, Object classicalPk, Uint8List message,
 }
 ```
 
-**You supply.** A classical signature scheme (Ed25519/ECDSA). A second
-**post-quantum** scheme (SLH-DSA) ships in 0.4.0 via `SlhDsa` — see
-[FUTURE_RELEASES.md](FUTURE_RELEASES.md).
+**You supply.** A classical signature scheme (Ed25519/ECDSA) for a
+classical × post-quantum hybrid. For a **post-quantum × post-quantum** dual — the
+strongest posture, because a forgery must break two *different* hardness families
+(lattice **and** hash) — swap the classical leg for **SLH-DSA**, which ships in
+0.4.0 via `SlhDsa`:
+
+```dart
+// PQC x PQC: ML-DSA (lattice) + SLH-DSA (hash-based), both from pqcrypto.
+final slh = SlhDsaParams.shake128f;
+final mlDsaSig = MlDsa.sign(mlDsaSk, message, dsa, ctx: ctx);
+final slhSig = SlhDsa.sign(slhSk, message, slh, context: ctx);
+// Accept ONLY if both verify.
+final ok = MlDsa.verify(mlDsaPk, message, mlDsaSig, dsa, ctx: ctx) &&
+    SlhDsa.verify(slhPk, message, slhSig, slh, context: ctx);
+```
 
 **Caveats.**
 

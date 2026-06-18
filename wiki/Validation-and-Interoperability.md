@@ -1,11 +1,12 @@
 # Validation & Interoperability
 
 `pqcrypto`'s correctness rests on two complementary kinds of evidence:
-**Known-Answer Tests (KATs)** prove it reproduces NIST's reference byte outputs,
-and **OpenSSL interoperability** proves a real independent implementation accepts
-its keys and ciphertexts and derives the same shared secret.
+**Known-Answer / ACVP tests** prove it reproduces NIST's reference byte outputs,
+and **native-provider interoperability** (OpenSSL and liboqs) proves real
+independent implementations accept its keys, ciphertexts, and signatures and
+agree on the result.
 
-## Known-Answer Tests (KATs)
+## Known-Answer / ACVP tests
 
 Checked-in NIST vectors are reproduced byte-for-byte in the repository's test
 suite.
@@ -14,14 +15,35 @@ suite.
 - **ML-DSA:** byte-exact across the full matrix — 3 parameter sets × {det,
   hedged} × {raw, pure, hashed} — totalling 300 key generations and 1800
   signatures that all verify.
+- **SLH-DSA:** byte-exact across all 12 parameter sets (both the SHAKE and SHA-2
+  hash families) on the 1,248-case official NIST ACVP sample corpus
+  (keyGen / sigGen / sigVer).
 
 Canonical details, file hashes, and gate commands:
 [MLKEM_TESTING.md](https://github.com/turkananation/pqcrypto/blob/main/doc/MLKEM_TESTING.md).
 
-## OpenSSL interoperability (ML-KEM)
+## Native-provider interoperability
 
-The interop harness runs a suite (tests A–G) for **all three** ML-KEM parameter
-sets against OpenSSL's native ML-KEM (via `libcrypto`).
+Every standardized family is cross-checked against **two** independent native
+implementations — OpenSSL `libcrypto` and **liboqs** — on each CI run, across
+all parameter sets of all three families:
+
+| Provider | ML-KEM (512/768/1024) | ML-DSA (44/65/87) | SLH-DSA (all 12 sets) |
+| -------- | --------------------- | ----------------- | --------------------- |
+| OpenSSL  | Full A–G matrix: byte-exact keys/ciphertexts, bidirectional decapsulation, implicit rejection | Seeded keys + hedged context signatures byte-exact; cross-verify both directions | Seeded keys + internal and external context signatures byte-exact; OpenSSL verifies |
+| liboqs   | Deterministic keygen/encaps byte-exact; random exchange both directions; implicit rejection agrees | Context signatures verify both directions; tampering rejected | Context signatures verify both directions |
+
+The two providers are complementary: **OpenSSL** uses seeded key generation, so
+it proves the *wire output is byte-identical*; **liboqs** uses random keys and
+proves *functional interoperability in both directions*. OpenSSL pins **4.0.1**
+in CI (and works against 3.5.x); liboqs pins **0.15.0** at an exact commit with
+its OpenSSL acceleration disabled, so it stays a genuinely independent backend.
+Per-signature tamper/negative rejection for SLH-DSA is covered by the main test
+suite rather than the cross-provider harness.
+
+### ML-KEM A–G detail
+
+The ML-KEM OpenSSL suite is the most exhaustively staged:
 
 | Test  | What it proves                                             |
 | ----- | ---------------------------------------------------------- |
@@ -33,8 +55,7 @@ sets against OpenSSL's native ML-KEM (via `libcrypto`).
 | G     | Implicit-rejection secret agrees on an invalid ciphertext. |
 
 Only **public keys, ciphertexts, and 64-byte seeds** cross the boundary — never
-expanded private keys — mirroring how ML-KEM is actually deployed. Verified
-against OpenSSL 3.5.x and, in CI, 4.0.0.
+expanded private keys — mirroring how ML-KEM is actually deployed.
 
 Canonical matrix, versions, and reproduction steps:
 [OPENSSL_INTEROP.md](https://github.com/turkananation/pqcrypto/blob/main/doc/OPENSSL_INTEROP.md).
@@ -57,11 +78,13 @@ dart test -p chrome                        # dart2js web gate
 dart test -p chrome --compiler dart2wasm   # dart2wasm web gate
 ```
 
-The OpenSSL interop harness lives in
+The interop harnesses live in
 [`tool/openssl_interop/`](https://github.com/turkananation/pqcrypto/tree/main/tool/openssl_interop)
-and needs OpenSSL ≥ 3.5. See
+(needs OpenSSL ≥ 3.5) and
+[`tool/liboqs_interop/`](https://github.com/turkananation/pqcrypto/tree/main/tool/liboqs_interop)
+(needs liboqs 0.15.0). See
 [OPENSSL_INTEROP.md](https://github.com/turkananation/pqcrypto/blob/main/doc/OPENSSL_INTEROP.md)
-for setup.
+for setup of both.
 
 ## Caveat
 

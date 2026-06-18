@@ -2,17 +2,19 @@
 
 `pqcrypto` implements the post-quantum algorithms NIST selected to replace the
 classical asymmetric primitives (RSA, ECDH, ECDSA) that a large quantum computer
-would break. Today the package ships two of them, each byte-exact against the
-official NIST Known-Answer-Test vectors.
+would break. The package ships all three, each byte-exact against the official
+NIST Known-Answer-Test (ML-KEM, ML-DSA) and ACVP (SLH-DSA) reference vectors.
 
-| Algorithm | Standard | Purpose                 | Replaces      | Deep dive                        |
-| --------- | -------- | ----------------------- | ------------- | -------------------------------- |
-| ML-KEM    | FIPS 203 | Key encapsulation (KEM) | RSA-KEM, ECDH | [ML-KEM](ML-KEM)                 |
-| ML-DSA    | FIPS 204 | Digital signatures      | RSA, ECDSA    | [ML-DSA](ML-DSA)                 |
-| SLH-DSA   | FIPS 205 | Hash-based signatures   | (diversifier) | planned — see [Roadmap](Roadmap) |
+| Algorithm | Standard | Purpose                 | Replaces      | Deep dive          |
+| --------- | -------- | ----------------------- | ------------- | ------------------ |
+| ML-KEM    | FIPS 203 | Key encapsulation (KEM) | RSA-KEM, ECDH | [ML-KEM](ML-KEM)   |
+| ML-DSA    | FIPS 204 | Digital signatures      | RSA, ECDSA    | [ML-DSA](ML-DSA)   |
+| SLH-DSA   | FIPS 205 | Hash-based signatures   | (diversifier) | [SLH-DSA](SLH-DSA) |
 
-Both shipped algorithms are lattice schemes built on the Module Learning With
-Errors (MLWE) problem, sharing the same vendored FIPS 202 (SHA-3/SHAKE) core.
+ML-KEM and ML-DSA are lattice schemes built on the Module Learning With Errors
+(MLWE) problem; SLH-DSA is a stateless **hash-based** scheme that uses no lattice
+arithmetic, which makes it a conservative diversifier against any future lattice
+cryptanalysis. All three share the same vendored FIPS 202 (SHA-3/SHAKE) core.
 
 ## When to use which
 
@@ -21,8 +23,13 @@ Errors (MLWE) problem, sharing the same vendored FIPS 202 (SHA-3/SHAKE) core.
   [Cookbook](Cookbook) encrypt-to-public-key recipe.
 - Need to prove a message's **authenticity / integrity** (tokens, updates,
   documents, records)? Use **ML-DSA**. See [ML-DSA](ML-DSA).
-- Building a transport handshake? Combine **both** with an app-supplied
-  classical exchange (hybrid) — see [Serverpod & Flutter](Serverpod-Integration).
+- Need **long-term / archival** signatures, or a signature whose security must
+  **not** rest on lattice assumptions? Use **SLH-DSA** — larger and slower to
+  sign, but built only on hash assumptions. See [SLH-DSA](SLH-DSA) and the
+  [Cookbook](Cookbook) dual-signature recipe.
+- Building a transport handshake? Combine **ML-KEM and a signature** with an
+  app-supplied classical exchange (hybrid) — see
+  [Serverpod & Flutter](Serverpod-Integration).
 
 ## ML-KEM (FIPS 203) — key encapsulation
 
