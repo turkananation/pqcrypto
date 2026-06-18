@@ -22,7 +22,9 @@ Hard constraints:
 Evidence boundary:
 - FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.
 - OpenSSL interop A-G passes for ML-KEM-512/768/1024.
+- Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.
 - FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.
+- FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.
 - Best-effort zeroization in Dart.
 
 Before finishing visibility or documentation work:
@@ -33,8 +35,13 @@ git diff --check
 
 Before finishing cryptographic work:
 ```bash
+dart run tool/visibility/generate_visibility.dart --check
 dart analyze
 dart test test/kat_evaluator_test.dart
 dart test test/mldsa_kat_test.dart
+dart test test/slhdsa_kat_test.dart
 dart test
+dart test -p chrome
+dart test -p chrome --compiler dart2wasm
+dart run tool/agent_framework/check_setup.dart
 ```

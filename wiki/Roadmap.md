@@ -12,17 +12,16 @@ shipped changes are in
 | 0.1.0   | Initial ML-KEM (512/768/1024) with KAT evidence.                                                                    |
 | 0.2.x   | ML-KEM input validation, OpenSSL interop, vendored FIPS 202, web tests, zero deps.                                  |
 | 0.3.0   | Byte-exact FIPS 204 ML-DSA (44/65/87), HashML-DSA, vendored SHA-2, KEM constant-time output selection, zeroization. |
-| 0.3.1   | Current release.                                                                                                    |
+| 0.3.1   | Package metadata alignment (zero deps; ML-KEM + ML-DSA evidence).                                                   |
+| 0.4.0   | All 12 SLH-DSA sets (SHAKE + SHA-2), byte-exact on 1,248 ACVP cases; OpenSSL/liboqs interop. **Current release.**   |
 
 ## Planned
 
-| Version | Theme                               | Notes                                                                            |
-| ------- | ----------------------------------- | -------------------------------------------------------------------------------- |
-| 0.4.0   | **SLH-DSA SHAKE family** (FIPS 205) | Hash-based signatures; reuses Keccak, no new primitive.                          |
-| 0.5.0   | **SLH-DSA SHA-2 family** (FIPS 205) | Adds vendored HMAC/MGF1, KAT-gated.                                              |
-| 0.6.0   | **Performance & platform**          | Automated benchmark suite across AOT/dart2js/dart2wasm.                          |
-| 0.7.0   | **Full FIPS 202 + SP 800-185**      | SHA3-224/384, cSHAKE, KMAC, TupleHash, ParallelHash (0.8.0 spillover if needed). |
-| 1.0.0   | **Stable API**                      | Frozen public API; evidence and docs aligned.                                    |
+| Version | Theme                          | Notes                                                                                       |
+| ------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| 0.5.0   | **Performance & platform**     | Automated benchmark suite across AOT/dart2js/dart2wasm.                                     |
+| 0.6.0   | **Full FIPS 202 + SP 800-185** | SHA-3 corpus completion, cSHAKE, KMAC, TupleHash, ParallelHash (0.7.0 spillover if needed). |
+| 1.0.0   | **Stable API**                 | Frozen public API; evidence and docs aligned.                                               |
 
 ## Under consideration
 

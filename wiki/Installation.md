@@ -19,7 +19,7 @@ This adds the latest version to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.3.1
+  pqcrypto: ^0.4.0
 ```
 
 Then import the single public library:
@@ -29,7 +29,7 @@ import 'package:pqcrypto/pqcrypto.dart';
 ```
 
 That import exposes the entire public API: `PqcKem` / `KyberKem` (ML-KEM),
-`MlDsa` (ML-DSA), and `DilithiumParams` / `DilithiumParameter`.
+`MlDsa` / `DilithiumParams` (ML-DSA), and `SlhDsa` / `SlhDsaParams` (SLH-DSA).
 
 ## Requirements
 

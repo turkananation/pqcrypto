@@ -1,6 +1,6 @@
 # FIPS 202 and SP 800-185 Compliance and Release Guide
 
-Last updated: 2026-06-06
+Last updated: 2026-06-16
 
 This is the engineering guide for completing, validating, and releasing
 `pqcrypto`'s SHA-3 / SHAKE and SHA-3-derived function surface:
@@ -21,41 +21,41 @@ plan for algorithm conformance, corpus provenance, security hardening, API
 design, test evidence, issue tracking, and public claim discipline. The exact
 acceptable wording lives in [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
-Release train: **0.7.0** is the target for the first complete FIPS 202 /
-SP 800-185 release scope. **0.8.0** is reserved for spillover if the full
-standards surface or its validation evidence cannot close in 0.7.0 without
+Release train: **0.6.0** is the target for the first complete FIPS 202 /
+SP 800-185 release scope. **0.7.0** is reserved for spillover if the full
+standards surface or its validation evidence cannot close in 0.6.0 without
 weakening the claim boundary.
 
-## Completion Status (2026-06-06)
+## Completion Status (2026-06-16)
 
-**Not complete.** The repo contains a strong partial FIPS 202 foundation, but it
-does not yet implement or validate the full FIPS 202 family or any SP 800-185
-functions.
+**Not complete.** The repo contains the byte-oriented FIPS 202 function family,
+but it has not yet closed the complete official corpus/non-byte evidence gate or
+implemented any SP 800-185 functions.
 
 Current implementation:
 
 - `lib/src/common/keccak.dart` implements Keccak-f[1600] using portable
   32-bit lane halves.
-- The exposed one-shot functions are `sha3256`, `sha3512`, `shake128`, and
-  `shake256`.
+- The exposed one-shot functions are `sha3224`, `sha3256`, `sha3384`,
+  `sha3512`, `shake128`, and `shake256`.
 - Incremental SHAKE output is available through `shake128Xof` and
   `shake256Xof`.
-- `test/keccak_test.dart` pins SHA3-256, SHA3-512, SHAKE128, and SHAKE256
-  against known-answer values, including multi-block input and XOF prefix
-  stability.
+- `test/keccak_test.dart` pins SHA3-224, SHA3-256, SHA3-384, SHA3-512,
+  SHAKE128, and SHAKE256 against known-answer values, including multi-block
+  input, direct Keccak parameter tables, and XOF prefix stability.
+- `test/fips202_examples_test.dart` runs the selected official byte-aligned
+  FIPS 202 example corpus under `test/data/FIPS202`.
 - The package has zero runtime dependencies.
 
 Missing before any complete FIPS 202 claim:
 
-- SHA3-224 and SHA3-384 one-shot functions.
 - A public or test-only bit-string representation for non-byte-aligned NIST
   examples.
-- A checked-in FIPS 202 example corpus with provenance.
-- Coverage of NIST examples for 0-bit, 5-bit, 30-bit, 1600-bit, 1605-bit, and
-  1630-bit messages for all six FIPS 202 functions.
-- SHAKE output examples beyond the current short empty-message checks.
-- Explicit conformance gates for Keccak-p[1600, 24] constants, rotation
-  offsets, padding suffixes, rates, capacities, and HMAC block sizes.
+- Complete checked-in FIPS 202 example-corpus coverage beyond the selected
+  byte-aligned subset.
+- Coverage of non-byte NIST examples such as 5-bit, 30-bit, 1605-bit, and
+  1630-bit messages for all six FIPS 202 functions, or an explicit scoped
+  deferral for byte-only APIs.
 
 Missing before any SP 800-185 claim:
 
@@ -71,15 +71,10 @@ Missing before any SP 800-185 claim:
   strings, key length guidance, and unsupported bit-level inputs.
 - VM, dart2js, and dart2wasm tests for the implemented byte-oriented surface.
 
-## Release Strategy (Conclave-Reviewed)
+## Release Strategy
 
-Before this guide was written, the release strategy was stress-tested through
-the Sovereign Conclave skill. Six blind seats (Feynman, Lee Kuan Yew,
-von Neumann, Oppenheimer, Aurelius, and Addington) converged on the same
-recommendation: use a standards-first, evidence-gated release program rather
-than a narrow patch that only fills SHA3-224/SHA3-384. This guide captures the
-durable decision and its implementation consequences; local Conclave scratch
-artifacts remain outside the published package and repository history.
+The release strategy uses a standards-first, evidence-gated program rather than a
+narrow patch that only fills SHA3-224/SHA3-384.
 
 Controlling decisions:
 
@@ -90,12 +85,13 @@ Controlling decisions:
 2. **Split implementation into evidence-backed stages.** Complete FIPS 202
    first, then SP 800-185 encodings and cSHAKE, then KMAC, TupleHash, and
    ParallelHash.
-3. **Use 0.7.0 as the release target and 0.8.0 as disciplined spillover.**
+3. **Use 0.6.0 as the release target and 0.7.0 as disciplined spillover.**
    Incomplete surfaces move forward as tracked scope; they do not become
    undocumented partial claims.
-4. **Do not imply full support from partial primitives.** Current SHA3-256,
-   SHA3-512, SHAKE128, and SHAKE256 support is valuable, but it is not full
-   FIPS 202 and not SP 800-185.
+4. **Do not imply full support from partial evidence.** Current SHA3-224/256/
+   384/512, SHAKE128, and SHAKE256 support is valuable, but complete FIPS 202
+   public wording still depends on the remaining corpus/non-byte evidence gate;
+   none of this is SP 800-185.
 5. **Use official NIST example values as the authoritative corpus source.**
    Every checked-in vector file needs provenance, source URL, retrieval date,
    and hash.
@@ -111,26 +107,26 @@ Controlling decisions:
 
 ## Source Corpus
 
-| Source                                  | URL / path                                                                                                                             | How this guide uses it                                                                                     |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| FIPS 202 final publication page         | <https://csrc.nist.gov/pubs/fips/202/final>                                                                                            | Publication status, date, planning note, known Appendix B typo, official document links.                   |
-| FIPS 202 final PDF                      | <https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.202.pdf>                                                                             | Normative Keccak-p, sponge, SHA3, SHAKE, conformance, security, and appendices.                            |
-| FIPS 202 DOI                            | <https://doi.org/10.6028/NIST.FIPS.202>                                                                                                | Stable citation target.                                                                                    |
-| SP 800-185 final publication page       | <https://csrc.nist.gov/pubs/sp/800/185/final>                                                                                          | Publication status, date, planning note, official document links.                                          |
-| SP 800-185 final PDF                    | <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>                                                            | Normative definitions for cSHAKE, KMAC, TupleHash, ParallelHash, encodings, and security considerations.   |
-| SP 800-185 DOI                          | <https://doi.org/10.6028/NIST.SP.800-185>                                                                                              | Stable citation target.                                                                                    |
-| NIST March 2025 SHA-3 review decision   | <https://www.nist.gov/news-events/news/2025/03/sha-3-nist-update-fips-202-and-revise-special-publication-800-185>                      | Future-revision watch item and release-claim caution.                                                      |
-| NIST example values                     | <https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values>                                                 | Authoritative source for FIPS 202 and SP 800-185 vectors.                                                  |
-| Current Keccak code                     | `lib/src/common/keccak.dart`                                                                                                           | Baseline implementation and portability constraints.                                                       |
-| Current Keccak tests                    | `test/keccak_test.dart`                                                                                                                | Existing evidence and gap analysis.                                                                        |
-| Existing release-guide precedent        | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md), [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md)   | Structure, claim boundary, issue map, release gates.                                                       |
+| Source                                | URL / path                                                                                                                           | How this guide uses it                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| FIPS 202 final publication page       | <https://csrc.nist.gov/pubs/fips/202/final>                                                                                          | Publication status, date, planning note, known Appendix B typo, official document links.                 |
+| FIPS 202 final PDF                    | <https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.202.pdf>                                                                           | Normative Keccak-p, sponge, SHA3, SHAKE, conformance, security, and appendices.                          |
+| FIPS 202 DOI                          | <https://doi.org/10.6028/NIST.FIPS.202>                                                                                              | Stable citation target.                                                                                  |
+| SP 800-185 final publication page     | <https://csrc.nist.gov/pubs/sp/800/185/final>                                                                                        | Publication status, date, planning note, official document links.                                        |
+| SP 800-185 final PDF                  | <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>                                                          | Normative definitions for cSHAKE, KMAC, TupleHash, ParallelHash, encodings, and security considerations. |
+| SP 800-185 DOI                        | <https://doi.org/10.6028/NIST.SP.800-185>                                                                                            | Stable citation target.                                                                                  |
+| NIST March 2025 SHA-3 review decision | <https://www.nist.gov/news-events/news/2025/03/sha-3-nist-update-fips-202-and-revise-special-publication-800-185>                    | Future-revision watch item and release-claim caution.                                                    |
+| NIST example values                   | <https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values>                                               | Authoritative source for FIPS 202 and SP 800-185 vectors.                                                |
+| Current Keccak code                   | `lib/src/common/keccak.dart`                                                                                                         | Baseline implementation and portability constraints.                                                     |
+| Current Keccak tests                  | `test/keccak_test.dart`                                                                                                              | Existing evidence and gap analysis.                                                                      |
+| Existing release-guide precedent      | [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md), [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md) | Structure, claim boundary, issue map, release gates.                                                     |
 
 Local source-provenance snapshot taken on 2026-06-06:
 
-| File                    | Pages   | SHA-256                                                              |
-| ----------------------- | ------: | -------------------------------------------------------------------- |
-| `NIST.FIPS.202.pdf`     | 37      | `1592607831ff0908cc590632ce371c6c95e94025bb1a0c8ae90a4d0ec1ed025e`   |
-| `NIST.SP.800-185.pdf`   | 32      | `0ebcdfb5b145bcb6a8a0f49737a201e8fb30dce06951595a07010774d402d7c5`   |
+| File                  | Pages | SHA-256                                                            |
+| --------------------- | ----: | ------------------------------------------------------------------ |
+| `NIST.FIPS.202.pdf`   |    37 | `1592607831ff0908cc590632ce371c6c95e94025bb1a0c8ae90a4d0ec1ed025e` |
+| `NIST.SP.800-185.pdf` |    32 | `0ebcdfb5b145bcb6a8a0f49737a201e8fb30dce06951595a07010774d402d7c5` |
 
 ## NIST Revision Watch
 
@@ -160,8 +156,9 @@ following are true for the surfaces being claimed:
 
 1. FIPS 202 functions SHA3-224/256/384/512 and SHAKE128/256 are implemented
    with correct rates, capacities, suffixes, output lengths, and padding.
-2. Existing SHA3-256/512 and SHAKE128/256 APIs remain byte-for-byte compatible.
-3. SHA3-224 and SHA3-384 are added with focused tests before public docs call
+2. Existing SHA3-224/256/384/512 and SHAKE128/256 APIs remain byte-for-byte
+   compatible.
+3. SHA3-224 and SHA3-384 remain covered by focused tests before public docs call
    the FIPS 202 family complete.
 4. NIST FIPS 202 example vectors are checked in or fetched through a
    reproducible, hash-pinned tool.
@@ -198,8 +195,9 @@ Acceptable wording after the relevant gates pass:
 
 Acceptable staged wording:
 
-> `pqcrypto` currently implements SHA3-256, SHA3-512, SHAKE128, and SHAKE256
-> from FIPS 202. Full FIPS 202 and SP 800-185 coverage is tracked in
+> `pqcrypto` currently implements SHA3-224, SHA3-256, SHA3-384, SHA3-512,
+> SHAKE128, and SHAKE256 from FIPS 202. Complete FIPS 202 evidence and
+> SP 800-185 coverage are tracked in
 > `doc/FIPS202_SP800185_RELEASE_GUIDE.md`.
 
 Forbidden without a validation certificate:
@@ -232,25 +230,25 @@ Keccak-p[1600, 24].
 
 Implementation expectations:
 
-| Element           | Requirement                              | Current repo                                                              |
-| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
-| State width       | 1600 bits, 25 lanes of 64 bits.          | Stored as 50 32-bit halves for web portability.                           |
-| Round count       | 24 rounds for Keccak-p[1600, 24].        | Present.                                                                  |
-| Step mappings     | theta, rho, pi, chi, iota.               | Present in `_permute`.                                                    |
-| Rho offsets       | FIPS 202 Table 2.                        | Present as `_rho`; needs direct table test.                               |
-| Round constants   | Iota constants for 24 rounds.            | Present as `_rcLo`/`_rcHi`; needs direct table test.                      |
-| Padding           | Keccak `pad10*1` plus domain suffixes.   | Present through domain byte and final `0x80`; needs suffix matrix test.   |
+| Element         | Requirement                            | Current repo                                                                            |
+| --------------- | -------------------------------------- | --------------------------------------------------------------------------------------- |
+| State width     | 1600 bits, 25 lanes of 64 bits.        | Stored as 50 32-bit halves for web portability.                                         |
+| Round count     | 24 rounds for Keccak-p[1600, 24].      | Present.                                                                                |
+| Step mappings   | theta, rho, pi, chi, iota.             | Present in `_permute`.                                                                  |
+| Rho offsets     | FIPS 202 Table 2.                      | Present and directly tested through `KeccakF1600Parameters`.                            |
+| Round constants | Iota constants for 24 rounds.          | Present and directly tested through `KeccakF1600Parameters`.                            |
+| Padding         | Keccak `pad10*1` plus domain suffixes. | Present through domain byte and final `0x80`; profile tests cover suffix/rate/capacity. |
 
 ### FIPS 202 functions
 
-| Function   | Capacity   | Rate bytes   | Domain suffix bits   | Digest/output     | Current status   |
-| ---------- | ---------: | -----------: | -------------------- | ----------------: | ---------------- |
-| SHA3-224   | 448        | 144          | `01`                 | 28 bytes          | Missing          |
-| SHA3-256   | 512        | 136          | `01`                 | 32 bytes          | Present          |
-| SHA3-384   | 768        | 104          | `01`                 | 48 bytes          | Missing          |
-| SHA3-512   | 1024       | 72           | `01`                 | 64 bytes          | Present          |
-| SHAKE128   | 256        | 168          | `1111`               | caller-selected   | Present          |
-| SHAKE256   | 512        | 136          | `1111`               | caller-selected   | Present          |
+| Function | Capacity | Rate bytes | Domain suffix bits |   Digest/output | Current status |
+| -------- | -------: | ---------: | ------------------ | --------------: | -------------- |
+| SHA3-224 |      448 |        144 | `01`               |        28 bytes | Present        |
+| SHA3-256 |      512 |        136 | `01`               |        32 bytes | Present        |
+| SHA3-384 |      768 |        104 | `01`               |        48 bytes | Present        |
+| SHA3-512 |     1024 |         72 | `01`               |        64 bytes | Present        |
+| SHAKE128 |      256 |        168 | `1111`             | caller-selected | Present        |
+| SHAKE256 |      512 |        136 | `1111`             | caller-selected | Present        |
 
 For byte-oriented implementation, the existing domain bytes are:
 
@@ -277,12 +275,12 @@ Repo rule:
 
 FIPS 202 gives SHA-3 HMAC block sizes:
 
-| Hash       | HMAC block size   |
-| ---------- | ----------------: |
-| SHA3-224   | 144 bytes         |
-| SHA3-256   | 136 bytes         |
-| SHA3-384   | 104 bytes         |
-| SHA3-512   | 72 bytes          |
+| Hash     | HMAC block size |
+| -------- | --------------: |
+| SHA3-224 |       144 bytes |
+| SHA3-256 |       136 bytes |
+| SHA3-384 |       104 bytes |
+| SHA3-512 |        72 bytes |
 
 These are not needed for SP 800-185 KMAC, but they matter if the package later
 adds HMAC-SHA3. Keep them out of KMAC implementation to avoid mixing two
@@ -292,10 +290,10 @@ different MAC constructions.
 
 SP 800-185 defines SHA-3-derived functions with two security strengths:
 
-| Security strength   | cSHAKE      | KMAC                 | TupleHash                      | ParallelHash                         | Rate        |
-| ------------------: | ----------- | -------------------- | ------------------------------ | ------------------------------------ | ----------: |
-| 128 bits            | cSHAKE128   | KMAC128/KMACXOF128   | TupleHash128/TupleHashXOF128   | ParallelHash128/ParallelHashXOF128   | 168 bytes   |
-| 256 bits            | cSHAKE256   | KMAC256/KMACXOF256   | TupleHash256/TupleHashXOF256   | ParallelHash256/ParallelHashXOF256   | 136 bytes   |
+| Security strength | cSHAKE    | KMAC               | TupleHash                    | ParallelHash                       |      Rate |
+| ----------------: | --------- | ------------------ | ---------------------------- | ---------------------------------- | --------: |
+|          128 bits | cSHAKE128 | KMAC128/KMACXOF128 | TupleHash128/TupleHashXOF128 | ParallelHash128/ParallelHashXOF128 | 168 bytes |
+|          256 bits | cSHAKE256 | KMAC256/KMACXOF256 | TupleHash256/TupleHashXOF256 | ParallelHash256/ParallelHashXOF256 | 136 bytes |
 
 All SP 800-185 public APIs should accept byte strings first. Test-only bit-string
 support may be added for official examples and edge cases.
@@ -304,13 +302,13 @@ support may be added for official examples and edge cases.
 
 All SP 800-185 implementations depend on the same encoding primitives.
 
-| Helper                 | Purpose                                                                  | Release rule                                               |
-| ---------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `left_encode(x)`       | Self-delimiting integer, length byte first.                              | Validate boundary values and examples, including 0.        |
-| `right_encode(x)`      | Self-delimiting integer, length byte last.                               | Validate boundary values and examples, including 0.        |
-| `encode_string(S)`     | `left_encode(len(S))` followed by `S`.                                   | Length is in bits, not bytes.                              |
-| `bytepad(X, w)`        | `left_encode(w)` followed by `X`, then zero-padded to a multiple of `w`. | Reject non-positive `w`; test rates 168 and 136.           |
-| `substring(X, a, b)`   | Bit substring helper.                                                    | Needed for bit-level and ParallelHash conformance tests.   |
+| Helper               | Purpose                                                                  | Release rule                                             |
+| -------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+| `left_encode(x)`     | Self-delimiting integer, length byte first.                              | Validate boundary values and examples, including 0.      |
+| `right_encode(x)`    | Self-delimiting integer, length byte last.                               | Validate boundary values and examples, including 0.      |
+| `encode_string(S)`   | `left_encode(len(S))` followed by `S`.                                   | Length is in bits, not bytes.                            |
+| `bytepad(X, w)`      | `left_encode(w)` followed by `X`, then zero-padded to a multiple of `w`. | Reject non-positive `w`; test rates 168 and 136.         |
+| `substring(X, a, b)` | Bit substring helper.                                                    | Needed for bit-level and ParallelHash conformance tests. |
 
 Implementation detail:
 
@@ -739,9 +737,9 @@ Performance gates:
 
 ## Milestone Plan
 
-The roadmap target is **0.7.0**. Milestones M0-M6 are ordered so that FIPS 202
+The roadmap target is **0.6.0**. Milestones M0-M6 are ordered so that FIPS 202
 can be completed before SP 800-185 derived functions depend on it. Any unfinished
-standards surface that misses 0.7.0 moves to **0.8.0** with the same evidence
+standards surface that misses 0.6.0 moves to **0.7.0** with the same evidence
 requirements; no issue may be closed by downgrading public wording to hide a
 partial implementation.
 
@@ -762,7 +760,8 @@ Deliverables:
 
 Deliverables:
 
-- Add SHA3-224 and SHA3-384.
+- Preserve SHA3-224 and SHA3-384 coverage while closing the remaining corpus
+  and non-byte examples.
 - Add rate/capacity/suffix table tests.
 - Add Keccak round constant and rho-offset tests.
 - Normalize and check in FIPS 202 examples.
@@ -823,21 +822,21 @@ Deliverables:
 
 ## GitHub Issue Map
 
-| ID        | GitHub   | Title                                                 | Priority   | Gate                                                                     |
-| --------- | -------- | ----------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
-| SHA3-00   | #48      | Epic: FIPS 202 and SP 800-185 to release              | P0         | All child issues closed.                                                 |
-| SHA3-01   | #36      | Source corpus and NIST example-vector provenance      | P0         | `test/data/FIPS202` and `test/data/SP800185` manifests.                  |
-| SHA3-02   | #37      | Complete FIPS 202 SHA3-224/SHA3-384 APIs              | P0         | SHA3-224/384 NIST vectors pass.                                          |
-| SHA3-03   | #38      | FIPS 202 conformance harness for bit-level examples   | P0         | 0/5/30/1600/1605/1630-bit examples covered or explicitly scoped.         |
-| SHA3-04   | #39      | Keccak constants, suffix, rate, and capacity tests    | P0         | Direct table and suffix tests pass.                                      |
-| SHA3-05   | #40      | SP 800-185 encoding helpers                           | P0         | `left_encode`, `right_encode`, `encode_string`, `bytepad` tests pass.    |
-| SHA3-06   | #41      | cSHAKE128/cSHAKE256                                   | P0         | NIST cSHAKE vectors and SHAKE fallback pass.                             |
-| SHA3-07   | #42      | KMAC128/KMAC256 and KMACXOF                           | P0         | NIST KMAC/KMACXOF vectors plus misuse tests pass.                        |
-| SHA3-08   | #43      | TupleHash and TupleHashXOF                            | P1         | NIST vectors plus tuple-boundary tests pass.                             |
-| SHA3-09   | #44      | ParallelHash and ParallelHashXOF                      | P1         | NIST vectors plus multi-block tests pass.                                |
-| SHA3-10   | #45      | Security, zeroization, and API misuse docs            | P1         | KMAC key/tag guidance and no-overclaim docs complete.                    |
-| SHA3-11   | #46      | VM/web portability and performance benchmarks         | P1         | VM, dart2js, dart2wasm gates and benchmark report complete.              |
-| SHA3-12   | #47      | Release docs, changelog, and package metadata         | P0         | Release wording matches evidence and `pub publish --dry-run` is clean.   |
+| ID      | GitHub | Title                                               | Priority | Gate                                                                   |
+| ------- | ------ | --------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| SHA3-00 | #48    | Epic: FIPS 202 and SP 800-185 to release            | P0       | All child issues closed.                                               |
+| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | `test/data/FIPS202` and `test/data/SP800185` manifests.                |
+| SHA3-02 | #37    | Complete FIPS 202 SHA3-224/SHA3-384 APIs            | P0       | Done: SHA3-224/384 NIST vectors pass.                                  |
+| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | 0/5/30/1600/1605/1630-bit examples covered or explicitly scoped.       |
+| SHA3-04 | #39    | Keccak constants, suffix, rate, and capacity tests  | P0       | Direct table and suffix tests pass.                                    |
+| SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | `left_encode`, `right_encode`, `encode_string`, `bytepad` tests pass.  |
+| SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | NIST cSHAKE vectors and SHAKE fallback pass.                           |
+| SHA3-07 | #42    | KMAC128/KMAC256 and KMACXOF                         | P0       | NIST KMAC/KMACXOF vectors plus misuse tests pass.                      |
+| SHA3-08 | #43    | TupleHash and TupleHashXOF                          | P1       | NIST vectors plus tuple-boundary tests pass.                           |
+| SHA3-09 | #44    | ParallelHash and ParallelHashXOF                    | P1       | NIST vectors plus multi-block tests pass.                              |
+| SHA3-10 | #45    | Security, zeroization, and API misuse docs          | P1       | KMAC key/tag guidance and no-overclaim docs complete.                  |
+| SHA3-11 | #46    | VM/web portability and performance benchmarks       | P1       | VM, dart2js, dart2wasm gates and benchmark report complete.            |
+| SHA3-12 | #47    | Release docs, changelog, and package metadata       | P0       | Release wording matches evidence and `pub publish --dry-run` is clean. |
 
 ## Documentation Sync Requirements
 
@@ -876,19 +875,19 @@ The complete FIPS 202/SP 800-185 release is done only when:
 
 ## Appendix A - Current Implementation Gap Table
 
-| Surface          | Current status   | Required next action                                            |
-| ---------------- | ---------------- | --------------------------------------------------------------- |
-| Keccak-f[1600]   | Present          | Add direct constants/table tests.                               |
-| SHA3-224         | Missing          | Implement with rate 144 bytes and 28-byte output.               |
-| SHA3-256         | Present          | Expand official vector coverage.                                |
-| SHA3-384         | Missing          | Implement with rate 104 bytes and 48-byte output.               |
-| SHA3-512         | Present          | Expand official vector coverage.                                |
-| SHAKE128         | Present          | Expand official vector coverage and non-byte output handling.   |
-| SHAKE256         | Present          | Expand official vector coverage and non-byte output handling.   |
-| cSHAKE           | Missing          | Implement after encoding helpers.                               |
-| KMAC/KMACXOF     | Missing          | Implement after cSHAKE.                                         |
-| TupleHash        | Missing          | Implement after cSHAKE.                                         |
-| ParallelHash     | Missing          | Implement after cSHAKE and benchmark sequential baseline.       |
+| Surface        | Current status | Required next action                                          |
+| -------------- | -------------- | ------------------------------------------------------------- |
+| Keccak-f[1600] | Present        | Direct constants/table tests are present; preserve coverage.  |
+| SHA3-224       | Present        | Preserve rate 144 bytes and 28-byte output coverage.          |
+| SHA3-256       | Present        | Expand official vector coverage.                              |
+| SHA3-384       | Present        | Preserve rate 104 bytes and 48-byte output coverage.          |
+| SHA3-512       | Present        | Expand official vector coverage.                              |
+| SHAKE128       | Present        | Expand official vector coverage and non-byte output handling. |
+| SHAKE256       | Present        | Expand official vector coverage and non-byte output handling. |
+| cSHAKE         | Missing        | Implement after encoding helpers.                             |
+| KMAC/KMACXOF   | Missing        | Implement after cSHAKE.                                       |
+| TupleHash      | Missing        | Implement after cSHAKE.                                       |
+| ParallelHash   | Missing        | Implement after cSHAKE and benchmark sequential baseline.     |
 
 ## Appendix B - Release Claim Checklist
 

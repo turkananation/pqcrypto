@@ -1,6 +1,6 @@
 # pqcrypto Cookbook — Project Ideas and Recipes
 
-Last updated: 2026-06-06
+Last updated: 2026-06-16
 
 This folder is a builder-facing catalog of things you can build with `pqcrypto`
 across many domains — servers, mobile, desktop, CLI, embedded Linux, web,
@@ -35,29 +35,30 @@ caveats."
 ## What pqcrypto gives you and what you supply
 
 This is the single most important table in the cookbook. `pqcrypto` is a
-**primitives** package: it gives you two NIST post-quantum algorithms and nothing
-else. It is *not* a protocol, a TLS stack, or an "encrypt my data" library on its
-own.
+**primitives** package: version `0.4.0` gives you ML-KEM, ML-DSA, and all 12
+FIPS 205 SLH-DSA parameter sets. It is *not* a protocol, a TLS stack,
+or an "encrypt my data" library on its own.
 
 | Capability                                | In `pqcrypto`?           | Who provides it                                     |
 | ----------------------------------------- | ------------------------ | --------------------------------------------------- |
 | ML-KEM key encapsulation (FIPS 203)       | **Yes** — `PqcKem`       | The package                                         |
 | ML-DSA digital signatures (FIPS 204)      | **Yes** — `MlDsa`        | The package                                         |
+| SLH-DSA hash-based signatures (FIPS 205)  | **Yes** — `SlhDsa`       | The package                                         |
 | A 32-byte ML-KEM shared secret            | **Yes**                  | The package (you still need a KDF + AEAD to use it) |
 | Symmetric encryption of your data (AEAD)  | No                       | You — AES-GCM / ChaCha20-Poly1305 from your stack   |
 | Key derivation (HKDF / KDF)               | No                       | You — HKDF from your stack                          |
 | Classical key exchange (X25519, ECDH)     | No                       | You — for a hybrid handshake                        |
 | Transcript / message hashing (SHA-256…)   | No (vendored internally) | You — a public hash from your stack                 |
-| Keyed MAC (HMAC / KMAC)                   | No (KMAC planned, 0.7.0) | You — until SP 800-185 ships                        |
+| Keyed MAC (HMAC / KMAC)                   | No (KMAC planned, 0.6.0) | You — until SP 800-185 ships                        |
 | Secure key storage, KMS/HSM, secrets mgmt | No                       | You — platform keystore / KMS / HSM                 |
 | Random beyond `Random.secure()`           | No                       | You — your platform CSPRNG for nonces/salts         |
 | Transport (TLS), sessions, replay windows | No                       | You — your server framework                         |
 
 If an idea needs anything in the "You" column, the catalog says so explicitly on
 that idea. The package vendors FIPS 202 SHA-3/SHAKE and FIPS 180-4 SHA-2
-*internally* to implement ML-KEM/ML-DSA, but **does not export them** — so do not
-plan to call `pqcrypto` for your app's hashing or MAC today. See
-[FUTURE_RELEASES.md](FUTURE_RELEASES.md) for what later versions add.
+*internally* to implement ML-KEM, ML-DSA, and SLH-DSA, but **does not export
+them** — so do not plan to call `pqcrypto` for your app's hashing or MAC today.
+See [FUTURE_RELEASES.md](FUTURE_RELEASES.md) for what later versions add.
 
 ## The claim boundary (please honor it)
 
@@ -66,8 +67,11 @@ not a certification. Carry this wording into anything you build or publish:
 
 - **Allowed:** "FIPS 203-aligned ML-KEM with checked-in KAT evidence",
   "FIPS 204-aligned ML-DSA, byte-exact on the checked-in KAT corpus",
-  "OpenSSL interop A–G passes for ML-KEM-512/768/1024",
-  "best-effort zeroization in Dart".
+  "OpenSSL interop A-G passes for ML-KEM-512/768/1024",
+  "native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside
+  the runtime package boundary", "FIPS 205-aligned SLH-DSA (all 12 sets) is
+  byte-exact on the checked-in ACVP sample corpus", "best-effort zeroization in
+  Dart".
 - **Not allowed:** "FIPS validated", "CMVP validated", "certified",
   "constant-time guarantee", "memory is securely erased", or calling ML-KEM by
   itself "secure transport".
@@ -87,19 +91,28 @@ See [../FIPS_140_BOUNDARY.md](../FIPS_140_BOUNDARY.md) and
 
 ## Algorithm and size quick reference
 
-| Algorithm   | Security cat. | Public key | Secret key | Ct / Sig   | Shared secret |
-| ----------- | ------------- | ---------- | ---------- | ---------- | ------------- |
-| ML-KEM-512  | 1             | 800        | 1632       | 768 (ct)   | 32            |
-| ML-KEM-768  | 3             | 1184       | 2400       | 1088 (ct)  | 32            |
-| ML-KEM-1024 | 5             | 1568       | 3168       | 1568 (ct)  | 32            |
-| ML-DSA-44   | 2             | 1312       | 2560       | 2420 (sig) | —             |
-| ML-DSA-65   | 3             | 1952       | 4032       | 3309 (sig) | —             |
-| ML-DSA-87   | 5             | 2592       | 4896       | 4627 (sig) | —             |
+| Algorithm    | Security cat. | Public key | Secret key | Ct / Sig    | Shared secret |
+| ------------ | ------------- | ---------- | ---------- | ----------- | ------------- |
+| ML-KEM-512   | 1             | 800        | 1632       | 768 (ct)    | 32            |
+| ML-KEM-768   | 3             | 1184       | 2400       | 1088 (ct)   | 32            |
+| ML-KEM-1024  | 5             | 1568       | 3168       | 1568 (ct)   | 32            |
+| ML-DSA-44    | 2             | 1312       | 2560       | 2420 (sig)  | —             |
+| ML-DSA-65    | 3             | 1952       | 4032       | 3309 (sig)  | —             |
+| ML-DSA-87    | 5             | 2592       | 4896       | 4627 (sig)  | —             |
+| SLH-DSA-128s | 1             | 32         | 64         | 7856 (sig)  | —             |
+| SLH-DSA-128f | 1             | 32         | 64         | 17088 (sig) | —             |
+| SLH-DSA-192s | 3             | 48         | 96         | 16224 (sig) | —             |
+| SLH-DSA-192f | 3             | 48         | 96         | 35664 (sig) | —             |
+| SLH-DSA-256s | 5             | 64         | 128        | 29792 (sig) | —             |
+| SLH-DSA-256f | 5             | 64         | 128        | 49856 (sig) | —             |
 
-All sizes are in bytes. **Reject any input whose length is not exactly the value
-in this table before doing crypto on it.** Sensible defaults for a new project:
-**ML-KEM-768 + ML-DSA-65** (category 3, the same profile as the Serverpod guide).
-Use 512/44 for tight budgets and 1024/87 for maximum margin.
+All sizes are in bytes; SLH-DSA size rows apply to both SHAKE and SHA2 variants
+of the same level/speed profile. **Reject any input whose length is not exactly
+the value in this table before doing crypto on it.** Sensible defaults for a new
+project: **ML-KEM-768 + ML-DSA-65** (category 3, the same profile as the
+Serverpod guide). Use 512/44 for tight budgets and 1024/87 for maximum margin.
+Do not make SLH-DSA a per-request default without explicit latency and payload
+budgeting.
 
 ## Platform feasibility at a glance
 

@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "pqcrypto",
   "alternateName": "pqcrypto: Pure Dart Post-Quantum Cryptography",
-  "description": "pqcrypto provides NIST-standardized ML-KEM key encapsulation and ML-DSA digital signatures as a pure Dart package with zero runtime dependencies.",
+  "description": "pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.",
   "url": "https://turkananation.github.io/pqcrypto/",
   "codeRepository": "https://github.com/turkananation/pqcrypto",
   "programmingLanguage": "Dart",
@@ -14,20 +14,24 @@
     "dart2wasm"
   ],
   "license": "MIT",
-  "softwareVersion": "0.3.1",
+  "softwareVersion": "0.4.0",
   "applicationCategory": "Cryptography library",
   "keywords": [
     "Dart post-quantum cryptography",
     "Flutter post-quantum cryptography",
     "ML-KEM Dart",
     "ML-DSA Dart",
+    "SLH-DSA Dart",
+    "SPHINCS+ Dart",
     "Kyber Dart",
     "Dilithium Dart",
     "FIPS 203",
     "FIPS 204",
+    "FIPS 205",
     "PQC",
     "quantum-safe cryptography",
-    "OpenSSL ML-KEM interop"
+    "OpenSSL ML-KEM interop",
+    "liboqs post-quantum interop"
   ],
   "maintainer": {
     "@type": "Organization",
@@ -44,8 +48,10 @@
     "ML-DSA-44, ML-DSA-65, and ML-DSA-87 digital signatures",
     "Hedged-by-default ML-DSA signing with context strings",
     "HashML-DSA with level-bound SHA-256, SHA-384, and SHA-512 pre-hash paths",
+    "All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures",
+    "Hedged-by-default SLH-DSA signing with context strings, HashSLH-DSA, and optional verify-after-sign",
     "Dart VM, Flutter, dart2js, and dart2wasm portability",
-    "OpenSSL ML-KEM interoperability harness under tool/openssl_interop"
+    "Native-provider interop tooling for ML-KEM, ML-DSA, and SLH-DSA under tool/openssl_interop and tool/liboqs_interop"
   ],
   "doesNotProvide": [
     "AEAD encryption such as AES-GCM or ChaCha20-Poly1305",
@@ -59,7 +65,9 @@
     "allowed_claims": [
       "FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.",
       "OpenSSL interop A-G passes for ML-KEM-512/768/1024.",
+      "Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.",
       "FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.",
+      "FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.",
       "Best-effort zeroization in Dart."
     ],
     "forbidden_claims": [
@@ -78,43 +86,127 @@
       "@type": "DefinedTerm",
       "name": "ML-KEM-512",
       "termCode": "FIPS 203",
-      "description": "key encapsulation",
+      "description": "key encapsulation; available in 0.4.0",
       "identifier": "PqcKem.kyber512"
     },
     {
       "@type": "DefinedTerm",
       "name": "ML-KEM-768",
       "termCode": "FIPS 203",
-      "description": "key encapsulation",
+      "description": "key encapsulation; available in 0.4.0",
       "identifier": "PqcKem.kyber768"
     },
     {
       "@type": "DefinedTerm",
       "name": "ML-KEM-1024",
       "termCode": "FIPS 203",
-      "description": "key encapsulation",
+      "description": "key encapsulation; available in 0.4.0",
       "identifier": "PqcKem.kyber1024"
     },
     {
       "@type": "DefinedTerm",
       "name": "ML-DSA-44",
       "termCode": "FIPS 204",
-      "description": "digital signature",
+      "description": "digital signature; available in 0.4.0",
       "identifier": "DilithiumParams.mlDsa44"
     },
     {
       "@type": "DefinedTerm",
       "name": "ML-DSA-65",
       "termCode": "FIPS 204",
-      "description": "digital signature",
+      "description": "digital signature; available in 0.4.0",
       "identifier": "DilithiumParams.mlDsa65"
     },
     {
       "@type": "DefinedTerm",
       "name": "ML-DSA-87",
       "termCode": "FIPS 204",
-      "description": "digital signature",
+      "description": "digital signature; available in 0.4.0",
       "identifier": "DilithiumParams.mlDsa87"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-128s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake128s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-128f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake128f"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-192s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake192s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-192f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake192f"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-256s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake256s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHAKE-256f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.shake256f"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-128s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2128s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-128f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2128f"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-192s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2192s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-192f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2192f"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-256s",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2256s"
+    },
+    {
+      "@type": "DefinedTerm",
+      "name": "SLH-DSA-SHA2-256f",
+      "termCode": "FIPS 205",
+      "description": "digital signature; available in 0.4.0",
+      "identifier": "SlhDsaParams.sha2256f"
     }
   ],
   "aiDiscoveryFiles": [
@@ -150,5 +242,5 @@
     }
   ],
   "generatedBy": "Generated by dart run tool/visibility/generate_visibility.dart. Edit tool/visibility/visibility_manifest.json instead.",
-  "dateModified": "2026-06-06"
+  "dateModified": "2026-06-16"
 }

@@ -1,8 +1,8 @@
 # Engineering Guide
 
-Last updated: 2026-06-06
+Last updated: 2026-06-16
 
-This guide is for contributors working on the current `0.3.1` repository.
+This guide is for contributors working on the current `0.4.0` repository.
 
 ## Setup
 
@@ -13,37 +13,43 @@ dart pub get
 
 Runtime package dependencies: none. Dev dependencies: `lints` and `test`.
 
-The OpenSSL interop harness is a separate path package:
+The native interop harnesses are separate path packages:
 
 ```bash
 cd tool/openssl_interop
+dart pub get
+
+cd ../liboqs_interop
 dart pub get
 ```
 
 ## Core Commands
 
-| Purpose                 | Command                                                                                                                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Analyze                 | `dart analyze`                                                                                                                                                                                   |
-| Full VM suite           | `dart test`                                                                                                                                                                                      |
-| ML-KEM KAT only         | `dart test test/kat_evaluator_test.dart`                                                                                                                                                         |
-| Focused ML-KEM set      | `dart test test/kat_evaluator_test.dart test/keccak_test.dart test/kem_validation_test.dart test/keygen_derivation_test.dart test/pack_test.dart test/poly_test.dart test/roundtrip_test.dart`   |
-| Web dart2js             | `dart test -p chrome`                                                                                                                                                                            |
-| Web dart2wasm           | `dart test -p chrome --compiler dart2wasm`                                                                                                                                                       |
-| OpenSSL interop         | `cd tool/openssl_interop && dart test` with OpenSSL >= 3.5                                                                                                                                       |
-| Example/rough timings   | `dart run example/main.dart`                                                                                                                                                                     |
+| Purpose               | Command                                                                                                                                                                                        |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Analyze               | `dart analyze`                                                                                                                                                                                 |
+| Full VM suite         | `dart test`                                                                                                                                                                                    |
+| ML-KEM KAT only       | `dart test test/kat_evaluator_test.dart`                                                                                                                                                       |
+| Focused ML-KEM set    | `dart test test/kat_evaluator_test.dart test/keccak_test.dart test/kem_validation_test.dart test/keygen_derivation_test.dart test/pack_test.dart test/poly_test.dart test/roundtrip_test.dart` |
+| Web dart2js           | `dart test -p chrome`                                                                                                                                                                          |
+| Web dart2wasm         | `dart test -p chrome --compiler dart2wasm`                                                                                                                                                     |
+| OpenSSL interop       | `cd tool/openssl_interop && LIBCRYPTO_PATH=.native/openssl-4.0.1/lib/libcrypto.so dart test --concurrency=1`                                                                                   |
+| liboqs interop        | `cd tool/liboqs_interop && LIBOQS_PATH=.native/liboqs-0.15.0/lib/liboqs.so dart test --concurrency=1`                                                                                          |
+| Example/rough timings | `dart run example/main.dart`                                                                                                                                                                   |
 
 The full VM suite is green, as are the `dart2js`/`dart2wasm` web gates. Both the
-ML-KEM (3000 vectors) and ML-DSA (18-file) KAT runners are byte-exact. Still keep
-ML-KEM and ML-DSA evidence separate: a passing ML-KEM set is not ML-DSA evidence.
+ML-KEM (3000 vectors), ML-DSA (18-file), and SLH-DSA (1,248 ACVP cases) KAT
+runners are byte-exact. Still keep ML-KEM, ML-DSA, and SLH-DSA evidence
+separate: a passing ML-KEM set is not ML-DSA or SLH-DSA evidence.
 
 ## Documentation Rules
 
 - Use `doc/` as the only documentation root.
 - Start readers at [INDEX.md](INDEX.md).
 - Keep all readiness claims tied to current test evidence.
-- Current FIPS 202 support is partial: SHA3-256/512 and SHAKE128/256 are
-  implemented; full FIPS 202 plus SP 800-185 work is controlled by
+- Current FIPS 202 support is partial: SHA3-224/256/384/512, SHAKE128/256, and
+  incremental SHAKE XOFs are implemented; complete corpus/non-byte coverage and
+  SP 800-185 work are controlled by
   [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 - ML-DSA is FIPS 204-aligned and byte-exact on the checked-in KAT corpus; keep
   any change byte-exact via `dart test test/mldsa_kat_test.dart`.
@@ -51,20 +57,26 @@ ML-KEM and ML-DSA evidence separate: a passing ML-KEM set is not ML-DSA evidence
 
 ## Code Organization
 
-| Path                              | Responsibility                                  |
-| --------------------------------- | ----------------------------------------------- |
-| `lib/pqcrypto.dart`               | Public exports.                                 |
-| `lib/src/common/keccak.dart`      | Partial vendored FIPS 202 (SHA3/SHAKE + XOF).   |
-| `lib/src/common/shake.dart`       | SHAKE wrappers + incremental XOF.               |
-| `lib/src/common/sp800_185.dart`   | Planned SHA-3-derived functions.                |
-| `lib/src/common/sha2.dart`        | Vendored FIPS 180-4 SHA-256/384/512.            |
-| `lib/src/common/zeroize.dart`     | Best-effort secret zeroization.                 |
-| `lib/src/common/poly.dart`        | ML-KEM polynomial/NTT arithmetic.               |
-| `lib/src/algos/kyber/`            | ML-KEM (FIPS 203) implementation.               |
-| `lib/src/algos/dilithium/`        | ML-DSA (FIPS 204) implementation.               |
-| `test/data/MLKEM/`                | Checked-in ML-KEM KAT corpus.                   |
-| `test/data/MLDSA/`                | Checked-in ML-DSA KAT corpus.                   |
-| `tool/openssl_interop/`           | Unpublished OpenSSL FFI interop tool.           |
+| Path                            | Responsibility                                    |
+| ------------------------------- | ------------------------------------------------- |
+| `lib/pqcrypto.dart`             | Public exports.                                   |
+| `lib/src/common/keccak.dart`    | Partial vendored FIPS 202 (SHA3/SHAKE + XOF).     |
+| `lib/src/common/shake.dart`     | SHAKE wrappers + incremental XOF.                 |
+| `lib/src/common/sp800_185.dart` | Planned SHA-3-derived functions; not present yet. |
+| `lib/src/common/sha2.dart`      | Vendored FIPS 180-4 SHA-2 family.                 |
+| `lib/src/common/hmac.dart`      | HMAC-SHA-256/512 for SLH-DSA SHA-2 sets.          |
+| `lib/src/common/mgf1.dart`      | MGF1-SHA-256/512 for SLH-DSA SHA-2 sets.          |
+| `lib/src/common/zeroize.dart`   | Best-effort secret zeroization.                   |
+| `lib/src/common/poly.dart`      | ML-KEM polynomial/NTT arithmetic.                 |
+| `lib/src/algos/kyber/`          | ML-KEM (FIPS 203) implementation.                 |
+| `lib/src/algos/dilithium/`      | ML-DSA (FIPS 204) implementation.                 |
+| `lib/src/algos/slhdsa/`         | SLH-DSA (FIPS 205) implementation.                |
+| `test/data/MLKEM/`              | Checked-in ML-KEM KAT corpus.                     |
+| `test/data/MLDSA/`              | Checked-in ML-DSA KAT corpus.                     |
+| `test/data/SLHDSA/`             | Checked-in SLH-DSA ACVP sample corpus.            |
+| `tool/interop_common/`          | Shared provider-neutral interop metadata.         |
+| `tool/openssl_interop/`         | Unpublished OpenSSL FFI interop tool.             |
+| `tool/liboqs_interop/`          | Unpublished liboqs FFI interop tool.              |
 
 ## Security Practices
 
@@ -108,9 +120,11 @@ Before editing Keccak or adding SP 800-185 code, read
 
 Minimum checklist:
 
-1. Preserve current `sha3256`, `sha3512`, `shake128`, `shake256`, and XOF
+1. Preserve current `sha3224`, `sha3256`, `sha3384`, `sha3512`, `shake128`,
+   `shake256`, and XOF
    behavior.
-2. Add SHA3-224/SHA3-384 only with NIST example-vector coverage.
+2. Extend FIPS 202 corpus coverage, including non-byte examples, before broad
+   FIPS 202 claims.
 3. Add SP 800-185 encodings before cSHAKE/KMAC/TupleHash/ParallelHash.
 4. Keep public APIs byte-oriented unless a bit-string API is deliberately
    designed.

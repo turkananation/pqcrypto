@@ -82,6 +82,36 @@ final signature = MlDsa.hashSign(secretKey, largePayload, params, ctx: ctx);
 final ok = MlDsa.hashVerify(publicKey, largePayload, signature, params, ctx: ctx);
 ```
 
+## 4. Hash-based signatures with SLH-DSA
+
+SLH-DSA (FIPS 205, formerly SPHINCS+) is a signature scheme whose security rests
+**only** on hash functions — a conservative diversifier against future lattice
+cryptanalysis. Keys are tiny, signatures are large, and signing is slower, so it
+suits low-frequency, long-lived signatures. Signing is **hedged by default**.
+
+```dart
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:pqcrypto/pqcrypto.dart';
+
+void main() {
+  final params = SlhDsaParams.shake128f; // default; any of the 12 sets
+
+  final (publicKey, secretKey) = SlhDsa.generateKeyPair(params);
+
+  final message = Uint8List.fromList(utf8.encode('Authorize transfer #1000'));
+  final ctx = Uint8List.fromList(utf8.encode('transactions/v1'));
+
+  final signature = SlhDsa.sign(secretKey, message, params, context: ctx);
+  final isValid =
+      SlhDsa.verify(publicKey, message, signature, params, context: ctx);
+}
+```
+
+The small (`s`) sets sign slowly and require `allowSlowSigning: true`; the fast
+(`f`) sets do not. Note `context:` is a **named** argument here, where ML-DSA
+uses `ctx:`.
+
 ## Choosing parameters
 
 | Goal                               | ML-KEM      | ML-DSA    |
@@ -91,13 +121,16 @@ final ok = MlDsa.hashVerify(publicKey, largePayload, signature, params, ctx: ctx
 | Maximum margin (category 5)        | `kyber1024` | `mlDsa87` |
 
 For long-lived confidentiality ("harvest now, decrypt later"), prefer
-`kyber1024`.
+`kyber1024`. For **SLH-DSA**, start with the default `SlhDsaParams.shake128f`
+(fast signing, category 1); use the `s` variants for smaller signatures at much
+slower signing, the `192`/`256` sets for higher categories, and the `sha2*`
+family if your stack standardizes on SHA-2.
 
 ## Next steps
 
 - [Cookbook](Cookbook) — full project recipes (encrypt-to-public-key, hybrid
   handshake, signed updates, at-rest encryption, and more).
-- [ML-KEM (FIPS 203)](ML-KEM) and [ML-DSA (FIPS 204)](ML-DSA) — algorithm
-  details, sizes, and caveats.
+- [ML-KEM (FIPS 203)](ML-KEM), [ML-DSA (FIPS 204)](ML-DSA), and
+  [SLH-DSA (FIPS 205)](SLH-DSA) — algorithm details, sizes, and caveats.
 - [Serverpod & Flutter](Serverpod-Integration) — a full client/server blueprint.
 - [Security Posture](Security-Posture) — what is and is not guaranteed.

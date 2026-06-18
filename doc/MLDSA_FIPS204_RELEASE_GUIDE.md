@@ -602,4 +602,4 @@ Residual / deferred (do not block KAT-conformance, tracked in SECURITY_AUDIT.md)
 - HashML-DSA surfaces only the level-bound SHA-2 pre-hash; other approved
   pre-hash functions (e.g. SHAKE) are not yet exposed.
 - A CMVP/FIPS 140 module validation is out of scope and not claimed.
-- Tagging a release version and `dart pub publish` are maintainer decisions.
+- The release version tag and `dart pub publish` are not yet done.

@@ -1,6 +1,6 @@
 name: pqcrypto
-description: Pure Dart post-quantum cryptography. Zero dependencies. FIPS 203 ML-KEM and FIPS 204 ML-DSA with checked-in KAT evidence.
-version: 0.3.1
+description: Pure Dart post-quantum cryptography. Zero dependencies. ML-KEM, ML-DSA, and SLH-DSA with checked-in NIST vector evidence.
+version: 0.4.0
 homepage: https://turkananation.github.io/pqcrypto/
 repository: https://github.com/turkananation/pqcrypto
 documentation: https://turkananation.github.io/pqcrypto/

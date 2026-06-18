@@ -4,20 +4,22 @@
 [![Dependencies](https://img.shields.io/badge/dependencies-0-blue)](https://github.com/turkananation/pqcrypto/blob/main/pubspec.yaml)
 [![ML-KEM](https://img.shields.io/badge/FIPS_203-ML--KEM-brightgreen?logo=shield)](ML-KEM)
 [![ML-DSA](https://img.shields.io/badge/FIPS_204-ML--DSA-brightgreen?logo=shield)](ML-DSA)
+[![SLH-DSA](https://img.shields.io/badge/FIPS_205-SLH--DSA-brightgreen?logo=shield)](SLH-DSA)
 [![NIST KATs](https://img.shields.io/badge/NIST_KATs-Byte_Exact-success)](Validation-and-Interoperability)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS_%7C_Android_%7C_Web_%7C_macOS_%7C_Windows_%7C_Linux-lightgrey?logo=flutter)](Installation)
 
 **`pqcrypto`** is a pure Dart, zero-dependency library implementing the
-NIST-standardized post-quantum algorithms **ML-KEM (FIPS 203)** and
-**ML-DSA (FIPS 204)** — byte-exact against the official Known-Answer-Test
-vectors, with ML-KEM additionally proven to interoperate with OpenSSL. It runs
-everywhere Dart runs: Dart servers, Flutter on iOS/Android/desktop, and the web
-(`dart2js` / `dart2wasm`).
+NIST-standardized post-quantum algorithms **ML-KEM (FIPS 203)**,
+**ML-DSA (FIPS 204)**, and **SLH-DSA (FIPS 205)** — byte-exact against the
+official NIST Known-Answer-Test / ACVP vectors, and cross-checked for
+interoperability against OpenSSL and liboqs. It runs everywhere Dart runs: Dart
+servers, Flutter on iOS/Android/desktop, and the web (`dart2js` / `dart2wasm`).
 
 It exists because the asymmetric algorithms most software relies on today (RSA,
 ECDH, ECDSA) are broken by a large quantum computer running Shor's algorithm.
-ML-KEM and ML-DSA are the NIST replacements, and `pqcrypto` brings them to the
-Dart and Flutter ecosystem with no native bindings and no third-party packages.
+ML-KEM, ML-DSA, and SLH-DSA are the NIST replacements, and `pqcrypto` brings them
+to the Dart and Flutter ecosystem with no native bindings and no third-party
+packages.
 
 > **Claim boundary.** This is **algorithm/KAT-conformance and interoperability
 > evidence**, *not* a CMVP/FIPS 140 module validation. See
@@ -31,7 +33,8 @@ flowchart LR
   subgraph pqcrypto
     direction TB
     KEM["ML-KEM (FIPS 203)\nKey Encapsulation\n512 / 768 / 1024"]
-    DSA["ML-DSA (FIPS 204)\nDigital Signatures\n44 / 65 / 87"]
+    DSA["ML-DSA (FIPS 204)\nLattice Signatures\n44 / 65 / 87"]
+    SLH["SLH-DSA (FIPS 205)\nHash-based Signatures\nall 12 sets"]
   end
   A["Party A"] -- "encapsulate(pk)" --> KEM
   KEM -- "ciphertext + 32-byte secret" --> B["Party B"]
@@ -39,9 +42,12 @@ flowchart LR
   S["Signer"] -- "sign(sk, msg)" --> DSA
   DSA -- "signature" --> V["Verifier"]
   V -- "verify(pk, msg, sig)" --> DSA
+  S -- "sign(sk, msg)" --> SLH
+  SLH -- "signature" --> V
+  V -- "verify(pk, msg, sig)" --> SLH
 ```
 
-`pqcrypto` provides **only** these two primitives. Symmetric encryption (AEAD),
+`pqcrypto` provides **only** these three primitives. Symmetric encryption (AEAD),
 key derivation (HKDF), classical key exchange (X25519), hashing, and key storage
 are intentionally out of scope — bring them from your application stack. The
 [Cookbook](Cookbook) shows exactly how to compose them.
@@ -77,10 +83,11 @@ New here? Read [Installation](Installation) → [Quickstart](Quickstart) →
 
 | Area          | State                                                             |
 | ------------- | ----------------------------------------------------------------- |
-| Version       | 0.3.1                                                             |
+| Version       | 0.4.0                                                             |
 | Dependencies  | Zero runtime dependencies (pure Dart)                             |
 | ML-KEM        | 512 / 768 / 1024 — byte-exact KATs + OpenSSL interop A–G          |
 | ML-DSA        | 44 / 65 / 87 — byte-exact KATs (raw/pure/hashed × det/hedged)     |
+| SLH-DSA       | All 12 sets (SHAKE + SHA-2) — byte-exact on 1,248 ACVP cases      |
 | Platforms     | Dart VM, Flutter (iOS/Android/desktop), Web (dart2js / dart2wasm) |
 | Certification | Not CMVP/FIPS 140 validated — algorithm/KAT evidence only         |
 
@@ -90,7 +97,8 @@ New here? Read [Installation](Installation) → [Quickstart](Quickstart) →
 [Quickstart](Quickstart) · [Cookbook (project ideas)](Cookbook)
 
 **Algorithms** · [Cryptographic Algorithms](Cryptographic-Algorithms) ·
-[ML-KEM (FIPS 203)](ML-KEM) · [ML-DSA (FIPS 204)](ML-DSA)
+[ML-KEM (FIPS 203)](ML-KEM) · [ML-DSA (FIPS 204)](ML-DSA) ·
+[SLH-DSA (FIPS 205)](SLH-DSA)
 
 **Design & internals** · [Design Philosophy](Design-Philosophy) ·
 [Architecture](Architecture) · [Performance](Performance)

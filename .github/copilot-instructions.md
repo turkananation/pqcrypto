@@ -6,15 +6,27 @@ Read `AGENTS.md` first. This repository is a pure Dart cryptography package, not
 an application. Ground claims in live code, `CHANGELOG.md`, and `doc/`.
 
 Current facts:
-- Package version: 0.3.1.
+
+- Package version: 0.4.0.
 - Runtime dependencies: zero.
-- ML-KEM support: 512/768/1024 with checked-in KAT and OpenSSL interop evidence.
-- ML-DSA support: 44/65/87, byte-exact on the checked-in KAT corpus.
+- Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.
 - Claim boundary: The package provides algorithm/KAT-conformance and interoperability evidence. It is not a CMVP/FIPS 140 validated cryptographic module.
 
+Current capabilities:
+
+- ML-KEM-512, ML-KEM-768, and ML-KEM-1024 key encapsulation
+- ML-DSA-44, ML-DSA-65, and ML-DSA-87 digital signatures
+- Hedged-by-default ML-DSA signing with context strings
+- HashML-DSA with level-bound SHA-256, SHA-384, and SHA-512 pre-hash paths
+- All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures
+- Hedged-by-default SLH-DSA signing with context strings, HashSLH-DSA, and optional verify-after-sign
+- Dart VM, Flutter, dart2js, and dart2wasm portability
+- Native-provider interop tooling for ML-KEM, ML-DSA, and SLH-DSA under tool/openssl_interop and tool/liboqs_interop
+
 Development rules:
+
 - Do not add runtime dependencies unless the package boundary is explicitly changed.
-- Keep ML-KEM and ML-DSA arithmetic, packing, parameter objects, and tests separate.
+- Keep each algorithm family's implementation, parameters, and tests separate.
 - Validate public inputs before crypto work.
 - Never add `print()` to `lib/`.
 - Update docs when APIs, evidence, tests, package metadata, or readiness wording change.
@@ -22,6 +34,7 @@ Development rules:
   and run `dart run tool/visibility/generate_visibility.dart`.
 
 Forbidden claims:
+
 - FIPS validated
 - FIPS 140 validated
 - CMVP validated
@@ -31,10 +44,15 @@ Forbidden claims:
 - ML-KEM is authenticated transport by itself
 
 Validation ladder:
+
 ```bash
 dart run tool/visibility/generate_visibility.dart --check
 dart analyze
 dart test test/kat_evaluator_test.dart
 dart test test/mldsa_kat_test.dart
+dart test test/slhdsa_kat_test.dart
 dart test
+dart test -p chrome
+dart test -p chrome --compiler dart2wasm
+dart run tool/agent_framework/check_setup.dart
 ```

@@ -4,7 +4,7 @@ framework_version: 0.1.0
 canonical_doc: doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md
 generated_for_package:
   name: pqcrypto
-  version: 0.3.1
+  version: 0.4.0
   runtime_dependencies: 0
 
 native_wrappers:
@@ -19,13 +19,16 @@ evidence_boundary:
   allowed_claims:
     - FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.
     - OpenSSL interop A-G passes for ML-KEM-512/768/1024.
+    - Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.
     - FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.
+    - FIPS 205-aligned SLH-DSA for all 12 parameter sets, byte-exact on 1,248 checked-in official NIST ACVP sample cases.
   forbidden_claims:
     - fully FIPS validated
     - CMVP validated
     - certified
     - hard constant-time Dart guarantee
     - hard memory-erasure guarantee
+    - 0.4.0 is published to pub.dev before the maintainer completes the tag and publication
 
 primitive_profile:
   hybrid_required: true
@@ -45,6 +48,14 @@ primitive_profile:
     secret_key_bytes: 4032
     signature_bytes: 3309
     context_max_bytes: 255
+  optional_hash_signature:
+    algorithm: SLH-DSA-SHAKE-128f
+    status: low_frequency_artifact_or_archival_signing
+    caveats:
+      - development_tree_release_candidate_until_v0_4_0_publication
+      - large_signatures
+      - slow_s_sets_require_explicit_opt_in
+      - buff_gap_except_128f_sets
   hkdf:
     output_bytes: 32
     ikm: "ss_classical || ss_lattice"

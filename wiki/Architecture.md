@@ -1,9 +1,10 @@
 # Architecture
 
-`pqcrypto` is a pure Dart package with two supported algorithm surfaces —
-ML-KEM (FIPS 203) and ML-DSA (FIPS 204) — sharing a vendored FIPS 202 (SHA-3/
-SHAKE) core and FIPS 180-4 (SHA-2) for HashML-DSA. There are no native bindings
-and no third-party runtime dependencies.
+`pqcrypto` is a pure Dart package with three supported algorithm surfaces —
+ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) — sharing a vendored
+FIPS 202 (SHA-3/SHAKE) core, with FIPS 180-4 (SHA-2) plus HMAC/MGF1 for
+HashML-DSA and the SLH-DSA SHA-2 parameter sets. There are no native bindings and
+no third-party runtime dependencies.
 
 ## Package shape
 
@@ -12,9 +13,11 @@ flowchart TD
   API["lib/pqcrypto.dart\npublic API exports"]
   API --> KEM["algos/kyber\nkem.dart · indcpa.dart · pack.dart · params.dart"]
   API --> DSA["algos/dilithium\ndsa.dart · poly.dart · ntt.dart · packing.dart · rounding.dart · symmetric.dart"]
+  API --> SLH["algos/slhdsa\nslhdsa.dart · wots.dart · xmss.dart · hypertree.dart · fors.dart · address.dart · hashing.dart · params.dart"]
   KEM --> COM
   DSA --> COM
-  COM["common/\nkeccak.dart (SHA-3/SHAKE) · sha2.dart · zeroize.dart · poly.dart"]
+  SLH --> COM
+  COM["common/\nkeccak.dart (SHA-3/SHAKE) · sha2.dart · hmac.dart · mgf1.dart · zeroize.dart · poly.dart"]
 ```
 
 ## Public API boundary
@@ -22,9 +25,17 @@ flowchart TD
 `lib/pqcrypto.dart` exports exactly:
 
 ```dart
+// ML-KEM (FIPS 203)
 export 'src/algos/kyber/kem.dart' show KyberKem, PqcKem;
+
+// ML-DSA (FIPS 204)
 export 'src/algos/dilithium/dsa.dart' show MlDsa;
 export 'src/algos/dilithium/params.dart' show DilithiumParams, DilithiumParameter;
+
+// SLH-DSA (FIPS 205)
+export 'src/algos/slhdsa/params.dart'
+    show SlhDsaHashFamily, SlhDsaParameter, SlhDsaParams;
+export 'src/algos/slhdsa/slhdsa.dart' show SlhDsa, SlhDsaPreHash;
 ```
 
 Everything else — the SHA-3/SHAKE/SHA-2 primitives, polynomial arithmetic,

@@ -20,7 +20,9 @@ library;
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:openssl_pqcrypto_interop/openssl_library.dart';
 import 'package:openssl_pqcrypto_interop/openssl_ml_kem.dart';
+import 'package:pqcrypto_interop_common/pqcrypto_interop_common.dart';
 
 /// How many random round-trips to run for the cross tests (C and D) per level.
 const int _fuzzIterations = 16;
@@ -65,7 +67,7 @@ void main() {
   print('    ${ossl.version()} (via FFI → libcrypto) vs pqcrypto package');
   print('    libcrypto: $libPath');
   print(
-    '    levels: ${mlKemLevels.map((l) => l.opensslName).join(", ")}'
+    '    levels: ${mlKemInteropSets.map((l) => l.name).join(", ")}'
     '   |   fuzz: $_fuzzIterations iterations/direction',
   );
   if (!seedOk) {
@@ -75,7 +77,7 @@ void main() {
     );
   }
 
-  for (final level in mlKemLevels) {
+  for (final level in mlKemInteropSets) {
     _runLevel(ossl, level, seedOk: seedOk);
   }
 
@@ -101,9 +103,13 @@ void main() {
   }
 }
 
-void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
-  final name = level.opensslName;
-  final pq = level.pq;
+void _runLevel(
+  OpenSslMlKem ossl,
+  MlKemInteropSet level, {
+  required bool seedOk,
+}) {
+  final name = level.name;
+  final pq = level.pqcrypto;
   print('\n--- $name ---');
 
   // ── Sizes vs FIPS 203 (independent constants), OpenSSL and pqcrypto ───────
@@ -113,17 +119,17 @@ void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
   print(
     '  sizes pk/ct/sk/ss — OpenSSL ${osslPub0.length}/${osslCt0.length}/—/— · '
     'pqcrypto ${pqPub0.length}/${pq.params.ciphertextBytes}/'
-    '${pqSk0.length}/$kSharedSecretBytes · '
-    'FIPS ${level.specPublicKeyBytes}/${level.specCiphertextBytes}/'
-    '${level.specSecretKeyBytes}/${level.specSharedSecretBytes}',
+    '${pqSk0.length}/32 · '
+    'FIPS ${level.publicKeyBytes}/${level.ciphertextBytes}/'
+    '${level.secretKeyBytes}/${level.sharedSecretBytes}',
   );
   _check(
     '$name sizes: OpenSSL & pqcrypto match FIPS 203 pk/ct/sk/ss',
-    osslPub0.length == level.specPublicKeyBytes &&
-        osslCt0.length == level.specCiphertextBytes &&
-        pqPub0.length == level.specPublicKeyBytes &&
-        pq.params.ciphertextBytes == level.specCiphertextBytes &&
-        pqSk0.length == level.specSecretKeyBytes,
+    osslPub0.length == level.publicKeyBytes &&
+        osslCt0.length == level.ciphertextBytes &&
+        pqPub0.length == level.publicKeyBytes &&
+        pq.params.ciphertextBytes == level.ciphertextBytes &&
+        pqSk0.length == level.secretKeyBytes,
   );
   ossl.freeKey(osslKey0);
 
@@ -190,9 +196,9 @@ void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
 
   // A fixed (obviously non-secret) seed, varied per level so the three runs
   // exercise distinct key material.
-  final seed = Uint8List(kSeedBytes);
+  final seed = Uint8List(mlKemKeyPairSeedBytes);
   for (var i = 0; i < seed.length; i++) {
-    seed[i] = (i * 7 + level.pq.params.k * 31) & 0xFF;
+    seed[i] = (i * 7 + level.pqcrypto.params.k * 31) & 0xFF;
   }
 
   final (pqSeedPub, pqSeedSk) = pq.generateKeyPair(seed);
@@ -209,7 +215,7 @@ void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
     // A correctly-sized but invalid ciphertext: FIPS 203 decapsulation never
     // fails — both sides return K̄ = J(z‖c). Same z (shared seed) + same c ⇒
     // identical secret. This exercises the rejection branch A–D never hit.
-    final invalidCt = Uint8List(level.specCiphertextBytes);
+    final invalidCt = Uint8List(level.ciphertextBytes);
     for (var i = 0; i < invalidCt.length; i++) {
       invalidCt[i] = (i * 251 + 17) & 0xFF;
     }
@@ -217,7 +223,7 @@ void _runLevel(OpenSslMlKem ossl, MlKemLevel level, {required bool seedOk}) {
     final ssRejOssl = ossl.decapsulate(osslSeedKey, invalidCt);
     _check(
       '$name G: implicit-rejection secret J(z‖c) agrees on invalid ciphertext',
-      bytesEqual(ssRejPq, ssRejOssl) && ssRejPq.length == kSharedSecretBytes,
+      bytesEqual(ssRejPq, ssRejOssl) && ssRejPq.length == 32,
     );
   } finally {
     ossl.freeKey(osslSeedKey);

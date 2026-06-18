@@ -96,8 +96,10 @@ storage. For backup, you can derive keys deterministically from a protected seed
 
 ## Is SLH-DSA / SPHINCS+ supported?
 
-Not yet. SLH-DSA (FIPS 205) is planned: the SHAKE family targets 0.4.0 and the
-SHA-2 family 0.5.0. See the [Roadmap](Roadmap).
+Yes. SLH-DSA (FIPS 205) ships in 0.4.0 for all 12 parameter sets (both the SHAKE
+and SHA-2 hash families), byte-exact on the 1,248-case official NIST ACVP sample
+corpus. See [Cryptographic Algorithms](Cryptographic-Algorithms) and the
+[Roadmap](Roadmap).
 
 ## How do I report a security issue?
 

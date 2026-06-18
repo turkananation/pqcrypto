@@ -12,18 +12,24 @@ Treat every change as evidence-sensitive.
   behavior changes.
 - For ML-DSA changes, run `dart test test/mldsa_kat_test.dart` and keep output
   byte-exact against `test/data/MLDSA`.
+- For SLH-DSA changes, run `dart test test/slhdsa_kat_test.dart` and keep output
+  byte-exact against the official ACVP corpus across all 12 parameter sets.
 - Do not replace repo-local KAT corpora with machine-local paths.
 - Do not upgrade assurance wording beyond checked-in KAT and interop evidence.
 - If you edit generated visibility or AI-agent files, edit
   `tool/visibility/visibility_manifest.json` and regenerate.
 
 Allowed wording:
+
 - FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.
 - OpenSSL interop A-G passes for ML-KEM-512/768/1024.
+- Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.
 - FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.
+- FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.
 - Best-effort zeroization in Dart.
 
 Forbidden wording:
+
 - FIPS validated
 - FIPS 140 validated
 - CMVP validated

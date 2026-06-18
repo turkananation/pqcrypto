@@ -1,6 +1,6 @@
 # Improvements
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This file lists current improvement work in priority order. Completed quick wins
 from older 0.1.0-era audits are not repeated except where they define current
@@ -14,7 +14,7 @@ guardrails.
 | IMP-02 | State ML-DSA validation status accurately.        | Done   | FIPS 204-aligned, byte-exact KATs; docs updated.        |
 | IMP-03 | Remove old `pointycastle` dependency claims.      | Done   | Only historical/replacement references remain.          |
 | IMP-04 | Replace old non-discovered KAT runner references. | Done   | Current runner is `test/kat_evaluator_test.dart`.       |
-| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.3.1`. |
+| IMP-05 | Fix Serverpod guide link and dependency snippet.  | Done   | README and guide now use `doc/` and `pqcrypto: ^0.4.0`. |
 
 ## P0 - ML-DSA Correctness (complete)
 
@@ -44,25 +44,38 @@ guardrails.
 | API-02 | Consider FIPS-name aliases for KEM levels.        | Review | `PqcKem.mlKem768` alias may reduce Kyber naming drift. |
 | API-03 | Add Dartdoc to all public API members.            | Open   | Required for stable API.                               |
 | API-04 | Fix example byte equality in `example/main.dart`. | Done   | Uses byte-wise equality in the ML-KEM examples.        |
+| API-05 | Export SLH-DSA all-set public API surface.        | Done   | `SlhDsa`, params, parameter enum, pre-hash enum.       |
+
+## P2 - SLH-DSA (complete except the release cut)
+
+| ID     | Improvement                                     | Status | Notes                                                |
+| ------ | ----------------------------------------------- | ------ | ---------------------------------------------------- |
+| SLH-01 | Add official ACVP sample corpus.                | Done   | 1,248 keyGen/sigGen/sigVer cases across all 12 sets. |
+| SLH-02 | Implement Algorithms 1-25 for SHAKE + SHA-2.    | Done   | Public Algorithms 21-25, source-only ACVP internals. |
+| SLH-03 | Add BUFF, slow-set, and verify-after-sign docs. | Done   | README, API docstrings, security audit, guide.       |
+| SLH-04 | Add native provider interop tooling.            | Done   | OpenSSL and liboqs suites under `tool/`.             |
+| SLH-05 | Cut the v0.4.0 release: tag and publication.    | Open   | Maintainer release workflow remains.                 |
 
 ## P3 - Performance and Tooling
 
-| ID      | Improvement                             | Status | Notes                              |
-| ------- | --------------------------------------- | ------ | ---------------------------------- |
-| PERF-01 | Add benchmark suite under `benchmark/`. | Open   | Avoid relying only on examples.    |
-| PERF-02 | Measure VM, AOT, dart2js, dart2wasm.    | Open   | Needed before optimization claims. |
-| PERF-03 | Evaluate `Int32List` for ML-KEM poly.   | Review | Likely performance and GC win.     |
-| PERF-04 | Evaluate in-place ML-KEM NTT.           | Review | Higher refactor risk.              |
+| ID      | Improvement                             | Status  | Notes                                                |
+| ------- | --------------------------------------- | ------- | ---------------------------------------------------- |
+| PERF-01 | Maintain SLH-DSA benchmark tooling.     | Partial | `tool/bench/slhdsa_bench.dart` supports all 12 sets. |
+| PERF-02 | Add statistical and AOT benchmark runs. | Open    | Current published table is single-sample SHAKE-only. |
+| PERF-03 | Evaluate `Int32List` for ML-KEM poly.   | Review  | Likely performance and GC win.                       |
+| PERF-04 | Evaluate in-place ML-KEM NTT.           | Review  | Higher refactor risk.                                |
 
 ## Completed Guardrails
 
-| Guardrail                                       | Evidence                                      |
-| ----------------------------------------------- | --------------------------------------------- |
-| ML-KEM KAT runner is discovered by `dart test`. | `test/kat_evaluator_test.dart`.               |
-| FIPS 202 is vendored.                           | `lib/src/common/keccak.dart`, `pubspec.yaml`. |
-| Runtime package has no third-party deps.        | `pubspec.yaml`.                               |
-| Production `lib/` has no `print()`.             | `rg "print\\(" lib`.                          |
-| ML-KEM input validation exists.                 | `test/kem_validation_test.dart`.              |
+| Guardrail                                       | Evidence                                       |
+| ----------------------------------------------- | ---------------------------------------------- |
+| ML-KEM KAT runner is discovered by `dart test`. | `test/kat_evaluator_test.dart`.                |
+| FIPS 202 is vendored.                           | `lib/src/common/keccak.dart`, `pubspec.yaml`.  |
+| Runtime package has no third-party deps.        | `pubspec.yaml`.                                |
+| Production `lib/` has no `print()`.             | `rg "print\\(" lib`.                           |
+| ML-KEM input validation exists.                 | `test/kem_validation_test.dart`.               |
+| SLH-DSA all-set ACVP runner exists.             | `test/slhdsa_kat_test.dart`.                   |
+| Native interop is tool-only.                    | `tool/openssl_interop`, `tool/liboqs_interop`. |
 
 ## Implementation Discipline
 

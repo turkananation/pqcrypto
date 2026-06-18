@@ -11,7 +11,7 @@ mirror the in-repo
 
 - [Home](Home) — overview and 60-second quickstart.
 - [Installation](Installation) — add the package, platforms, setup.
-- [Quickstart](Quickstart) — ML-KEM, ML-DSA, and HashML-DSA in minutes.
+- [Quickstart](Quickstart) — ML-KEM, ML-DSA, HashML-DSA, and SLH-DSA in minutes.
 - [Cookbook](Cookbook) — project ideas and reusable recipes.
 - [README](https://github.com/turkananation/pqcrypto/blob/main/README.md) — the
   pub.dev landing page.
@@ -22,12 +22,13 @@ mirror the in-repo
   comparison.
 - [ML-KEM (FIPS 203)](ML-KEM) — key encapsulation.
 - [ML-DSA (FIPS 204)](ML-DSA) — digital signatures.
+- [SLH-DSA (FIPS 205)](SLH-DSA) — hash-based signatures.
 - [MLKEM_TESTING.md](https://github.com/turkananation/pqcrypto/blob/main/doc/MLKEM_TESTING.md)
   — ML-KEM KAT corpus and gates.
 - [MLDSA_FIPS204_RELEASE_GUIDE.md](https://github.com/turkananation/pqcrypto/blob/main/doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
   — ML-DSA implementation and validation.
 - [SLHDSA_FIPS205_RELEASE_GUIDE.md](https://github.com/turkananation/pqcrypto/blob/main/doc/SLHDSA_FIPS205_RELEASE_GUIDE.md)
-  — planned SLH-DSA.
+  — SLH-DSA implementation and validation (all 12 sets).
 - [ALGORITHM_EXPANSION_GUIDE.md](https://github.com/turkananation/pqcrypto/blob/main/doc/ALGORITHM_EXPANSION_GUIDE.md)
   — future PQC directions.
 

@@ -15,6 +15,7 @@
 - [Cryptographic Algorithms](Cryptographic-Algorithms)
 - [ML-KEM (FIPS 203)](ML-KEM)
 - [ML-DSA (FIPS 204)](ML-DSA)
+- [SLH-DSA (FIPS 205)](SLH-DSA)
 
 **Design & internals**
 
