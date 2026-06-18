@@ -1,18 +1,26 @@
 name: Interop (OpenSSL and liboqs)
 
 # Independent native interoperability proof for every standardized algorithm
-# family exposed by pqcrypto. Provider builds are pinned and cached because
-# GitHub-hosted runners do not ship the required OpenSSL/liboqs versions.
+# family exposed by pqcrypto. Pull requests run this before merge; push runs are
+# limited to integration branches after merge to avoid duplicate branch+PR work.
+# Provider builds are pinned and cached because GitHub-hosted runners do not
+# ship the required OpenSSL/liboqs versions.
 on:
   push:
+    branches:
+      - develop
+      - main
   pull_request:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
