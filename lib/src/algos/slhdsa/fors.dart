@@ -146,15 +146,17 @@ final class SlhDsaFors {
           treeAddress.setTreeHeight(j + 1);
           final hashInput = Uint8List(2 * params.n);
 
+          // Parent index is treeIndex ~/ 2 in both cases: for odd treeIndex
+          // (the else branch) (treeIndex - 1) ~/ 2 == treeIndex ~/ 2, since
+          // ~/ truncates toward zero for non-negative ints. Only the left/right
+          // hash ordering differs per branch.
+          treeIndex ~/= 2;
+          treeAddress.setTreeIndex(treeIndex);
           if (((indices[i] >> j) & 1) == 0) {
-            treeIndex ~/= 2;
-            treeAddress.setTreeIndex(treeIndex);
             hashInput
               ..setRange(0, params.n, current)
               ..setRange(params.n, 2 * params.n, authNode);
           } else {
-            treeIndex = (treeIndex - 1) ~/ 2;
-            treeAddress.setTreeIndex(treeIndex);
             hashInput
               ..setRange(0, params.n, authNode)
               ..setRange(params.n, 2 * params.n, current);
