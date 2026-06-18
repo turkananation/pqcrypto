@@ -1,20 +1,29 @@
 name: CI
 
-# Run on every branch push and every pull request. Expensive KAT suites are
-# decomposed so failures and progress remain visible instead of being hidden in
-# one long-running `dart test` process.
+# Pull requests run validation before merge. Push runs are reserved for
+# integration branches after merge so feature/fix branches do not run the same
+# CI suite twice as both `push` and `pull_request` events. Expensive KAT suites
+# are decomposed so failures and progress remain visible instead of being hidden
+# in one long-running `dart test` process.
 on:
   push:
+    branches:
+      - develop
+      - main
   pull_request:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
 
 # Least privilege: this workflow only reads the repository.
 permissions:
   contents: read
 
-# If a newer commit is pushed to the same ref, cancel the in-progress run.
+# If a newer commit is pushed to the same branch or PR head, cancel the older
+# run. `head_ref` makes same-branch PR and push events share a concurrency key.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:

@@ -2,62 +2,25 @@
 
 ## Project Signals
 
-### Package & Reach
-
 [![pub.dev](https://img.shields.io/pub/v/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=pub.dev&color=0175c2)](https://pub.dev/packages/pqcrypto)
-[![pub points](https://img.shields.io/pub/points/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=pub%20points&color=0175c2)](https://pub.dev/packages/pqcrypto/score)
-[![pub likes](https://img.shields.io/pub/likes/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=likes&color=00a67e)](https://pub.dev/packages/pqcrypto/score)
-[![pub popularity](https://img.shields.io/pub/popularity/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=popularity&color=00a67e)](https://pub.dev/packages/pqcrypto/score)
+[![pub score](https://img.shields.io/pub/points/pqcrypto?style=for-the-badge&logo=dart&logoColor=white&label=pub%20score&color=0175c2)](https://pub.dev/packages/pqcrypto/score)
 [![license](https://img.shields.io/github/license/turkananation/pqcrypto?style=for-the-badge&label=license&color=2ea043)](LICENSE)
 [![Dart SDK](https://img.shields.io/badge/Dart-%5E3.10.0-0175c2?style=for-the-badge&logo=dart&logoColor=white)](pubspec.yaml)
 [![stars](https://img.shields.io/github/stars/turkananation/pqcrypto?style=for-the-badge&logo=github&label=stars&color=181717)](https://github.com/turkananation/pqcrypto/stargazers)
-[![last commit](https://img.shields.io/github/last-commit/turkananation/pqcrypto?style=for-the-badge&logo=github&label=last%20commit&color=6f42c1)](https://github.com/turkananation/pqcrypto/commits/develop)
 
-### Standards & Cryptographic Surface
-
-[![FIPS 203](https://img.shields.io/badge/FIPS%20203-ML--KEM-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS_COMPLIANCE.md)
-[![ML-KEM levels](https://img.shields.io/badge/ML--KEM-512%20%7C%20768%20%7C%201024-2ea043?style=for-the-badge)](doc/MLKEM_TESTING.md)
-[![FIPS 204](https://img.shields.io/badge/FIPS%20204-ML--DSA-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
-[![ML-DSA levels](https://img.shields.io/badge/ML--DSA-44%20%7C%2065%20%7C%2087-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
-[![FIPS 205](https://img.shields.io/badge/FIPS%20205-SLH--DSA-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md)
+[![standards](https://img.shields.io/badge/FIPS%20203%20%7C%20204%20%7C%20205-ML--KEM%20%2B%20ML--DSA%20%2B%20SLH--DSA-2ea043?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS_COMPLIANCE.md)
 [![SLH-DSA sets](https://img.shields.io/badge/SLH--DSA-12%20sets%20(SHAKE%20%2B%20SHA--2)-2ea043?style=for-the-badge)](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md)
-[![FIPS 202](https://img.shields.io/badge/FIPS%20202-partial%20SHA--3%2FSHAKE-f59e0b?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
-[![SP 800-185](https://img.shields.io/badge/SP%20800--185-planned%200.6.0-0969da?style=for-the-badge&logo=shield&logoColor=white)](doc/FIPS202_SP800185_RELEASE_GUIDE.md)
-[![CMVP boundary](https://img.shields.io/badge/CMVP%20%2F%20FIPS%20140-not%20validated-bf8700?style=for-the-badge)](doc/FIPS_140_BOUNDARY.md)
-[![zero dependencies](https://img.shields.io/badge/runtime%20dependencies-0-2ea043?style=for-the-badge)](pubspec.yaml)
-
-### Evidence, Portability & Interoperability
-
-[![ML-KEM KATs](https://img.shields.io/badge/ML--KEM%20KATs-3000%2F3000-2ea043?style=for-the-badge)](doc/MLKEM_TESTING.md)
-[![ML-DSA keygen KATs](https://img.shields.io/badge/ML--DSA%20keygen-300%2F300-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
-[![ML-DSA signature KATs](https://img.shields.io/badge/ML--DSA%20signatures-1800%2F1800-2ea043?style=for-the-badge)](doc/MLDSA_FIPS204_RELEASE_GUIDE.md)
-[![SLH-DSA ACVP](https://img.shields.io/badge/SLH--DSA%20ACVP-1248%2F1248-2ea043?style=for-the-badge)](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md)
-[![OpenSSL interop](https://img.shields.io/badge/OpenSSL%20interop-ML--KEM%20%7C%20ML--DSA%20%7C%20SLH--DSA-2ea043?style=for-the-badge&logo=openssl&logoColor=white)](doc/OPENSSL_INTEROP.md)
-[![liboqs interop](https://img.shields.io/badge/liboqs%20interop-18%20native%20algorithms-2ea043?style=for-the-badge)](tool/liboqs_interop/README.md)
-[![pure Dart](https://img.shields.io/badge/pure%20Dart-no%20native%20runtime-0175c2?style=for-the-badge&logo=dart&logoColor=white)](lib/)
-[![Flutter platforms](https://img.shields.io/badge/Flutter-iOS%20%7C%20Android%20%7C%20Web%20%7C%20Desktop-02569b?style=for-the-badge&logo=flutter&logoColor=white)](doc/PROGRESS_TRACKER.md)
-[![web backends](https://img.shields.io/badge/Web-dart2js%20%2B%20dart2wasm-7c3aed?style=for-the-badge)](.github/workflows/ci.yml)
-[![vendored SHA-3](https://img.shields.io/badge/SHA--3%20%2F%20SHAKE-vendored%20FIPS%20202%20core-0969da?style=for-the-badge)](lib/src/common/keccak.dart)
-
-### Automation & Security Gates
+[![evidence](https://img.shields.io/badge/KAT%20%2F%20ACVP-3000%20ML--KEM%20%7C%201800%20ML--DSA%20%7C%201248%20SLH--DSA-2ea043?style=for-the-badge)](doc/INDEX.md)
+[![interop](https://img.shields.io/badge/native%20interop-OpenSSL%20%2B%20liboqs-2ea043?style=for-the-badge&logo=openssl&logoColor=white)](doc/OPENSSL_INTEROP.md)
+[![runtime boundary](https://img.shields.io/badge/runtime-pure%20Dart%20%7C%200%20deps%20%7C%20VM%20%2B%20Flutter%20%2B%20Web-0175c2?style=for-the-badge&logo=dart&logoColor=white)](pubspec.yaml)
+[![claim boundary](https://img.shields.io/badge/CMVP%20%2F%20FIPS%20140-not%20validated-bf8700?style=for-the-badge)](doc/FIPS_140_BOUNDARY.md)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/ci.yml?branch=develop&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/ci.yml)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/codeql.yml?branch=develop&style=for-the-badge&label=CodeQL&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/codeql.yml)
-[![OpenSSL workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/interop.yml?branch=develop&style=for-the-badge&label=OpenSSL%20interop&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/interop.yml)
-[![visibility workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/visibility.yml?branch=develop&style=for-the-badge&label=Visibility&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/visibility.yml)
-[![Pages deploy](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/pages.yml?branch=develop&style=for-the-badge&label=Pages&logo=githubpages&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/pages.yml)
-[![Wiki sync](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/sync-wiki.yml?branch=develop&style=for-the-badge&label=Wiki%20sync&logo=github&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/sync-wiki.yml)
-
-### Docs, Citation & Coding-Agent Discovery
-
+[![Interop workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/interop.yml?branch=develop&style=for-the-badge&label=Interop&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/interop.yml)
+[![Visibility](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/visibility.yml?branch=develop&style=for-the-badge&label=Visibility&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/visibility.yml)
 [![Website](https://img.shields.io/badge/Website-GitHub%20Pages-0969da?style=for-the-badge&logo=githubpages&logoColor=white)](https://turkananation.github.io/pqcrypto/)
 [![API reference](https://img.shields.io/badge/API-pub.dev%20docs-0175c2?style=for-the-badge&logo=dart&logoColor=white)](https://pub.dev/documentation/pqcrypto/latest/)
-[![Wiki](https://img.shields.io/badge/Wiki-synced%20from%20repo-6f42c1?style=for-the-badge&logo=github&logoColor=white)](https://github.com/turkananation/pqcrypto/wiki)
-[![Cookbook](https://img.shields.io/badge/Cookbook-project%20ideas-f59e0b?style=for-the-badge)](doc/cookbook/README.md)
-[![llms.txt](https://img.shields.io/badge/llms.txt-agent%20ready-7c3aed?style=for-the-badge)](llms.txt)
-[![Copilot](https://img.shields.io/badge/GitHub%20Copilot-repo%20instructions-8957e5?style=for-the-badge&logo=githubcopilot&logoColor=white)](.github/copilot-instructions.md)
-[![Cursor](https://img.shields.io/badge/Cursor-rule%20pack-000000?style=for-the-badge)](.cursor/rules/pqcrypto.mdc)
-[![Windsurf](https://img.shields.io/badge/Windsurf-rule%20pack-00a67e?style=for-the-badge)](.windsurfrules)
+[![AI discovery](https://img.shields.io/badge/AI%20discovery-llms.txt%20%2B%20agent%20rules-7c3aed?style=for-the-badge)](llms.txt)
 [![Citation](https://img.shields.io/badge/Citation-CFF-2ea043?style=for-the-badge)](CITATION.cff)
 
 **pqcrypto** is a pure Dart library implementing Post-Quantum Cryptography (PQC) algorithms, targeting compatibility with Flutter and the Dart web ecosystem.

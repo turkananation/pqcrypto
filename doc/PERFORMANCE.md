@@ -12,9 +12,9 @@ SLH-DSA use vendored primitives under `lib/src/common/`; OpenSSL and liboqs FFI
 are confined to `tool/openssl_interop/` and `tool/liboqs_interop/` and are not
 part of runtime performance.
 
-`example/main.dart` is a functional demo for ML-KEM, ML-DSA, and a signed
-ML-KEM-768 handshake transcript. It is useful for local sanity checks, but it is
-not an automated benchmark suite.
+`example/main.dart` is a functional demo for ML-KEM, ML-DSA, SLH-DSA, and a
+signed ML-KEM-768 + ML-DSA-65 handshake transcript. It is useful for local
+sanity checks, but it is not an automated benchmark suite.
 
 SLH-DSA has a portable benchmark entrypoint at
 `tool/bench/slhdsa_bench.dart`. It measures one key generation, deterministic
