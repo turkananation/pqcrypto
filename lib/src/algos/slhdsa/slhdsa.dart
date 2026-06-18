@@ -506,7 +506,8 @@ final class SlhDsa {
   static ({Uint8List messageDigest, BigInt treeIndex, int leafIndex})
   _splitDigest(Uint8List digest, SlhDsaParams params) {
     var offset = 0;
-    final messageDigest = digest.sublist(
+    final messageDigest = Uint8List.sublistView(
+      digest,
       offset,
       offset + params.forsMessageBytes,
     );
