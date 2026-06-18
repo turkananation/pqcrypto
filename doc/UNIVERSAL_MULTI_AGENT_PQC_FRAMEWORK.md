@@ -1,6 +1,6 @@
 # Universal Multi-Agent PQC Framework
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This document is the canonical project-level setup for using `pqcrypto` with
 multi-agent LLM workflows across Codex, Claude Code, and Antigravity. It is a
@@ -22,9 +22,10 @@ Use this framework only inside the current package boundary:
 
 | Area            | Contract                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------- |
-| Package         | `pqcrypto` 0.3.1, pure Dart, zero runtime dependencies.                                                    |
-| ML-KEM          | ML-KEM-512/768/1024; checked-in KATs and OpenSSL interop evidence.                                         |
+| Package         | `pqcrypto` 0.4.0, pure Dart, zero runtime dependencies.                                                    |
+| ML-KEM          | ML-KEM-512/768/1024; checked-in KATs and native-provider interop evidence.                                 |
 | ML-DSA          | ML-DSA-44/65/87; byte-exact checked-in KAT corpus across raw/pure/hashed and deterministic/hedged signing. |
+| SLH-DSA         | All 12 FIPS 205 sets (SHAKE + SHA-2) shipped in 0.4.0; 1,248/1,248 official ACVP cases byte-exact.         |
 | Certification   | No CMVP/FIPS 140 module validation claim.                                                                  |
 | Memory/security | Dart side-channel resistance and zeroization are best-effort, not hard proofs.                             |
 
@@ -32,7 +33,11 @@ Allowed wording:
 
 - "FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence."
 - "OpenSSL interop A-G passes for ML-KEM-512/768/1024."
+- "Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside
+  the runtime package boundary."
 - "FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus."
+- "FIPS 205-aligned SLH-DSA for all 12 parameter sets, byte-exact on 1,248
+  checked-in official NIST ACVP sample cases."
 - "Best-effort zeroization in Dart."
 
 Forbidden wording:
@@ -63,6 +68,11 @@ not upgrade a claim from an earlier role.
 
 The default enterprise profile is hybrid. Do not design standalone PQC
 handshakes.
+
+SLH-DSA is not the default interactive handshake signature in this framework.
+Use ML-DSA-65 for the default identity-signature profile. Consider SLH-DSA for
+low-frequency artifact, archival, or defense-in-depth signing after explicitly
+handling its large signatures, slow `s` sets, and BUFF caveat.
 
 | Primitive          | Required set                                                       | Integration size                 |
 | ------------------ | ------------------------------------------------------------------ | -------------------------------- |

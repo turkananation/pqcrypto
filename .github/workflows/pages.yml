@@ -1,0 +1,64 @@
+name: Pages
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "tool/visibility/**"
+      - "site/**"
+      - "llms.txt"
+      - "llms-full.txt"
+      - "identity.json"
+      - "developer-ai.txt"
+      - "faq-ai.txt"
+      - "ai.txt"
+      - "robots-ai.txt"
+      - "robots.txt"
+      - ".github/copilot-instructions.md"
+      - ".github/instructions/**"
+      - ".cursor/rules/**"
+      - ".windsurfrules"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy generated visibility site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Verify generated visibility files
+        run: dart run tool/visibility/generate_visibility.dart --check
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

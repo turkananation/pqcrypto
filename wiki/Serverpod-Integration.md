@@ -4,9 +4,10 @@ This document is the canonical integration guide for coupling `pqcrypto` with a 
 
 ## 🏗️ 1. The Hybrid Handshake Protocol
 
-Lattice-based cryptography is relatively new compared to elliptic-curve cryptography (ECC). To mitigate the risk of an undiscovered mathematical flaw in FIPS 203 (ML-KEM), you **must** use a hybrid key exchange. 
+Lattice-based cryptography is relatively new compared to elliptic-curve cryptography (ECC). To mitigate the risk of an undiscovered mathematical flaw in FIPS 203 (ML-KEM), you **must** use a hybrid key exchange.
 
 The protocol flow:
+
 1. **Bootstrap:** The Serverpod backend loads an immutable Key Bundle (containing an ML-KEM-768 public/secret key, an ML-DSA-65 identity key, and a rotation epoch) from a hardware security module (HSM) or KMS.
 2. **Client Init:** The Flutter client generates an ephemeral classical key (e.g., X25519) and an ephemeral nonce.
 3. **Encapsulation:** The client uses the server's ML-KEM public key to encapsulate a lattice shared secret.
@@ -32,6 +33,7 @@ fields:
 ```
 
 ### 2.1 Hard Byte-Length Filtering
+
 Before allocating memory for cryptographic operations, the Serverpod `Endpoint` **must** enforce strict length validations. Failure to do this exposes the server to buffer exhaustion and denial-of-service (DoS).
 
 ```dart
@@ -49,7 +51,7 @@ _requireLength(clientSignature, 3309, 'clientSignature');
 
 ## 🔒 3. Replay Defenses & Timing Windows
 
-A stolen, intercepted ML-KEM ciphertext can be submitted repeatedly. 
+A stolen, intercepted ML-KEM ciphertext can be submitted repeatedly.
 
 1. **Timestamp Window:** The `clientTimestampMs` must be validated against the server's UTC clock. A `2000ms` window is standard. Anything outside this window is immediately rejected.
 2. **Nonce Caching:** Store the 32-byte `clientNonce` in Serverpod's Redis instance with a TTL of 2000ms. If a nonce is seen twice, terminate the handshake.
@@ -115,7 +117,7 @@ Future<void> establishSession() async {
 
 ## ⚠️ 6. Key Manager Distillation (Zeroization)
 
-Once the `sessionKey` is derived via HKDF, the underlying `ss_classical` and `ss_lattice` buffers **must** be zeroized. In Dart, you cannot force the Garbage Collector to wipe memory, but you can explicitly zero out the `Uint8List` indices before the variables fall out of scope. 
+Once the `sessionKey` is derived via HKDF, the underlying `ss_classical` and `ss_lattice` buffers **must** be zeroized. In Dart, you cannot force the Garbage Collector to wipe memory, but you can explicitly zero out the `Uint8List` indices before the variables fall out of scope.
 
 ```dart
 try {

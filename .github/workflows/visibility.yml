@@ -1,0 +1,66 @@
+name: Visibility
+
+on:
+  push:
+    paths:
+      - "tool/visibility/**"
+      - "site/**"
+      - "llms.txt"
+      - "llms-full.txt"
+      - "identity.json"
+      - "developer-ai.txt"
+      - "faq-ai.txt"
+      - "ai.txt"
+      - "robots-ai.txt"
+      - "robots.txt"
+      - ".github/copilot-instructions.md"
+      - ".github/instructions/**"
+      - ".cursor/rules/**"
+      - ".windsurfrules"
+      - ".github/workflows/visibility.yml"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "tool/visibility/**"
+      - "site/**"
+      - "llms.txt"
+      - "llms-full.txt"
+      - "identity.json"
+      - "developer-ai.txt"
+      - "faq-ai.txt"
+      - "ai.txt"
+      - "robots-ai.txt"
+      - "robots.txt"
+      - ".github/copilot-instructions.md"
+      - ".github/instructions/**"
+      - ".cursor/rules/**"
+      - ".windsurfrules"
+      - ".github/workflows/visibility.yml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-visibility-check:
+    name: Generated visibility files are current
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Verify generated visibility files
+        run: dart run tool/visibility/generate_visibility.dart --check
+
+      - name: Verify generated file whitespace
+        run: git diff --check

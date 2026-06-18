@@ -2,6 +2,53 @@
 
 ## Unreleased
 
+## 0.4.0
+
+### Added
+
+- Added FIPS 205 SLH-DSA for **all 12 parameter sets** — both hash families
+  (SHAKE and SHA-2) across 128/192/256 and the small/fast `s`/`f` variants —
+  exported at the package root as `SlhDsa`, `SlhDsaParams`, `SlhDsaParameter`,
+  and `SlhDsaPreHash`. Internal Algorithms 18-20 stay source-only for ACVP
+  execution; WOTS+/XMSS/hypertree/FORS remain internal components, not public
+  APIs.
+- Added the pinned official NIST ACVP SLH-DSA sample corpus for all 12
+  parameter sets (1,248 keyGen/sigGen/sigVer cases), with source provenance,
+  SHA-256 integrity checks, and ACVP structure/coverage tests. A VM-only ACVP
+  runner is byte-exact on all 1,248 cases.
+- Vendored the SHA-2-family primitives beneath the six SHA-2 sets: HMAC-SHA-256/512
+  (RFC 4231) and MGF1-SHA-256/512 (RFC 8017), each independently KAT-gated, plus
+  the 22-byte compressed address (`ADRS^c`) and the security-category 1 vs 3/5
+  SHA-256/SHA-512 instantiation split. Added SHA-224, SHA-512/224, and
+  SHA-512/256 to the vendored FIPS 180-4 core for the complete HashSLH-DSA
+  pre-hash matrix.
+- Implemented the FIPS 205 component and signature algorithms (5-25) with
+  portable `BigInt` tree indices, hedged-by-default signing, explicit
+  deterministic and slow-signing (`allowSlowSigning`) paths, context binding
+  (<= 255 bytes), HashSLH-DSA pre-hash with DER OIDs, optional verify-after-sign
+  fault detection, best-effort secret zeroization, and total malformed-input
+  verification (length-checked before parsing).
+- Added component, negative, and package-root API/misuse tests, and a portable
+  SLH-DSA benchmark harness covering all 12 sets. Published single-sample
+  keygen/sign/verify baselines under VM JIT, compiled JavaScript, and compiled
+  Wasm.
+- Added SHA3-224 and SHA3-384 to the vendored FIPS 202 implementation, direct
+  Keccak-f[1600] constants/profile tests, and a normalized selected NIST
+  byte-example corpus with source provenance.
+
+### Changed
+
+- Added explicit Keccak sponge/output validation and broader VM/web regression
+  coverage for rate boundaries and incremental XOF squeezing.
+- Surfaced the SLH-DSA message-bound (BUFF), deterministic-signing,
+  slow-parameter, RBG, and best-effort zeroization boundaries in API and release
+  documentation. This remains KAT/regression evidence, not a CMVP/FIPS 140
+  validation claim.
+- Promoted SLH-DSA to a first-class released algorithm alongside ML-KEM and
+  ML-DSA: the package version is now `0.4.0`, and the generated website,
+  AI-discovery files, and coding-agent rules list all 12 SLH-DSA sets with
+  1,248/1,248 ACVP evidence as part of the 0.4.0 surface.
+
 ## 0.3.1
 
 ### Changed

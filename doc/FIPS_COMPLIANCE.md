@@ -1,6 +1,6 @@
 # FIPS Evidence and Claim Boundary
 
-Last updated: 2026-06-05
+Last updated: 2026-06-16
 
 This document records standards alignment evidence for the current repository.
 It is not a CMVP/FIPS 140 validation certificate, and it must not be cited as
@@ -9,14 +9,15 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
 ## Summary
 
-| Standard   | Scope in repo                   | Current status                                                                                                                                 |
-| ---------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| FIPS 203   | ML-KEM-512/768/1024             | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL interop.                                                                |
-| FIPS 202   | SHA3-256/512, SHAKE128/256      | Vendored implementation with known-answer tests.                                                                                               |
-| FIPS 204   | ML-DSA-44/65/87                 | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
-| FIPS 205   | SLH-DSA (planned)               | In development; SHAKE sets target v0.4.0, SHA-2 sets v0.5.0. No code or KAT corpus yet. See the release guide.                                 |
-| FIPS 180-4 | SHA-256/384/512                 | Vendored for HashML-DSA pre-hash; pinned by direct NIST vectors.                                                                               |
-| FIPS 140   | Cryptographic module validation | Not claimed. No CMVP validation record exists in this repo.                                                                                    |
+| Standard   | Scope in repo                         | Current status                                                                                                                                 |
+| ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIPS 203   | ML-KEM-512/768/1024                   | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL/liboqs interop.                                                         |
+| FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Partial vendored implementation with selected official byte examples; non-byte and full-corpus completion target 0.6.0/0.7.0.                  |
+| SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Not implemented yet. Controlled by the FIPS 202 / SP 800-185 release guide; targets 0.6.0 with disciplined 0.7.0 spillover.                    |
+| FIPS 204   | ML-DSA-44/65/87                       | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
+| FIPS 205   | SLH-DSA                               | All 12 sets (SHAKE + SHA-2) shipped in 0.4.0, byte-exact on all 1,248 official NIST ACVP cases. Not CMVP/FIPS 140 validated.                   |
+| FIPS 180-4 | SHA-224/256/384/512 and SHA-512/t     | Vendored for HashML-DSA/HashSLH-DSA pre-hash; pinned by direct vectors.                                                                        |
+| FIPS 140   | Cryptographic module validation       | Not claimed. No CMVP validation record exists in this repo.                                                                                    |
 
 ## FIPS 203 - ML-KEM
 
@@ -31,8 +32,9 @@ Current ML-KEM evidence:
 - `test/kem_validation_test.dart`, `test/pack_test.dart`, `test/poly_test.dart`,
   `test/keygen_derivation_test.dart`, `test/keccak_test.dart`, and
   `test/roundtrip_test.dart` cover key input-validation and regression risks.
-- `tool/openssl_interop/` and `.github/workflows/interop.yml` provide the
-  OpenSSL A-G interop proof for all three parameter sets.
+- `tool/openssl_interop/`, `tool/liboqs_interop/`, and
+  `.github/workflows/interop.yml` provide native-provider interop coverage. The
+  OpenSSL ML-KEM path includes the A-G proof for all three parameter sets.
 
 See [MLKEM_TESTING.md](MLKEM_TESTING.md) and
 [OPENSSL_INTEROP.md](OPENSSL_INTEROP.md) for the detailed evidence.
@@ -40,7 +42,7 @@ See [MLKEM_TESTING.md](MLKEM_TESTING.md) and
 Acceptable wording:
 
 > `pqcrypto` provides a FIPS 203-aligned ML-KEM implementation that passes the
-> checked-in KAT corpus and OpenSSL interoperability checks described in this
+> checked-in KAT corpus and native-provider interoperability checks described in this
 > repository.
 
 Avoid wording such as:
@@ -57,14 +59,42 @@ uses wrapper functions in `lib/src/common/shake.dart`.
 
 Evidence:
 
-- `test/keccak_test.dart` pins SHA3-256, SHA3-512, SHAKE128, and SHAKE256
-  against known-answer values, including multi-block and XOF prefix-stability
-  cases.
+- `test/keccak_test.dart` pins all four SHA3 functions plus SHAKE128/256,
+  including direct Keccak-f[1600] constants/profiles, rate boundaries,
+  multi-block absorb, and XOF chunk/prefix behavior.
+- `test/data/FIPS202` records selected official NIST empty/1600-bit byte
+  examples for all six functions, source URLs, retrieval date, and PDF hashes;
+  `test/fips202_examples_test.dart` executes the normalized corpus.
 - `pubspec.yaml` has no runtime dependencies; `lints` and `test` are
   dev-only dependencies.
 
-The vendored implementation is not a FIPS-validated module. It is implementation
-evidence for this package's correctness boundary.
+Current limitations:
+
+- Non-byte-aligned FIPS 202 examples are not covered yet.
+- The checked-in NIST subset does not yet cover every published example.
+
+Full FIPS 202 completion targets 0.6.0 and is planned in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). The
+vendored implementation is not a FIPS-validated module. It is implementation
+evidence for this package's correctness boundary. Any incomplete standards
+surface spills into 0.7.0 instead of receiving broad release wording.
+
+## SP 800-185 - SHA-3 Derived Functions
+
+SP 800-185 support is **not implemented yet**. The target release is 0.6.0, with
+0.7.0 reserved for any surface that cannot satisfy the complete evidence gate.
+The planned surface includes:
+
+- cSHAKE128 and cSHAKE256;
+- KMAC128, KMAC256, KMACXOF128, and KMACXOF256;
+- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256; and
+- ParallelHash128, ParallelHash256, ParallelHashXOF128, and
+  ParallelHashXOF256.
+
+No README, changelog, package metadata, or release note may claim SP 800-185
+support until the relevant issue gates and NIST example-vector tests in
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md) are
+complete.
 
 ## FIPS 204 - ML-DSA
 
@@ -108,19 +138,30 @@ rejection loops are best-effort, not provably constant-time, in pure Dart; and
 HashML-DSA exposes only the level-bound SHA-2 pre-hash. See
 [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
-## FIPS 205 - SLH-DSA (planned)
+## FIPS 205 - SLH-DSA (all 12 sets)
 
-SLH-DSA is **not yet implemented**. The full A-Z compliance and release plan is
-in [SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). When
-shipped, the evidence model mirrors ML-DSA: byte-exact against the checked-in
-NIST ACVP SLH-DSA KAT corpus for each claimed parameter set, with the same
-evidence-scoped claim boundary. The six SHAKE parameter sets are planned for
-v0.4.0 and the six SHA-2 sets for v0.5.0.
+SLH-DSA ships in `0.4.0`. The package exports Algorithms 21-25 for all 12
+parameter sets while keeping Algorithms 18-20 source-only for ACVP execution.
+The official NIST ACVP sample corpus is pinned under `test/data/SLHDSA`;
+`test/slhdsa_kat_test.dart` reproduces all 1,248 keyGen/sigGen/sigVer cases
+byte-for-byte, including internal/external, pure/pre-hash, deterministic/hedged,
+and positive/negative verification coverage.
 
-Acceptable wording once a release is complete:
+This is algorithm/KAT and regression evidence, not a CMVP/FIPS 140 validation.
+Public API hardening, BUFF/performance documentation, verify-after-sign, and
+VM/dart2js/dart2wasm benchmark baselines are complete; the decomposed VM matrix
+and both web compiler suites are green.
 
-> `pqcrypto` provides a FIPS 205-aligned SLH-DSA implementation for the released
-> parameter sets that passes the checked-in SLH-DSA KAT corpus and regression
+The full A-Z compliance and release plan is in
+[SLHDSA_FIPS205_RELEASE_GUIDE.md](SLHDSA_FIPS205_RELEASE_GUIDE.md). The evidence
+model mirrors ML-DSA: byte-exact against the checked-in NIST ACVP SLH-DSA corpus
+for every parameter set. All 12 parameter sets (SHAKE and SHA-2) are byte-exact
+on the 1,248-case corpus and ship together in 0.4.0.
+
+Acceptable wording:
+
+> `pqcrypto` provides a FIPS 205-aligned SLH-DSA implementation for all 12
+> parameter sets that passes the checked-in SLH-DSA ACVP corpus and regression
 > suite described in this repository.
 
 The same avoid-list applies ("FIPS validated", "CMVP validated", "FIPS 140

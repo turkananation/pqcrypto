@@ -7,12 +7,15 @@ Thank you for your interest in contributing to `pqcrypto`! This document outline
 The `pqcrypto` package is pure Dart, meaning there are no native bindings or C FFI dependencies to configure.
 
 ### Prerequisites
+
 - Dart SDK `^3.10.0` or Flutter SDK containing a compatible Dart version.
 
 ### Installation
+
 1. Fork the repository and clone it locally.
 2. Run `dart pub get` to install development dependencies.
 3. Verify your setup by running the test suite:
+
    ```bash
    dart test
    ```
@@ -20,6 +23,7 @@ The `pqcrypto` package is pure Dart, meaning there are no native bindings or C F
 ## 2. Core Principles
 
 Before writing code, please review these core design constraints:
+
 - **Zero Runtime Dependencies**: The core package must remain pure Dart. We vendor required primitives (like FIPS 202 Keccak/SHA-3 and FIPS 180-4 SHA-2) internally rather than adding external dependencies.
 - **Strict Compliance over Innovation**: Cryptographic implementations must adhere strictly to the FIPS standards (FIPS 203 for ML-KEM, FIPS 204 for ML-DSA).
 - **KAT Validation**: All cryptographic logic must be validated against the official NIST Known Answer Test (KAT) vectors.
@@ -36,6 +40,7 @@ When submitting a PR, ensure you have completed the following steps:
 - [ ] **KAT Tests**: If you modified cryptographic math, serialization, or packing, ensure `dart test test/kat_evaluator_test.dart` and `dart test test/mldsa_kat_test.dart` pass perfectly.
 - [ ] **Documentation**: Update `CHANGELOG.md` under the `## Unreleased` section. Update any relevant docs in the `doc/` folder.
 - [ ] **Web Compatibility**: Ensure your code doesn't use VM-only APIs (like `dart:io` or `dart:ffi` inside `lib/`). Tests should pass on web compilers:
+
   ```bash
   dart test -p chrome
   dart test -p chrome --compiler dart2wasm
@@ -56,6 +61,7 @@ If you discover a security vulnerability, **do not** open a public issue. Please
 ## 6. Architectural Documentation
 
 For a deeper dive into the project's structure, refer to:
+
 - `doc/ARCHITECTURE.md`
 - `doc/ENGINEERING_GUIDE.md`
 - `doc/SECURITY_AUDIT.md`

@@ -1,0 +1,421 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-06-16",
+  "generated_by": "dart run tool/visibility/generate_visibility.dart",
+  "project": {
+    "name": "pqcrypto",
+    "title": "pqcrypto: Pure Dart Post-Quantum Cryptography",
+    "short_title": "pqcrypto",
+    "tagline": "Pure Dart, zero-dependency post-quantum cryptography for Dart, Flutter, and the web.",
+    "summary": "pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.",
+    "release_boundary": "Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.",
+    "version": "0.4.0",
+    "license": "MIT",
+    "maintainer": "Turkana Nation",
+    "canonical_url": "https://turkananation.github.io/pqcrypto/",
+    "repository": "https://github.com/turkananation/pqcrypto",
+    "repository_branch": "develop",
+    "pub_dev": "https://pub.dev/packages/pqcrypto",
+    "api_docs": "https://pub.dev/documentation/pqcrypto/latest/",
+    "wiki": "https://github.com/turkananation/pqcrypto/wiki",
+    "issues": "https://github.com/turkananation/pqcrypto/issues",
+    "security_advisory": "https://github.com/turkananation/pqcrypto/security/advisories/new",
+    "contact_email": "turkananation@gmail.com"
+  },
+  "capabilities": [
+    "ML-KEM-512, ML-KEM-768, and ML-KEM-1024 key encapsulation",
+    "ML-DSA-44, ML-DSA-65, and ML-DSA-87 digital signatures",
+    "Hedged-by-default ML-DSA signing with context strings",
+    "HashML-DSA with level-bound SHA-256, SHA-384, and SHA-512 pre-hash paths",
+    "All 12 SLH-DSA parameter sets (SHAKE and SHA-2 families, 128s/128f/192s/192f/256s/256f) digital signatures",
+    "Hedged-by-default SLH-DSA signing with context strings, HashSLH-DSA, and optional verify-after-sign",
+    "Dart VM, Flutter, dart2js, and dart2wasm portability",
+    "Native-provider interop tooling for ML-KEM, ML-DSA, and SLH-DSA under tool/openssl_interop and tool/liboqs_interop"
+  ],
+  "does_not_provide": [
+    "AEAD encryption such as AES-GCM or ChaCha20-Poly1305",
+    "HKDF or another application-facing KDF",
+    "Classical key exchange such as X25519",
+    "Application-facing public hash APIs",
+    "TLS, sessions, replay protection, or key storage",
+    "CMVP/FIPS 140 module validation"
+  ],
+  "evidence_boundary": {
+    "allowed_claims": [
+      "FIPS 203-aligned ML-KEM implementation with checked-in KAT evidence.",
+      "OpenSSL interop A-G passes for ML-KEM-512/768/1024.",
+      "Native-provider interop tooling covers ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.",
+      "FIPS 204-aligned ML-DSA implementation byte-exact on the checked-in KAT corpus.",
+      "FIPS 205 SLH-DSA (all 12 parameter sets) byte-exact on 1,248 checked-in official NIST ACVP sample cases.",
+      "Best-effort zeroization in Dart."
+    ],
+    "forbidden_claims": [
+      "FIPS validated",
+      "FIPS 140 validated",
+      "CMVP validated",
+      "certified",
+      "hard constant-time Dart guarantee",
+      "hard memory-erasure guarantee",
+      "ML-KEM is authenticated transport by itself"
+    ],
+    "summary": "The package provides algorithm/KAT-conformance and interoperability evidence. It is not a CMVP/FIPS 140 validated cryptographic module."
+  },
+  "algorithms": [
+    {
+      "name": "ML-KEM-512",
+      "standard": "FIPS 203",
+      "type": "key encapsulation",
+      "security_category": "1",
+      "public_key_bytes": 800,
+      "secret_key_bytes": 1632,
+      "ciphertext_bytes": 768,
+      "shared_secret_bytes": 32,
+      "api": "PqcKem.kyber512",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "ML-KEM-768",
+      "standard": "FIPS 203",
+      "type": "key encapsulation",
+      "security_category": "3",
+      "public_key_bytes": 1184,
+      "secret_key_bytes": 2400,
+      "ciphertext_bytes": 1088,
+      "shared_secret_bytes": 32,
+      "api": "PqcKem.kyber768",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "ML-KEM-1024",
+      "standard": "FIPS 203",
+      "type": "key encapsulation",
+      "security_category": "5",
+      "public_key_bytes": 1568,
+      "secret_key_bytes": 3168,
+      "ciphertext_bytes": 1568,
+      "shared_secret_bytes": 32,
+      "api": "PqcKem.kyber1024",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "ML-DSA-44",
+      "standard": "FIPS 204",
+      "type": "digital signature",
+      "security_category": "2",
+      "public_key_bytes": 1312,
+      "secret_key_bytes": 2560,
+      "signature_bytes": 2420,
+      "api": "DilithiumParams.mlDsa44",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "ML-DSA-65",
+      "standard": "FIPS 204",
+      "type": "digital signature",
+      "security_category": "3",
+      "public_key_bytes": 1952,
+      "secret_key_bytes": 4032,
+      "signature_bytes": 3309,
+      "api": "DilithiumParams.mlDsa65",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "ML-DSA-87",
+      "standard": "FIPS 204",
+      "type": "digital signature",
+      "security_category": "5",
+      "public_key_bytes": 2592,
+      "secret_key_bytes": 4896,
+      "signature_bytes": 4627,
+      "api": "DilithiumParams.mlDsa87",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-128s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "1",
+      "public_key_bytes": 32,
+      "secret_key_bytes": 64,
+      "signature_bytes": 7856,
+      "api": "SlhDsaParams.shake128s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-128f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "1",
+      "public_key_bytes": 32,
+      "secret_key_bytes": 64,
+      "signature_bytes": 17088,
+      "api": "SlhDsaParams.shake128f",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-192s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "3",
+      "public_key_bytes": 48,
+      "secret_key_bytes": 96,
+      "signature_bytes": 16224,
+      "api": "SlhDsaParams.shake192s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-192f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "3",
+      "public_key_bytes": 48,
+      "secret_key_bytes": 96,
+      "signature_bytes": 35664,
+      "api": "SlhDsaParams.shake192f",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-256s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "5",
+      "public_key_bytes": 64,
+      "secret_key_bytes": 128,
+      "signature_bytes": 29792,
+      "api": "SlhDsaParams.shake256s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHAKE-256f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "5",
+      "public_key_bytes": 64,
+      "secret_key_bytes": 128,
+      "signature_bytes": 49856,
+      "api": "SlhDsaParams.shake256f",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-128s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "1",
+      "public_key_bytes": 32,
+      "secret_key_bytes": 64,
+      "signature_bytes": 7856,
+      "api": "SlhDsaParams.sha2128s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-128f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "1",
+      "public_key_bytes": 32,
+      "secret_key_bytes": 64,
+      "signature_bytes": 17088,
+      "api": "SlhDsaParams.sha2128f",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-192s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "3",
+      "public_key_bytes": 48,
+      "secret_key_bytes": 96,
+      "signature_bytes": 16224,
+      "api": "SlhDsaParams.sha2192s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-192f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "3",
+      "public_key_bytes": 48,
+      "secret_key_bytes": 96,
+      "signature_bytes": 35664,
+      "api": "SlhDsaParams.sha2192f",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-256s",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "5",
+      "public_key_bytes": 64,
+      "secret_key_bytes": 128,
+      "signature_bytes": 29792,
+      "api": "SlhDsaParams.sha2256s",
+      "status": "available in 0.4.0"
+    },
+    {
+      "name": "SLH-DSA-SHA2-256f",
+      "standard": "FIPS 205",
+      "type": "digital signature",
+      "security_category": "5",
+      "public_key_bytes": 64,
+      "secret_key_bytes": 128,
+      "signature_bytes": 49856,
+      "api": "SlhDsaParams.sha2256f",
+      "status": "available in 0.4.0"
+    }
+  ],
+  "status_cards": [
+    {
+      "label": "Version",
+      "value": "0.4.0"
+    },
+    {
+      "label": "Runtime deps",
+      "value": "0"
+    },
+    {
+      "label": "ML-KEM KATs",
+      "value": "3000"
+    },
+    {
+      "label": "ML-DSA KAT signatures",
+      "value": "1800"
+    },
+    {
+      "label": "SLH-DSA ACVP",
+      "value": "1248/1248"
+    },
+    {
+      "label": "SLH-DSA sets",
+      "value": "12 (SHAKE + SHA-2)"
+    }
+  ],
+  "docs": [
+    {
+      "title": "README",
+      "url": "README.md",
+      "description": "Overview, install path, quickstart, validation status, and package boundary."
+    },
+    {
+      "title": "Documentation Index",
+      "url": "doc/INDEX.md",
+      "description": "Canonical map of all maintained project documentation."
+    },
+    {
+      "title": "ML-KEM Testing",
+      "url": "doc/MLKEM_TESTING.md",
+      "description": "Checked-in ML-KEM KAT corpus, hashes, and release gates."
+    },
+    {
+      "title": "ML-DSA FIPS 204 Release Guide",
+      "url": "doc/MLDSA_FIPS204_RELEASE_GUIDE.md",
+      "description": "ML-DSA implementation, validation, and hardening checklist."
+    },
+    {
+      "title": "SLH-DSA FIPS 205 Release Guide",
+      "url": "doc/SLHDSA_FIPS205_RELEASE_GUIDE.md",
+      "description": "SLH-DSA implementation, ACVP evidence, hardening, performance, and release checklist."
+    },
+    {
+      "title": "Performance",
+      "url": "doc/PERFORMANCE.md",
+      "description": "Portable benchmark tooling and published SHAKE single-sample baselines for SLH-DSA."
+    },
+    {
+      "title": "Native Interop",
+      "url": "doc/OPENSSL_INTEROP.md",
+      "description": "OpenSSL and liboqs interop matrix, commands, and package-boundary notes."
+    },
+    {
+      "title": "FIPS 140 Boundary",
+      "url": "doc/FIPS_140_BOUNDARY.md",
+      "description": "Precise wording boundary for algorithm evidence versus module validation."
+    },
+    {
+      "title": "Security Audit",
+      "url": "doc/SECURITY_AUDIT.md",
+      "description": "Resolved issues, residual risks, and side-channel posture."
+    },
+    {
+      "title": "Cookbook",
+      "url": "doc/cookbook/README.md",
+      "description": "Builder-facing recipes and project ideas for safe composition."
+    },
+    {
+      "title": "Project Ideas YAML",
+      "url": "doc/cookbook/project-ideas.yaml",
+      "description": "Machine-readable recipe and idea catalog for code generation agents."
+    },
+    {
+      "title": "Universal Multi-Agent PQC Framework",
+      "url": "doc/UNIVERSAL_MULTI_AGENT_PQC_FRAMEWORK.md",
+      "description": "Canonical cross-agent framework for Codex, Claude Code, and Antigravity."
+    }
+  ],
+  "agent_entrypoints": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".codex/skills/universal-pqc-framework/SKILL.md",
+    ".claude/skills/universal-pqc-framework/SKILL.md",
+    ".gemini/antigravity/skills/universal-pqc-framework/SKILL.md",
+    ".github/copilot-instructions.md",
+    ".github/instructions/pqcrypto-crypto.instructions.md",
+    ".cursor/rules/pqcrypto.mdc",
+    ".windsurfrules",
+    "tool/agent_framework/pqc_framework.yaml",
+    "tool/visibility/visibility_manifest.json"
+  ],
+  "validation_commands": [
+    "dart run tool/visibility/generate_visibility.dart --check",
+    "dart analyze",
+    "dart test test/kat_evaluator_test.dart",
+    "dart test test/mldsa_kat_test.dart",
+    "dart test test/slhdsa_kat_test.dart",
+    "dart test",
+    "dart test -p chrome",
+    "dart test -p chrome --compiler dart2wasm",
+    "dart run tool/agent_framework/check_setup.dart"
+  ],
+  "faq": [
+    {
+      "question": "Is pqcrypto FIPS validated?",
+      "answer": "No. pqcrypto provides FIPS 203/204/205-aligned implementations (ML-KEM, ML-DSA, and all 12 SLH-DSA sets) with checked-in KAT/ACVP and interop evidence, but it is not a CMVP/FIPS 140 validated module."
+    },
+    {
+      "question": "Is SLH-DSA available in pqcrypto?",
+      "answer": "Yes. Version 0.4.0 exports all 12 SLH-DSA parameter sets (SHAKE and SHA-2 families) as pure Dart, byte-exact on the 1,248 official NIST ACVP sample cases, alongside ML-KEM and ML-DSA."
+    },
+    {
+      "question": "Can I encrypt data with ML-KEM alone?",
+      "answer": "No. ML-KEM establishes a 32-byte shared secret. Applications must add a KDF and AEAD, and must authenticate public keys."
+    },
+    {
+      "question": "Does pqcrypto provide HKDF, AEAD, X25519, TLS, or secure storage?",
+      "answer": "No. Those are application or platform responsibilities."
+    },
+    {
+      "question": "Which default profile should a new hybrid protocol start from?",
+      "answer": "Use ML-KEM-768 plus ML-DSA-65, combined with an application-supplied classical KEX, KDF, AEAD, replay window, and authenticated key directory."
+    },
+    {
+      "question": "Can coding agents generate full protocols from pqcrypto alone?",
+      "answer": "No. Agents must carry the you_supply and caveat fields from the cookbook manifest and must not present pqcrypto primitives as a complete secure channel."
+    }
+  ],
+  "keywords": [
+    "Dart post-quantum cryptography",
+    "Flutter post-quantum cryptography",
+    "ML-KEM Dart",
+    "ML-DSA Dart",
+    "SLH-DSA Dart",
+    "SPHINCS+ Dart",
+    "Kyber Dart",
+    "Dilithium Dart",
+    "FIPS 203",
+    "FIPS 204",
+    "FIPS 205",
+    "PQC",
+    "quantum-safe cryptography",
+    "OpenSSL ML-KEM interop",
+    "liboqs post-quantum interop"
+  ]
+}

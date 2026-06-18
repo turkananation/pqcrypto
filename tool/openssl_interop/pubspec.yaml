@@ -1,19 +1,20 @@
 name: openssl_pqcrypto_interop
 description: >-
-  Developer tool: OpenSSL <-> pqcrypto ML-KEM-512/768/1024 interoperability
-  checks via FFI to libcrypto. Not published; depends on the parent package by
-  path.
+  Unpublished OpenSSL interoperability harness for pqcrypto ML-KEM, ML-DSA,
+  and SLH-DSA via FFI to libcrypto.
 publish_to: none
-version: 0.3.1
+version: 0.4.0-dev
 
 environment:
   sdk: ^3.10.0
 
 dependencies:
-  # Use the in-repo package directly (path dependency on the repo root).
+  ffi: ^2.1.0
   pqcrypto:
     path: ../..
-  ffi: ^2.1.0
+  pqcrypto_interop_common:
+    path: ../interop_common
 
 dev_dependencies:
+  lints: ^6.0.0
   test: ^1.25.6

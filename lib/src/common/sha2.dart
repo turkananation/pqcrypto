@@ -1,10 +1,11 @@
-/// FIPS 180-4 SHA-2 (SHA-256, SHA-384, SHA-512), vendored in pure Dart.
+/// FIPS 180-4 SHA-2, vendored in pure Dart.
 ///
-/// SHA-512/384 use 64-bit words represented as 32-bit (hi, lo) pairs so the
-/// implementation is byte-exact on the Dart VM, dart2js, and dart2wasm
+/// SHA-384 and the SHA-512 variants use 64-bit words represented as 32-bit
+/// (hi, lo) pairs so the implementation is byte-exact on the Dart VM,
+/// dart2js, and dart2wasm
 /// (dart2js native integers are 53-bit and cannot hold 64-bit words directly).
 ///
-/// These are needed by FIPS 204 HashML-DSA (§5.4) as the pre-hash functions.
+/// These are needed by FIPS 204 HashML-DSA and FIPS 205 HashSLH-DSA.
 library;
 
 import 'dart:typed_data';
@@ -29,12 +30,8 @@ const List<int> _k256 = [
 
 int _rotr32(int x, int n) => ((x >>> n) | (x << (32 - n))) & 0xFFFFFFFF;
 
-/// FIPS 180-4 SHA-256. Returns a 32-byte digest.
-Uint8List sha256(Uint8List msg) {
-  final h = Uint32List.fromList([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, //
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
-  ]);
+Uint8List _sha256Core(Uint8List msg, List<int> initialState, int outBytes) {
+  final h = Uint32List.fromList(initialState);
 
   // Pad: 0x80, zeros, 64-bit big-endian bit length, to a multiple of 64 bytes.
   final bitLen = msg.length * 8;
@@ -92,16 +89,25 @@ Uint8List sha256(Uint8List msg) {
     h[7] = (h[7] + hh) & 0xFFFFFFFF;
   }
 
-  final out = Uint8List(32);
-  for (int i = 0; i < 8; i++) {
-    final v = h[i] & 0xFFFFFFFF;
-    out[i * 4] = (v >>> 24) & 0xFF;
-    out[i * 4 + 1] = (v >>> 16) & 0xFF;
-    out[i * 4 + 2] = (v >>> 8) & 0xFF;
-    out[i * 4 + 3] = v & 0xFF;
+  final out = Uint8List(outBytes);
+  for (int i = 0; i < outBytes; i++) {
+    final word = h[i ~/ 4] & 0xFFFFFFFF;
+    out[i] = (word >>> (24 - 8 * (i % 4))) & 0xFF;
   }
   return out;
 }
+
+/// FIPS 180-4 SHA-224. Returns a 28-byte digest.
+Uint8List sha224(Uint8List msg) => _sha256Core(msg, <int>[
+  0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, //
+  0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4,
+], 28);
+
+/// FIPS 180-4 SHA-256. Returns a 32-byte digest.
+Uint8List sha256(Uint8List msg) => _sha256Core(msg, <int>[
+  0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, //
+  0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+], 32);
 
 // ===========================================================================
 // SHA-512 / SHA-384 (64-bit words as 32-bit (hi, lo) pairs)
@@ -374,4 +380,26 @@ Uint8List sha384(Uint8List msg) {
     0xdb0c2e0d, 0x64f98fa7, 0x47b5481d, 0xbefa4fa4,
   ];
   return _sha512Core(msg, h, 48);
+}
+
+/// FIPS 180-4 SHA-512/224. Returns a 28-byte digest.
+Uint8List sha512224(Uint8List msg) {
+  final h = <int>[
+    0x8c3d37c8, 0x19544da2, 0x73e19966, 0x89dcd4d6, //
+    0x1dfab7ae, 0x32ff9c82, 0x679dd514, 0x582f9fcf,
+    0x0f6d2b69, 0x7bd44da8, 0x77e36f73, 0x04c48942,
+    0x3f9d85a8, 0x6a1d36c8, 0x1112e6ad, 0x91d692a1,
+  ];
+  return _sha512Core(msg, h, 28);
+}
+
+/// FIPS 180-4 SHA-512/256. Returns a 32-byte digest.
+Uint8List sha512256(Uint8List msg) {
+  final h = <int>[
+    0x22312194, 0xfc2bf72c, 0x9f555fa3, 0xc84c64c2, //
+    0x2393b86b, 0x6f53b151, 0x96387719, 0x5940eabd,
+    0x96283ee2, 0xa88effe3, 0xbe5e1e25, 0x53863992,
+    0x2b0199fc, 0x2c85b8aa, 0x0eb72ddc, 0x81c52ca2,
+  ];
+  return _sha512Core(msg, h, 32);
 }

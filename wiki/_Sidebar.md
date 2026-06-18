@@ -1,17 +1,50 @@
-### Introduction
+<!-- markdownlint-disable-file MD041 MD036 -->
+<!-- GitHub wiki sidebar: section labels are intentionally not headings. -->
+
+**pqcrypto Wiki**
+
+**Getting started**
+
 - [Home](Home)
-- [Quickstart Guide](Quickstart)
+- [Installation](Installation)
+- [Quickstart](Quickstart)
+- [Cookbook — project ideas](Cookbook)
 
-### Technical Details
-- [Design Philosophy](Design-Philosophy)
+**Algorithms**
+
 - [Cryptographic Algorithms](Cryptographic-Algorithms)
-- [Security Posture & Compliance](Security-Posture)
+- [ML-KEM (FIPS 203)](ML-KEM)
+- [ML-DSA (FIPS 204)](ML-DSA)
+- [SLH-DSA (FIPS 205)](SLH-DSA)
 
-### Integration & Frameworks
-- [Serverpod & Flutter Integration](Serverpod-Integration)
+**Design & internals**
+
+- [Design Philosophy](Design-Philosophy)
+- [Architecture](Architecture)
+- [Performance](Performance)
+
+**Assurance**
+
+- [Security Posture](Security-Posture)
+- [FIPS Compliance](FIPS-Compliance)
+- [Validation & Interoperability](Validation-and-Interoperability)
+
+**Integration**
+
+- [Serverpod & Flutter](Serverpod-Integration)
 - [Multi-Agent PQC Framework](Multi-Agent-Framework)
 
-### Community
+**Project**
+
+- [Roadmap](Roadmap)
+- [FAQ](FAQ)
+- [Contributing](Contributing)
+- [Documentation Index](Documentation-Index)
+
+**Links**
+
+- [pub.dev package](https://pub.dev/packages/pqcrypto)
+- [API docs](https://pub.dev/documentation/pqcrypto/latest/)
+- [Repository](https://github.com/turkananation/pqcrypto)
 - [Discussions](https://github.com/turkananation/pqcrypto/discussions)
-- [Issue Board](https://github.com/turkananation/pqcrypto/issues)
-- [Contributing Guidelines](https://github.com/turkananation/pqcrypto/blob/main/CONTRIBUTING.md)
+- [Issues](https://github.com/turkananation/pqcrypto/issues)

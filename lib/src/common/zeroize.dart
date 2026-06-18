@@ -23,3 +23,11 @@ void secureZeroInt32(Int32List? b) {
     b[i] = 0;
   }
 }
+
+/// Best-effort zeroization of a [Uint32List] (e.g. sponge state words).
+void secureZeroUint32(Uint32List? b) {
+  if (b == null) return;
+  for (int i = 0; i < b.length; i++) {
+    b[i] = 0;
+  }
+}

@@ -1,11 +1,12 @@
 name: CI
 
-# Run on every branch push and every pull request so the full test suite
-# (which includes the checked-in 3000-vector ML-KEM KAT corpus) is exercised
-# on each change.
+# Run on every branch push and every pull request. Expensive KAT suites are
+# decomposed so failures and progress remain visible instead of being hidden in
+# one long-running `dart test` process.
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 # Least privilege: this workflow only reads the repository.
 permissions:
@@ -18,8 +19,9 @@ concurrency:
 
 jobs:
   analyze-and-test:
-    name: Analyze & test (Dart stable)
+    name: Analyze and core VM gates (Dart stable)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -41,12 +43,77 @@ jobs:
       - name: Analyze source
         run: dart analyze
 
-      - name: Run tests (unit suite + ML-KEM KAT corpus)
-        run: dart test
+      - name: Run ordinary VM regression suite
+        shell: bash
+        run: |
+          mapfile -d '' tests < <(
+            find test -maxdepth 1 -name '*_test.dart' \
+              ! -name 'kat_evaluator_test.dart' \
+              ! -name 'mldsa_kat_test.dart' \
+              ! -name 'slhdsa_kat_test.dart' \
+              -print0 | sort -z
+          )
+          dart test --concurrency=1 "${tests[@]}"
+
+      - name: Run ML-KEM KAT corpus
+        run: dart test --concurrency=1 test/kat_evaluator_test.dart
+
+      - name: Run ML-DSA KAT corpus
+        run: dart test --concurrency=1 test/mldsa_kat_test.dart
+
+      - name: Compile SLH-DSA benchmark for AOT
+        run: |
+          dart compile exe \
+            -DSLHDSA_BENCH_TARGET=vm-aot-ci \
+            tool/bench/slhdsa_bench.dart \
+            -o /tmp/pqcrypto-slhdsa-bench-aot
+
+      - name: Run AOT smoke for both SLH-DSA hash families
+        run: |
+          /tmp/pqcrypto-slhdsa-bench-aot --parameter=sha2128f
+          /tmp/pqcrypto-slhdsa-bench-aot --parameter=shake128f
+
+  slhdsa-acvp:
+    name: SLH-DSA ACVP (${{ matrix.parameter }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        parameter:
+          - SLH-DSA-SHA2-128s
+          - SLH-DSA-SHA2-128f
+          - SLH-DSA-SHA2-192s
+          - SLH-DSA-SHA2-192f
+          - SLH-DSA-SHA2-256s
+          - SLH-DSA-SHA2-256f
+          - SLH-DSA-SHAKE-128s
+          - SLH-DSA-SHAKE-128f
+          - SLH-DSA-SHAKE-192s
+          - SLH-DSA-SHAKE-192f
+          - SLH-DSA-SHAKE-256s
+          - SLH-DSA-SHAKE-256f
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run official NIST ACVP cases
+        run: dart test --concurrency=1 test/slhdsa_kat_test.dart
+        env:
+          SLHDSA_KAT_PARAMETER: ${{ matrix.parameter }}
 
   web-test:
     name: Web test (dart2js + dart2wasm)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # The library targets the web (dart2js/dart2wasm), where `int` is 53-bit and
     # bitwise ops are 32-bit — a different arithmetic backend from the VM. This
     # job runs the portable (non-dart:io) tests under both web compilers in a
@@ -66,7 +133,7 @@ jobs:
         run: dart pub get
 
       - name: Run tests under dart2js (Chrome)
-        run: dart test -p chrome
+        run: dart test --concurrency=1 -p chrome
 
       - name: Run tests under dart2wasm (Chrome)
-        run: dart test -p chrome --compiler dart2wasm
+        run: dart test --concurrency=1 -p chrome --compiler dart2wasm

@@ -1,0 +1,97 @@
+{
+  "schema": "pqcrypto-fips202-byte-v1",
+  "source": "NIST FIPS 202 example values",
+  "retrieved": "2026-06-13",
+  "vectors": [
+    {
+      "function": "SHA3-224",
+      "messageHex": "",
+      "outputHex": "6b4e03423667dbb73b6e15454f0eb1abd4597f9a1b078e3f5b5a6bc7",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-224_Msg0.pdf",
+      "sourceSha256": "b2b915ff45b4b643c278aebc64616acc8b59aac47149ad3aad27c1606ed32653"
+    },
+    {
+      "function": "SHA3-224",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "9376816aba503f72f96ce7eb65ac095deee3be4bf9bbc2a1cb7e11e0",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-224_1600.pdf",
+      "sourceSha256": "c5f5e25ba7e20e89294f2877cbabc43f13cc7ed3986f92f11f17fa89cea7dc90"
+    },
+    {
+      "function": "SHA3-256",
+      "messageHex": "",
+      "outputHex": "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-256_Msg0.pdf",
+      "sourceSha256": "72c5a5d37ed639058421b0a292775605a6be1631cfc4c156a2fb4739e68f8e9c"
+    },
+    {
+      "function": "SHA3-256",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "79f38adec5c20307a98ef76e8324afbfd46cfd81b22e3973c65fa1bd9de31787",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-256_1600.pdf",
+      "sourceSha256": "ee3a3cfb383a1c9ac5982de0bf14388168922e7373519b18aea14513e6fbafae"
+    },
+    {
+      "function": "SHA3-384",
+      "messageHex": "",
+      "outputHex": "0c63a75b845e4f7d01107d852e4c2485c51a50aaaa94fc61995e71bbee983a2ac3713831264adb47fb6bd1e058d5f004",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-384_Msg0.pdf",
+      "sourceSha256": "19927c316398729e82e98169efe39dc0a8f93aad171a293da5dbbc47da0fbdcb"
+    },
+    {
+      "function": "SHA3-384",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "1881de2ca7e41ef95dc4732b8f5f002b189cc1e42b74168ed1732649ce1dbcdd76197a31fd55ee989f2d7050dd473e8f",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-384_1600.pdf",
+      "sourceSha256": "9460b7c2ecb5bb3c82b13738d2531ba9ec8455a0c7120468bde68b8e9e275e6a"
+    },
+    {
+      "function": "SHA3-512",
+      "messageHex": "",
+      "outputHex": "a69f73cca23a9ac5c8b567dc185a756e97c982164fe25859e0d1dcc1475c80a615b2123af1f5f94c11e3e9402c3ac558f500199d95b6d3e301758586281dcd26",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-512_Msg0.pdf",
+      "sourceSha256": "6d0a6fecea7babaffe9f3b09058fdb1590576e52b9dbfe0a637705db6f7de248"
+    },
+    {
+      "function": "SHA3-512",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "e76dfad22084a8b1467fcf2ffa58361bec7628edf5f3fdc0e4805dc48caeeca81b7c13c30adf52a3659584739a2df46be589c51ca1a4a8416df6545a1ce8ba00",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA3-512_1600.pdf",
+      "sourceSha256": "2f5f6ca71c3bd7bf3e99d142f7c4035b1e3fea95d7fc7e7a79a38ce995388211"
+    },
+    {
+      "function": "SHAKE128",
+      "messageHex": "",
+      "outputHex": "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef263cb1eea988004b93103cfb0aeefd2a686e01fa4a58e8a3639ca8a1e3f9ae57e2",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE128_Msg0.pdf",
+      "sourceSha256": "3013d904e0f6cebc8dad6393cbf3eed4d1a537b3b3dc5e7b48552ff597942974"
+    },
+    {
+      "function": "SHAKE128",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "131ab8d2b594946b9c81333f9bb6e0ce75c3b93104fa3469d3917457385da037cf232ef7164a6d1eb448c8908186ad852d3f85a5cf28da1ab6fe343817197846",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE128_Msg1600.pdf",
+      "sourceSha256": "437f905d9790ce7a18625b396ba57c6118bb46d1542ec3cf1d46faac23c261ef"
+    },
+    {
+      "function": "SHAKE256",
+      "messageHex": "",
+      "outputHex": "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE256_Msg0.pdf",
+      "sourceSha256": "d736c1a93eb6440e1e6b640402e31ea5258281b2b9237f84ea0ba4186518fc59"
+    },
+    {
+      "function": "SHAKE256",
+      "messageHex": "a3",
+      "messageRepeats": 200,
+      "outputHex": "cd8a920ed141aa0407a22d59288652e9d9f1a7ee0c1e7c1ca699424da84a904d2d700caae7396ece96604440577da4f3aa22aeb8857f961c4cd8e06f0ae6610b",
+      "sourcePdf": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHAKE256_Msg1600.pdf",
+      "sourceSha256": "f4226f5c72914e5d2b331812c5973d8d685c8af1ccb97c2a3a2fd1c02fd173d1"
+    }
+  ]
+}
