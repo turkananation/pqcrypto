@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:pqcrypto/src/algos/kyber/pack.dart';
-import 'package:pqcrypto/src/common/poly.dart';
+import 'package:pqcrypto/src/algos/kyber/poly.dart';
 
 void main() {
   group('FIPS 203 Serialization', () {

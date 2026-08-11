@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/common/shake.dart';
-import 'package:pqcrypto/src/common/poly.dart';
+import 'package:pqcrypto/src/algos/kyber/poly.dart';
 // ignore: unused_import
 import 'package:pqcrypto/src/algos/kyber/pack.dart';
 import 'params.dart';
