@@ -1,9 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:pqcrypto/pqcrypto.dart';
-import 'package:pqcrypto/src/common/keccak.dart';
 import 'package:pqcrypto/src/algos/kyber/indcpa.dart';
-import 'package:pqcrypto/src/common/shake.dart';
 import 'package:test/test.dart';
 
 /// Isolating unit tests for two ML-KEM keygen steps that were previously only

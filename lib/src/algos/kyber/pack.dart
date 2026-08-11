@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:pqcrypto/src/common/poly.dart';
+import 'package:pqcrypto/src/algos/kyber/poly.dart';
 import 'params.dart';
 
 /// Serialization for ML-KEM (FIPS 203 compliant)

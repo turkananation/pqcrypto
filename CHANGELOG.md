@@ -1,8 +1,6 @@
 # Changelog
 
-## Unreleased
-
-### Changed
+## 0.4.1
 
 - Reworked `example/main.dart` into a full-family walkthrough for ML-KEM,
   ML-DSA, SLH-DSA, and a signed ML-KEM + ML-DSA handshake composition.
@@ -12,6 +10,8 @@
 - Scoped CI, interop, visibility, and CodeQL workflow concurrency/triggers so
   pull requests validate before merge while push runs are reserved for
   integration branches, reducing duplicate branch-and-PR workflow work.
+- Export common API classes (`Hmac`, `Keccak`, `KeccakParameters`, `Mgf1`, `Sha2`, `Shake`, `Zeroize`) at
+  the package root for cookbook and framework use.
 
 ## 0.4.0
 

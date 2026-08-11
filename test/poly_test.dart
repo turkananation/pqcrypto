@@ -1,4 +1,4 @@
-import 'package:pqcrypto/src/common/poly.dart';
+import 'package:pqcrypto/src/algos/kyber/poly.dart';
 import 'package:test/test.dart';
 
 void main() {
