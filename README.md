@@ -669,7 +669,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.4.0
+  pqcrypto: ^0.4.2
 ```
 
 `pqcrypto` pulls in no third-party dependencies of its own.

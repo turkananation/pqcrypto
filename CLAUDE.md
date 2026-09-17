@@ -4,7 +4,7 @@ Last updated: 2026-06-16
 
 ## Project Summary
 
-`pqcrypto` is a pure Dart post-quantum cryptography package. Version `0.4.0`
+`pqcrypto` is a pure Dart post-quantum cryptography package. Version `0.4.2`
 ships three NIST-standardized families: ML-KEM, ML-DSA, and SLH-DSA. Treat them
 as equal, independently-evidenced surfaces.
 
@@ -24,7 +24,7 @@ as equal, independently-evidenced surfaces.
   hedged-by-default with context strings, HashSLH-DSA, explicit deterministic and
   slow-signing (`allowSlowSigning`) paths, and optional verify-after-sign. This
   is KAT/ACVP/regression evidence, NOT a CMVP/FIPS 140 validation claim.
-- **Version:** 0.4.0.
+- **Version:** 0.4.2.
 - **Runtime dependencies:** none. FIPS 202 SHA3/SHAKE and FIPS 180-4 SHA-2 are
   vendored in `lib/src/common/`.
 - **Canonical documentation root:** `doc/`.

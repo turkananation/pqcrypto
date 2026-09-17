@@ -52,6 +52,12 @@ jobs:
       - name: Analyze source
         run: dart analyze
 
+      - name: Verify Cookbook ships in the pub archive (issue #60)
+        run: dart run tool/check_publish_surface.dart
+
+      - name: Generate API docs
+        run: dart doc --output /tmp/pqcrypto-doc
+
       - name: Run ordinary VM regression suite
         shell: bash
         run: |

@@ -3,7 +3,7 @@
 # pqcrypto
 
 > Pure Dart, zero-dependency post-quantum cryptography for Dart, Flutter, and the web.
-> Version 0.4.0; MIT licensed; maintained by Turkana Nation.
+> Version 0.4.2; MIT licensed; maintained by Turkana Nation.
 
 pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.
 

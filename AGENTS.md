@@ -8,7 +8,7 @@ documentation root [doc/](doc/).
 
 ## Current Truth
 
-- Package version: `0.4.0`.
+- Package version: `0.4.2`.
 - Runtime dependencies: none. FIPS 202 SHA3/SHAKE and FIPS 180-4 SHA-2 are
   vendored in `lib/src/common/`.
 - ML-KEM: supported for ML-KEM-512/768/1024 with checked-in KAT vectors,
