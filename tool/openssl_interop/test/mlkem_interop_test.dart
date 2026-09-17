@@ -195,82 +195,70 @@ void main() {
         expect(() => pq.encapsulate(truncated), throwsArgumentError);
       });
 
-      group(
-        'seed-based (deterministic) conformance',
-        () {
-          test('E: same seed ⇒ byte-identical public keys', () {
-            for (var s = 0; s < 3; s++) {
-              final seed = _seed(level, salt: s);
-              final (pqPub, _) = pq.generateKeyPair(seed);
-              final osslKey = own(ossl.keypairFromSeed(name, seed));
-              final osslPub = ossl.exportPublicKey(osslKey);
-              expect(
-                osslPub,
-                equals(pqPub),
-                reason:
-                    'seed salt $s: OpenSSL and pqcrypto derived different keys',
-              );
-            }
-          });
+      group('seed-based (deterministic) conformance', () {
+        test('E: same seed ⇒ byte-identical public keys', () {
+          for (var s = 0; s < 3; s++) {
+            final seed = _seed(level, salt: s);
+            final (pqPub, _) = pq.generateKeyPair(seed);
+            final osslKey = own(ossl.keypairFromSeed(name, seed));
+            final osslPub = ossl.exportPublicKey(osslKey);
+            expect(
+              osslPub,
+              equals(pqPub),
+              reason:
+                  'seed salt $s: OpenSSL and pqcrypto derived different keys',
+            );
+          }
+        });
 
-          test(
-            'E-exchange: seed-derived keypair interoperates both directions',
-            () {
-              final seed = _seed(level, salt: 42);
-              final (pqPub, pqSk) = pq.generateKeyPair(seed);
-              final osslKey = own(ossl.keypairFromSeed(name, seed));
-
-              // pqcrypto encaps → OpenSSL (seed key) decaps.
-              final (ct1, ss1Alice) = pq.encapsulate(pqPub);
-              final ss1Bob = ossl.decapsulate(osslKey, Uint8List.fromList(ct1));
-              expect(
-                ss1Bob,
-                equals(ss1Alice),
-                reason: 'pq→ossl on seed keypair',
-              );
-
-              // OpenSSL (seed key) encaps → pqcrypto decaps.
-              final (ct2, ss2Alice) = ossl.encapsulate(osslKey);
-              final ss2Bob = pq.decapsulate(pqSk, ct2);
-              expect(
-                ss2Bob,
-                equals(ss2Alice),
-                reason: 'ossl→pq on seed keypair',
-              );
-            },
-          );
-
-          test('G: implicit-rejection secret J(z‖c) agrees on an invalid ct', () {
-            final seed = _seed(level, salt: 7);
+        test(
+          'E-exchange: seed-derived keypair interoperates both directions',
+          () {
+            final seed = _seed(level, salt: 42);
             final (pqPub, pqSk) = pq.generateKeyPair(seed);
             final osslKey = own(ossl.keypairFromSeed(name, seed));
 
-            // A correctly-sized but invalid ciphertext. FIPS 203 decapsulation
-            // never fails: both sides return K̄ = J(z‖c). Shared z + shared c ⇒
-            // identical secret. This exercises the rejection branch A–D never hit.
-            final invalidCt = Uint8List(level.ciphertextBytes);
-            for (var i = 0; i < invalidCt.length; i++) {
-              invalidCt[i] = (i * 251 + 17) & 0xFF;
-            }
+            // pqcrypto encaps → OpenSSL (seed key) decaps.
+            final (ct1, ss1Alice) = pq.encapsulate(pqPub);
+            final ss1Bob = ossl.decapsulate(osslKey, Uint8List.fromList(ct1));
+            expect(ss1Bob, equals(ss1Alice), reason: 'pq→ossl on seed keypair');
 
-            final ssRejPq = pq.decapsulate(pqSk, invalidCt);
-            final ssRejOssl = ossl.decapsulate(osslKey, invalidCt);
+            // OpenSSL (seed key) encaps → pqcrypto decaps.
+            final (ct2, ss2Alice) = ossl.encapsulate(osslKey);
+            final ss2Bob = pq.decapsulate(pqSk, ct2);
+            expect(ss2Bob, equals(ss2Alice), reason: 'ossl→pq on seed keypair');
+          },
+        );
 
-            expect(ssRejPq, hasLength(32));
-            expect(
-              ssRejOssl,
-              equals(ssRejPq),
-              reason: 'implicit-rejection secrets diverged',
-            );
+        test('G: implicit-rejection secret J(z‖c) agrees on an invalid ct', () {
+          final seed = _seed(level, salt: 7);
+          final (pqPub, pqSk) = pq.generateKeyPair(seed);
+          final osslKey = own(ossl.keypairFromSeed(name, seed));
 
-            // Sanity: the rejection secret must NOT equal a valid exchange secret
-            // (confirms we really hit the J path, not a chance valid decrypt).
-            final (_, ssValid) = pq.encapsulate(pqPub);
-            expect(ssRejPq, isNot(equals(ssValid)));
-          });
-        },
-        skip: seedOk ? null : 'libcrypto lacks seed-based ML-KEM keygen',
-      );
+          // A correctly-sized but invalid ciphertext. FIPS 203 decapsulation
+          // never fails: both sides return K̄ = J(z‖c). Shared z + shared c ⇒
+          // identical secret. This exercises the rejection branch A–D never hit.
+          final invalidCt = Uint8List(level.ciphertextBytes);
+          for (var i = 0; i < invalidCt.length; i++) {
+            invalidCt[i] = (i * 251 + 17) & 0xFF;
+          }
+
+          final ssRejPq = pq.decapsulate(pqSk, invalidCt);
+          final ssRejOssl = ossl.decapsulate(osslKey, invalidCt);
+
+          expect(ssRejPq, hasLength(32));
+          expect(
+            ssRejOssl,
+            equals(ssRejPq),
+            reason: 'implicit-rejection secrets diverged',
+          );
+
+          // Sanity: the rejection secret must NOT equal a valid exchange secret
+          // (confirms we really hit the J path, not a chance valid decrypt).
+          final (_, ssValid) = pq.encapsulate(pqPub);
+          expect(ssRejPq, isNot(equals(ssValid)));
+        });
+      }, skip: seedOk ? null : 'libcrypto lacks seed-based ML-KEM keygen');
     });
   }
 }

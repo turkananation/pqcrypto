@@ -28,17 +28,13 @@ void main() {
     );
   });
 
-  test(
-    'package root supports SHA-2 key generation and verification',
-    () {
-      final params = SlhDsaParams.get(SlhDsaParameter.sha2128f);
-      expect(params.hashFamily, SlhDsaHashFamily.sha2);
-      final (publicKey, secretKey) = SlhDsa.generateKeyPair(params);
-      final message = Uint8List.fromList(<int>[1, 2, 3, 4]);
-      final signature = SlhDsa.signDeterministic(secretKey, message, params);
+  test('package root supports SHA-2 key generation and verification', () {
+    final params = SlhDsaParams.get(SlhDsaParameter.sha2128f);
+    expect(params.hashFamily, SlhDsaHashFamily.sha2);
+    final (publicKey, secretKey) = SlhDsa.generateKeyPair(params);
+    final message = Uint8List.fromList(<int>[1, 2, 3, 4]);
+    final signature = SlhDsa.signDeterministic(secretKey, message, params);
 
-      expect(SlhDsa.verify(publicKey, message, signature, params), isTrue);
-    },
-    timeout: Timeout.none,
-  );
+    expect(SlhDsa.verify(publicKey, message, signature, params), isTrue);
+  }, timeout: Timeout.none);
 }

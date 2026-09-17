@@ -16,6 +16,8 @@
 [![claim boundary](https://img.shields.io/badge/CMVP%20%2F%20FIPS%20140-not%20validated-bf8700?style=for-the-badge)](doc/FIPS_140_BOUNDARY.md)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/ci.yml?branch=develop&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/ci.yml)
+[![Publish](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/publish.yml?style=for-the-badge&label=pub.dev&logo=dart&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/publish.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/release.yml?style=for-the-badge&label=Release&logo=github&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/release.yml)
 [![Interop workflow](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/interop.yml?branch=develop&style=for-the-badge&label=Interop&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/interop.yml)
 [![Visibility](https://img.shields.io/github/actions/workflow/status/turkananation/pqcrypto/visibility.yml?branch=develop&style=for-the-badge&label=Visibility&logo=githubactions&logoColor=white)](https://github.com/turkananation/pqcrypto/actions/workflows/visibility.yml)
 [![Website](https://img.shields.io/badge/Website-GitHub%20Pages-0969da?style=for-the-badge&logo=githubpages&logoColor=white)](https://turkananation.github.io/pqcrypto/)
@@ -669,7 +671,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.4.0
+  pqcrypto: ^0.4.2
 ```
 
 `pqcrypto` pulls in no third-party dependencies of its own.

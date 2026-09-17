@@ -7,7 +7,7 @@ an application. Ground claims in live code, `CHANGELOG.md`, and `doc/`.
 
 Current facts:
 
-- Package version: 0.4.0.
+- Package version: 0.4.2.
 - Runtime dependencies: zero.
 - Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.
 - Claim boundary: The package provides algorithm/KAT-conformance and interoperability evidence. It is not a CMVP/FIPS 140 validated cryptographic module.

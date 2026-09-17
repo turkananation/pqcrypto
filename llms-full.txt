@@ -6,7 +6,7 @@ Canonical URL: https://turkananation.github.io/pqcrypto/
 Repository: https://github.com/turkananation/pqcrypto
 Package: https://pub.dev/packages/pqcrypto
 API docs: https://pub.dev/documentation/pqcrypto/latest/
-Version: 0.4.0
+Version: 0.4.2
 License: MIT
 
 ## Identity
