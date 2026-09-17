@@ -1,7 +1,6 @@
 tool/
 test/
 verdicts/
-doc/EVIDENCE_LEDGER.md
 .github/
 .cursor/
 .codex/
@@ -10,10 +9,6 @@ doc/EVIDENCE_LEDGER.md
 .windsurfrules
 AGENTS.md
 CLAUDE.md
-doc/issues/
-# Keep the Cookbook landing page: dartdoc_options.yaml points at it.
-!doc/cookbook/
-!doc/cookbook/**
 wiki/
 site/
 llms-full.txt

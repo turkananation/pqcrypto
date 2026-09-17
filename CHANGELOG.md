@@ -3,12 +3,13 @@
 ## 0.4.2
 
 - **pub.dev documentation points ([#60](https://github.com/turkananation/pqcrypto/issues/60)).**
-  Ship `doc/cookbook/README.md` in the pub.dev archive.
-  `dartdoc_options.yaml` already declared the Cookbook category; 0.4.1
-  omitted the markdown file, so `dart doc` crashed while initializing
-  categories (and dependents such as pqforge inherited the crash). CI now
-  asserts the file is in `dart pub publish --dry-run` and that `dart doc`
-  succeeds. No cryptographic or API changes.
+  Stop ignoring `doc/` in `.pubignore` so the Cookbook markdown
+  (`doc/cookbook/README.md`) and the rest of the docs tree ship in the
+  pub.dev archive. `dartdoc_options.yaml` already declared the Cookbook
+  category; 0.4.1 omitted the markdown file, so `dart doc` crashed while
+  initializing categories (and dependents such as pqforge inherited the
+  crash). CI now asserts the file is in `dart pub publish --dry-run` and
+  that `dart doc` succeeds. No cryptographic or API changes.
 
 
 
