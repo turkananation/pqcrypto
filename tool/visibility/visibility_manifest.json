@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-06-18",
+  "last_updated": "2026-09-17",
   "generated_by": "dart run tool/visibility/generate_visibility.dart",
   "project": {
     "name": "pqcrypto",
@@ -9,7 +9,7 @@
     "tagline": "Pure Dart, zero-dependency post-quantum cryptography for Dart, Flutter, and the web.",
     "summary": "pqcrypto provides NIST-standardized ML-KEM key encapsulation, ML-DSA digital signatures, and all 12 FIPS 205 SLH-DSA parameter sets, as pure Dart with zero runtime dependencies.",
     "release_boundary": "Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.",
-    "version": "0.4.0",
+    "version": "0.4.2",
     "license": "MIT",
     "maintainer": "Turkana Nation",
     "canonical_url": "https://turkananation.github.io/pqcrypto/",

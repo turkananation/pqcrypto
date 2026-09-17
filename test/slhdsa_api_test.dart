@@ -36,41 +36,37 @@ void main() {
       expect(randomSecretKey, hasLength(params.secretKeyBytes));
     });
 
-    test(
-      'pure deterministic signatures are stable and context-bound',
-      () {
-        final first = SlhDsa.signDeterministic(
-          secretKey,
-          message,
-          params,
-          context: context,
-        );
-        final second = SlhDsa.signDeterministic(
-          secretKey,
-          message,
-          params,
-          context: context,
-        );
+    test('pure deterministic signatures are stable and context-bound', () {
+      final first = SlhDsa.signDeterministic(
+        secretKey,
+        message,
+        params,
+        context: context,
+      );
+      final second = SlhDsa.signDeterministic(
+        secretKey,
+        message,
+        params,
+        context: context,
+      );
 
-        expect(first, equals(second));
-        expect(first, hasLength(params.signatureBytes));
-        expect(
-          SlhDsa.verify(publicKey, message, first, params, context: context),
-          isTrue,
-        );
-        expect(
-          SlhDsa.verify(
-            publicKey,
-            message,
-            first,
-            params,
-            context: Uint8List.fromList(<int>[...context, 0]),
-          ),
-          isFalse,
-        );
-      },
-      timeout: Timeout.none,
-    );
+      expect(first, equals(second));
+      expect(first, hasLength(params.signatureBytes));
+      expect(
+        SlhDsa.verify(publicKey, message, first, params, context: context),
+        isTrue,
+      );
+      expect(
+        SlhDsa.verify(
+          publicKey,
+          message,
+          first,
+          params,
+          context: Uint8List.fromList(<int>[...context, 0]),
+        ),
+        isFalse,
+      );
+    }, timeout: Timeout.none);
 
     test('supplied hedging randomness changes signatures', () {
       final first = SlhDsa.sign(
@@ -143,23 +139,19 @@ void main() {
       );
     }, timeout: Timeout.none);
 
-    test(
-      'verify-after-sign rejects an inconsistent secret key',
-      () {
-        final inconsistentSecretKey = Uint8List.fromList(secretKey)
-          ..[3 * params.n] ^= 1;
+    test('verify-after-sign rejects an inconsistent secret key', () {
+      final inconsistentSecretKey = Uint8List.fromList(secretKey)
+        ..[3 * params.n] ^= 1;
 
-        expect(
-          () => SlhDsa.signDeterministic(
-            inconsistentSecretKey,
-            message,
-            params,
-            verifyAfterSign: true,
-          ),
-          throwsStateError,
-        );
-      },
-      timeout: Timeout.none,
-    );
+      expect(
+        () => SlhDsa.signDeterministic(
+          inconsistentSecretKey,
+          message,
+          params,
+          verifyAfterSign: true,
+        ),
+        throwsStateError,
+      );
+    }, timeout: Timeout.none);
   });
 }

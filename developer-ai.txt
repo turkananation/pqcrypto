@@ -6,7 +6,7 @@ Use this file when an AI coding agent needs fast, scoped context for pqcrypto.
 
 ## Ground Truth
 
-- Package version: 0.4.0.
+- Package version: 0.4.2.
 - Runtime dependencies: zero.
 - Canonical docs live under `doc/`; the website and wiki are discovery surfaces.
 - Version 0.4.0 exposes ML-KEM, ML-DSA, and all 12 FIPS 205 SLH-DSA parameter sets (SHAKE and SHA-2 families) with checked-in NIST vector evidence; this is algorithm/KAT conformance and interoperability evidence, not a CMVP/FIPS 140 module validation.

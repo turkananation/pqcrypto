@@ -1,0 +1,72 @@
+name: Publish to pub.dev
+
+# Publishes the package when a version tag is pushed (v0.4.2, v1.0.0, …).
+# The same tag also triggers `.github/workflows/release.yml` (GitHub Release).
+# This is a library — there are no AOT CLI binaries to attach (unlike pqforge).
+#
+# One-time setup on https://pub.dev/packages/pqcrypto/admin
+# (Automated publishing → GitHub Actions):
+#   repository:  turkananation/pqcrypto
+#   tag-pattern: v{{version}}
+#   push events: enabled
+#   workflow_dispatch: optional fallback (enabled below)
+#   Require GitHub Actions environment: pub.dev
+#     ← this is a GitHub Environment *name*, not the workflow filename
+#
+# Also create the matching GitHub Environment:
+#   Settings → Environments → New environment → name: pub.dev
+#
+# pub.dev only allows automated publishing after the package already exists.
+# After the first version, do not also run `dart pub publish` by hand for a
+# tagged release: this workflow is the publisher.
+#
+# Do not add a `release` event trigger: a GitHub Release that creates a new
+# tag already fires this `push` event, and a second trigger would double-publish.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for pub.dev; no long-lived pub credential
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Print Dart version
+        run: dart --version
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Assert tag matches pubspec version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          ver="${tag#v}"
+          pubspec_ver="$(python3 -c "import pathlib,re; t=pathlib.Path('pubspec.yaml').read_text(); print(re.search(r'^version:\s+(\S+)', t, re.M).group(1))")"
+          test "$ver" = "$pubspec_ver"
+
+      - name: Publish dry run
+        run: dart pub publish --dry-run
+
+      - name: Publish to pub.dev
+        run: dart pub publish --force
