@@ -11,6 +11,9 @@ doc/EVIDENCE_LEDGER.md
 AGENTS.md
 CLAUDE.md
 doc/issues/
+# Keep the Cookbook landing page: dartdoc_options.yaml points at it.
+!doc/cookbook/
+!doc/cookbook/**
 wiki/
 site/
 llms-full.txt

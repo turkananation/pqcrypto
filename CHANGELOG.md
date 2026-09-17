@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2
+
+Ship `doc/cookbook/README.md` in the pub.dev archive. `dartdoc_options.yaml`
+already declares the Cookbook category; 0.4.1 omitted the markdown file, so
+`dart doc` (and dependents such as pqforge) crashed while initializing
+categories. No cryptographic changes.
+
+
 ## 0.4.1
 
 - Reworked `example/main.dart` into a full-family walkthrough for ML-KEM,
