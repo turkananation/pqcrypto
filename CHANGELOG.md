@@ -10,6 +10,10 @@
   initializing categories (and dependents such as pqforge inherited the
   crash). CI now asserts the file is in `dart pub publish --dry-run` and
   that `dart doc` succeeds. No cryptographic or API changes.
+- **Automated pub.dev publish and GitHub Release.** Tag `vX.Y.Z` runs
+  `.github/workflows/publish.yml` (OIDC, environment `pub.dev`) and
+  `.github/workflows/release.yml` (verify + GitHub Release). Same layout as
+  pqforge and pqtransport. This is a library — no CLI binary matrix.
 
 
 
