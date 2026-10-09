@@ -35,7 +35,12 @@ export 'src/common/shake.dart';
 export 'src/common/zeroize.dart';
 
 // ML-KEM (FIPS 203)
-export 'src/algos/kyber/kem.dart' show KyberKem, PqcKem;
+export 'src/algos/kyber/kem.dart' show KyberKem, PqcKem, KyberLevel;
+// ML-KEM derived sizes (publicKeyBytes / secretKeyBytes / ciphertextBytes).
+// Exported so callers can size buffers from the primitive's own tables rather
+// than hardcoding literals; matches the FIPS 204/205 params already exported
+// below.
+export 'src/algos/kyber/params.dart' show KyberParams;
 
 // ML-DSA (FIPS 204)
 export 'src/algos/dilithium/dsa.dart' show MlDsa;

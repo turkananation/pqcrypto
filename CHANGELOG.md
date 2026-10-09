@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.3
+
+### Added
+
+- **`KyberParams` and `KyberLevel` are exported** from `package:pqcrypto/pqcrypto.dart`.
+
+  ML-KEM was the only family whose derived sizes were unreachable. `DilithiumParams`,
+  `DilithiumParameter`, `SlhDsaParams` and `SlhDsaParameter` were all exported;
+  the ML-KEM equivalents were not, because the barrel clause on `kyber/kem.dart`
+  was `show KyberKem, PqcKem`.
+
+  That forced any caller sizing an ML-KEM buffer to hardcode literals, which is
+  exactly the drift the exported tables exist to prevent — and it is why a
+  downstream package carried a hand-copied key-length table.
+
+  No behaviour change. `KyberParams` has existed and been used internally; this
+  only makes it reachable.
+
+
 ## 0.4.2
 
 - **pub.dev documentation points ([#60](https://github.com/turkananation/pqcrypto/issues/60)).**
