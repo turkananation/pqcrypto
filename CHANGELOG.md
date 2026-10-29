@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`SlhDsa.generateKeyPairSeeded`** (FIPS 205 Algorithm 18,
+  `slh_keygen_internal`): derives an SLH-DSA key pair from caller-supplied
+  `SK.seed`, `SK.prf` and `PK.seed`, mirroring `MlDsa.generateKeyPairSeeded`.
+
+  It lets callers validate an imported SLH-DSA secret key: `PK.root` is fully
+  determined by `SK.seed` and `PK.seed`, so recomputing it detects a corrupted
+  or inconsistent key that would otherwise import silently and produce only
+  signatures that fail verification. It also allows deterministic key
+  generation from the caller's own CSPRNG or key derivation.
+
+  The algorithm was already implemented and ACVP-validated as the
+  source-only `SlhDsaInternal.generateKeyPairSeeded`, which now delegates to
+  the public method. No behaviour change.
+
 ## 0.4.3
 
 ### Added

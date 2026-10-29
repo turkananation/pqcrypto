@@ -84,6 +84,31 @@ final class SlhDsa {
     }
   }
 
+  /// FIPS 205 Algorithm 18 (`slh_keygen_internal`): derives the key pair
+  /// from caller-supplied seeds. Returns `(publicKey, secretKey)`.
+  ///
+  /// Each seed is exactly `params.n` bytes. The counterpart of
+  /// `MlDsa.generateKeyPairSeeded` for SLH-DSA. Uses:
+  ///
+  /// - **Validating an imported secret key.** An SLH-DSA secret key is
+  ///   `SK.seed || SK.prf || PK.seed || PK.root`, and `PK.root` is fully
+  ///   determined by `SK.seed` and `PK.seed`. Recomputing the key pair from
+  ///   the first three components and comparing `PK.root` detects a corrupted
+  ///   or inconsistent key, which would otherwise import silently and then
+  ///   produce only signatures that fail verification.
+  /// - **Deterministic key generation** from a caller's own CSPRNG or key
+  ///   derivation, and known-answer tests.
+  ///
+  /// The seeds are secret. Prefer [generateKeyPair] unless one of the uses
+  /// above applies; the caller is responsible for the seeds' randomness and
+  /// for wiping them.
+  static (Uint8List, Uint8List) generateKeyPairSeeded(
+    SlhDsaParams params,
+    Uint8List secretSeed,
+    Uint8List secretPrf,
+    Uint8List publicSeed,
+  ) => _generateKeyPairSeeded(params, secretSeed, secretPrf, publicSeed);
+
   static (Uint8List, Uint8List) _generateKeyPairSeeded(
     SlhDsaParams params,
     Uint8List secretSeed,
@@ -603,12 +628,15 @@ final class SlhDsaInternal {
   SlhDsaInternal._();
 
   /// FIPS 205 Algorithm 18. Returns `(publicKey, secretKey)`.
+  ///
+  /// Same as the public [SlhDsa.generateKeyPairSeeded]; kept for the ACVP
+  /// runner and existing callers.
   static (Uint8List, Uint8List) generateKeyPairSeeded(
     SlhDsaParams params,
     Uint8List secretSeed,
     Uint8List secretPrf,
     Uint8List publicSeed,
-  ) => SlhDsa._generateKeyPairSeeded(params, secretSeed, secretPrf, publicSeed);
+  ) => SlhDsa.generateKeyPairSeeded(params, secretSeed, secretPrf, publicSeed);
 
   /// FIPS 205 Algorithm 19 over an already formatted message.
   ///
