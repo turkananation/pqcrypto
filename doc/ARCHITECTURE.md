@@ -92,9 +92,9 @@ Algorithms 1-25 for both hash families, the 32-byte `ADRS` and 22-byte `ADRS^c`,
 internal/external composition, and a VM-only runner that is byte-exact on all
 1,248 cases in the pinned official NIST ACVP sample corpus.
 
-The external Algorithms 21-25 surface is exported from `lib/pqcrypto.dart`.
-Algorithms 18-20 remain behind the source-only `SlhDsaInternal` facade for ACVP
-execution. HMAC-SHA-256/512, MGF1-SHA-256/512, SHA-2 family hashing,
+The external Algorithms 21-25 surface is exported from `lib/pqcrypto.dart`,
+along with Algorithm 18 as `SlhDsa.generateKeyPairSeeded`. Algorithms 19-20
+remain behind the source-only `SlhDsaInternal` facade for ACVP execution. HMAC-SHA-256/512, MGF1-SHA-256/512, SHA-2 family hashing,
 verify-after-sign, BUFF/performance documentation, OpenSSL/liboqs interop, and
 VM/web gates are complete. Component internals are not standalone public APIs.
 The full plan is in

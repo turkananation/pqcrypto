@@ -10,7 +10,7 @@ claim boundary for both algorithms.
 
 | Area              | Status           | Evidence                                                                                      |
 | ----------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| Version           | 0.4.0            | `pubspec.yaml`, `CHANGELOG.md`.                                                               |
+| Version           | 0.4.4            | `pubspec.yaml`, `CHANGELOG.md`.                                                               |
 | Runtime deps      | Complete         | No runtime dependencies; FIPS 202 and FIPS 180-4 primitives vendored.                         |
 | FIPS 202          | Partial          | SHA3-224/256/384/512 plus SHAKE128/256; official byte examples and table tests pass.          |
 | SP 800-185        | Not started      | cSHAKE/KMAC/TupleHash/ParallelHash planned for 0.6.0, with 0.7.0 spillover if needed.         |

@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-16
 
-This guide is for contributors working on the current `0.4.0` repository.
+This guide is for contributors working on the current `0.4.4` repository.
 
 ## Setup
 
