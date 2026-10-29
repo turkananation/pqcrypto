@@ -9,7 +9,7 @@ project documentation; the older documentation directory has been retired.
 
 | Area                         | Current state                                                                                                                                     |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Package version              | `0.4.0`                                                                                                                                           |
+| Package version              | `0.4.4`                                                                                                                                           |
 | Runtime dependencies         | None. Partial FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                                                                    |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence.                                                   |
 | ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated.        |
