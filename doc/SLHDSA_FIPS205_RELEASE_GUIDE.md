@@ -118,7 +118,10 @@ conditions are true for the parameter sets being claimed in that release:
    with hedged signing as the default.
 2. Internal functions (`slh_keygen_internal`, `slh_sign_internal`,
    `slh_verify_internal`) match the FIPS 205 algorithms exactly and are
-   accessible only for tests/fixtures, not as the normal application API.
+   accessible only for tests/fixtures, not as the normal application API;
+   `slh_keygen_internal` is additionally exposed as
+   `SlhDsa.generateKeyPairSeeded` for imported-key validation and
+   deterministic key generation.
 3. The component schemes (WOTS+, XMSS, hypertree, FORS) are implemented and
    **not** exposed as standalone public APIs (FIPS 205 §3.2 "Do not support
    component use").
