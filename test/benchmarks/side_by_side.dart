@@ -167,10 +167,10 @@ void _runMlKem(
   final engine = NttEngine(ring);
   final rnd = Random(0x1753); // E3-seed continuity.
 
-  // Parity: 20 trials, identical inputs, coefficient-wise bit-identity on
+  // Parity: 50 trials, identical inputs, coefficient-wise bit-identity on
   // both forward results and the shipped pipeline product.
   var ok = 0;
-  for (var trial = 0; trial < 20; trial++) {
+  for (var trial = 0; trial < 50; trial++) {
     final aCoeffs = List<int>.generate(n, (_) => rnd.nextInt(q));
     final bCoeffs = List<int>.generate(n, (_) => rnd.nextInt(q));
 
@@ -191,7 +191,7 @@ void _runMlKem(
     ok++;
   }
   stderr.writeln(
-    'PARITY mlKem: $ok/20 trials bit-identical '
+    'PARITY mlKem: $ok/50 trials bit-identical '
     '(aHat, bHat, full product)',
   );
 
@@ -337,9 +337,9 @@ void _runMlDsa(
   final engine = NttEngine(ring);
   final rnd = Random(0x1757);
 
-  // Parity: 10 trials; compare both forward NTTs and the delivered product.
+  // Parity: 25 trials; compare both forward NTTs and the delivered product.
   var ok = 0;
-  for (var trial = 0; trial < 10; trial++) {
+  for (var trial = 0; trial < 25; trial++) {
     final aCoeffs = List<int>.generate(n, (_) => rnd.nextInt(q));
     final bCoeffs = List<int>.generate(n, (_) => rnd.nextInt(q));
 
@@ -362,7 +362,7 @@ void _runMlDsa(
     ok++;
   }
   stderr.writeln(
-    'PARITY mlDsa: $ok/10 trials bit-identical '
+    'PARITY mlDsa: $ok/25 trials bit-identical '
     '(aHat, bHat, full product)',
   );
 
