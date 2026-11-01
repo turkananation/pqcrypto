@@ -22,3 +22,8 @@ environment:
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.25.6
+  # Bench-only cross-package comparison harness (manual run with the sibling
+  # pqlattice checkout present; never a runtime dependency; never imported
+  # by lib/ code).
+  pqlattice:
+    path: ../pqlattice
