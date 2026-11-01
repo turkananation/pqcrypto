@@ -13,3 +13,7 @@ pubspec.lock
 verdicts/
 doc/EVIDENCE_LEDGER.md
 doc/issues/
+
+# Local-only dev override: the bench harness resolves the gitignored sibling
+# pqlattice checkout; pubspec.yaml pins the CI-resolvable git ref.
+pubspec_overrides.yaml
