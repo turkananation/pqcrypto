@@ -29,6 +29,10 @@ analyzer:
   exclude:
     - tool/openssl_interop/**
     - tool/liboqs_interop/**
+    # Bench-only cross-package harness resolves its engine dependency locally
+    # (gitignored pubspec_overrides.yaml); like the interop path-packages it
+    # is never analyzed by the main package gates.
+    - test/benchmarks/**
 
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints
