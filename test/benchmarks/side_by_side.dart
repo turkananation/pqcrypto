@@ -30,8 +30,9 @@
 /// Parity failures throw; the process exits non-zero. Progress and parity
 /// lines print to stderr so stdout stays pure TSV.
 ///
-/// This file needs pqlattice as a sibling checkout (dev path dependency
-/// `../pqlattice`). Never imported by library code.
+/// pqlattice resolves from the public repo as a git-ref dev dependency
+/// (`ref: main`); a local sibling checkout can override it via the
+/// gitignored `pubspec_overrides.yaml`. Never imported by library code.
 library;
 
 import 'dart:io';
@@ -94,6 +95,7 @@ String _detectBuildMode() {
 }
 
 String _capturePeerSha() {
+  // A local sibling checkout wins when present (pubspec_overrides path).
   try {
     final r = Process.runSync('git', [
       'rev-parse',
@@ -102,6 +104,29 @@ String _capturePeerSha() {
     ], workingDirectory: '../pqlattice');
     if (r.exitCode == 0) {
       return r.stdout.toString().trim();
+    }
+  } catch (_) {}
+  // Git-ref resolution: read the pinned commit from pubspec.lock so the
+  // header still records which pqlattice revision was measured.
+  try {
+    final text = File('pubspec.lock').readAsStringSync();
+    final start = text.indexOf('pqlattice:');
+    final windowStart = start < 0 ? 0 : start;
+    if (start >= 0) {
+      final windowEnd = min(windowStart + 400, text.length);
+      final window = text.substring(windowStart, windowEnd);
+      if (window.contains('source: git')) {
+        const marker = 'resolved-ref: "';
+        final i = window.indexOf(marker);
+        if (i >= 0) {
+          final rest = window.substring(i + marker.length);
+          final j = rest.indexOf('"');
+          if (j > 0) {
+            final sha = rest.substring(0, j);
+            if (sha.length >= 8) return sha.substring(0, 8);
+          }
+        }
+      }
     }
   } catch (_) {}
   return '';
