@@ -55,7 +55,7 @@ final class SlhDsa {
   SlhDsa._();
 
   static final Random _secureRng = Random.secure();
-  static final Uint8List _emptyContext = Uint8List(0);
+  static final Uint8List _emptyContext = allocUint8(0);
   static const List<int> _oidPrefix = <int>[
     0x06,
     0x09,
@@ -126,10 +126,10 @@ final class SlhDsa {
       hashes,
     ).node(secretSeed, 0, params.hPrime, publicSeed, topAddress);
     try {
-      final publicKey = Uint8List(params.publicKeyBytes)
+      final publicKey = allocUint8(params.publicKeyBytes)
         ..setRange(0, params.n, publicSeed)
         ..setRange(params.n, 2 * params.n, publicRoot);
-      final secretKey = Uint8List(params.secretKeyBytes)
+      final secretKey = allocUint8(params.secretKeyBytes)
         ..setRange(0, params.n, secretSeed)
         ..setRange(params.n, 2 * params.n, secretPrf)
         ..setRange(2 * params.n, 3 * params.n, publicSeed)
@@ -298,17 +298,13 @@ final class SlhDsa {
     final hashes = SlhDsaHashFunctions.forParams(params);
     final fors = SlhDsaFors(hashes);
     final hypertree = SlhDsaHypertree(hashes);
-    final secretSeed = Uint8List.fromList(secretKey.sublist(0, params.n));
-    final secretPrf = Uint8List.fromList(
-      secretKey.sublist(params.n, 2 * params.n),
-    );
-    final publicSeed = Uint8List.fromList(
-      secretKey.sublist(2 * params.n, 3 * params.n),
-    );
-    final publicRoot = Uint8List.fromList(
-      secretKey.sublist(3 * params.n, 4 * params.n),
-    );
-    final optRand = Uint8List.fromList(additionalRandomness ?? publicSeed);
+    final secretSeed = allocUint8Copy(secretKey, 0, params.n);
+    final secretPrf = allocUint8Copy(secretKey, params.n, 2 * params.n);
+    final publicSeed = allocUint8Copy(secretKey, 2 * params.n, 3 * params.n);
+    final publicRoot = allocUint8Copy(secretKey, 3 * params.n, 4 * params.n);
+    final optRand = additionalRandomness == null
+        ? allocUint8Copy(publicSeed)
+        : allocUint8Copy(additionalRandomness);
 
     Uint8List? randomizer;
     Uint8List? digest;
@@ -346,7 +342,7 @@ final class SlhDsa {
         indices.leafIndex,
       );
 
-      return Uint8List(params.signatureBytes)
+      return allocUint8(params.signatureBytes)
         ..setRange(0, params.n, randomizer)
         ..setRange(
           params.n,
@@ -479,7 +475,7 @@ final class SlhDsa {
       throw ArgumentError('Context string must be at most 255 bytes');
     }
     final oidLength = oid?.length ?? 0;
-    final output = Uint8List(
+    final output = allocUint8(
       2 + actualContext.length + oidLength + payload.length,
     );
     output[0] = domain;
@@ -500,7 +496,7 @@ final class SlhDsa {
     Uint8List message,
     SlhDsaPreHash preHash,
   ) {
-    final oid = Uint8List(11)
+    final oid = allocUint8(11)
       ..setRange(0, 10, _oidPrefix)
       ..[10] = preHash.oidFinalByte;
     final digest = _preHash(message, preHash);
@@ -558,7 +554,7 @@ final class SlhDsa {
   }
 
   static Uint8List _randomBytes(int length) {
-    final output = Uint8List(length);
+    final output = allocUint8(length);
     for (var i = 0; i < length; i++) {
       output[i] = _secureRng.nextInt(256);
     }

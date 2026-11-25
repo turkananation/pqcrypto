@@ -49,7 +49,7 @@ final class SlhDsaXmss {
     _requireN(publicSeed, 'publicSeed');
     _requireLeafIndex(leafIndex);
 
-    final signature = Uint8List(params.xmssSignatureBytes);
+    final signature = allocUint8(params.xmssSignatureBytes);
     final xmssAddress = address.copy();
 
     for (var j = 0; j < params.hPrime; j++) {
@@ -121,7 +121,7 @@ final class SlhDsaXmss {
       );
       treeAddress.setTreeHeight(k + 1);
 
-      final hashInput = Uint8List(2 * params.n);
+      final hashInput = allocUint8(2 * params.n);
       if (((leafIndex >> k) & 1) == 0) {
         treeIndex ~/= 2;
         treeAddress.setTreeIndex(treeIndex);
@@ -169,7 +169,7 @@ final class SlhDsaXmss {
       publicSeed,
       address,
     );
-    final hashInput = Uint8List(2 * params.n)
+    final hashInput = allocUint8(2 * params.n)
       ..setRange(0, params.n, left)
       ..setRange(params.n, 2 * params.n, right);
     final treeAddress = address.copy()

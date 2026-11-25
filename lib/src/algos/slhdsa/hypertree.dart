@@ -30,7 +30,7 @@ final class SlhDsaHypertree {
     _requireTreeIndex(treeIndex);
     _requireLeafIndex(leafIndex);
 
-    final signature = Uint8List(params.hypertreeSignatureBytes);
+    final signature = allocUint8(params.hypertreeSignatureBytes);
     var currentTree = treeIndex;
     var currentLeaf = leafIndex;
     final address = Adrs()..setTreeAddress(currentTree);

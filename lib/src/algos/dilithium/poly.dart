@@ -1,6 +1,10 @@
 import 'dart:typed_data';
+import 'package:pqcrypto/src/common/zeroize.dart';
+
+import 'package:pqcrypto/src/common/mod_mask.dart';
 
 import 'params.dart';
+import 'reduce.dart';
 
 /// Polynomial in Rq = Zq[X]/(X^256 + 1)
 /// where q = 8380417
@@ -13,7 +17,7 @@ class DilithiumPoly {
     }
   }
 
-  factory DilithiumPoly.zero() => DilithiumPoly(Int32List(n));
+  factory DilithiumPoly.zero() => DilithiumPoly(allocInt32(n));
 
   /// Reduce all coefficients modulo q
   /// Maps to [0, q-1]
@@ -25,7 +29,7 @@ class DilithiumPoly {
 
   /// Add two polynomials
   DilithiumPoly operator +(DilithiumPoly other) {
-    final res = Int32List(n);
+    final res = allocInt32(n);
     for (int i = 0; i < n; i++) {
       res[i] = _add(coeffs[i], other.coeffs[i]);
     }
@@ -34,7 +38,7 @@ class DilithiumPoly {
 
   /// Subtract two polynomials
   DilithiumPoly operator -(DilithiumPoly other) {
-    final res = Int32List(n);
+    final res = allocInt32(n);
     for (int i = 0; i < n; i++) {
       res[i] = _sub(coeffs[i], other.coeffs[i]);
     }
@@ -48,7 +52,7 @@ class DilithiumPoly {
     // However, FIPS 204 Alg 2 (InvNTT) expects standard pointwise if fully transformed?
     // Actually FIPS 204 uses PointwiseMult (Alg 3) which is simple component-wise
     // multiplication in the NTT domain.
-    final res = Int32List(n);
+    final res = allocInt32(n);
     for (int i = 0; i < n; i++) {
       res[i] = _mul(coeffs[i], other.coeffs[i]);
     }
@@ -57,30 +61,18 @@ class DilithiumPoly {
 
   // --- Modular Arithmetic Helpers ---
 
-  static int _reduce(int a) {
-    int r = a % q;
-    return r < 0 ? r + q : r;
-  }
+  static int _reduce(int a) => mlDsaReduce32(a);
 
-  static int _add(int a, int b) {
-    int r = a + b;
-    // Simple reduction for expected range inputs
-    return r >= q ? r - q : r;
-  }
+  /// One correction. Exact when both inputs are in `[0, q)`, and also when
+  /// one addend is a centered mask coefficient whose sum with a residue stays
+  /// below `2q` (the `y + c·s1` range).
+  static int _add(int a, int b) => csubq(a + b, q);
 
-  static int _sub(int a, int b) {
-    int r = a - b;
-    return r < 0 ? r + q : r;
-  }
+  /// One correction. Exact for a difference in `(-q, q)`.
+  static int _sub(int a, int b) => caddq(a - b, q);
 
-  static int _mul(int a, int b) {
-    // Dart 'int' is 64-bit (VM) or double (JS).
-    // q^2 = (8380417)^2 ≈ 7 * 10^13
-    // JS MAX_SAFE_INTEGER is 2^53 ≈ 9 * 10^15
-    // So simple multiplication is safe in both VM and JS.
-    int p = a * b;
-    return p % q;
-  }
+  /// Plain product. Both factors are NTT-domain residues in `[0, q)`.
+  static int _mul(int a, int b) => mlDsaMulMod(a, b);
 }
 
 /// Vector of Polynomials (k x 1 or l x 1)

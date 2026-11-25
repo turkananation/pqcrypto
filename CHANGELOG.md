@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- Removed the remaining secret-dependent `%` and `~/` operations on ML-KEM
+  and ML-DSA coefficient hot paths. ML-KEM field multiplication, compression
+  inputs, and CBD noise use a Barrett multiply-shift and a single ±q mask.
+  ML-DSA products and NTT butterflies use 8-bit-limb Montgomery reduction
+  (`R = 2^32`) so the same residues are produced on the VM, dart2js, and
+  dart2wasm. `power2Round`, coefficient canonicalization, and the infinity-norm
+  check use the signed-int32 fold already proved for `Decompose`. `ExpandS`
+  (`eta = 2`) reads `2 - (b mod 5)` from a 16-entry table. Signing rejection
+  scans every polynomial before rejecting. This is not a constant-time
+  guarantee: rejection sampling still branches, and the Dart VM, dart2js, and
+  dart2wasm do not provide one.
+- Stopped exporting the wipe helpers. `secureZero` stays internal. Each wipe
+  is a single zero pass marked `vm:never-inline`, followed by an opaque read
+  so AOT cannot delete the stores. On the VM, buffers this library allocates
+  are native memory (`calloc` / `CoTaskMemAlloc`). The scavenger moves the
+  wrapper, not those bytes, so the wipe covers that allocation. It still
+  cannot see a from-space image of a caller-owned Dart list, a register, or
+  a JIT slot, and dart2js / dart2wasm have no such native heap. Applications
+  that want to wipe buffers they own should depend on `package:zeroize`.
+- ML-KEM coefficients are stored in an `Int16List`. Key generation,
+  encapsulation, and decapsulation wipe those secret polynomials and the
+  copies of seeds this code owns. Decrypt and encrypt no longer branch on
+  the message bit. ML-DSA signing wipes `y`, `z`, `c·s1`, `c·s2`, and `w`
+  at the end of each attempt. `ExpandS` rejection, the signing retry, and
+  `SampleInBall`'s secret-dependent indexes remain.
+
 ## 0.4.4
 
 ### Added

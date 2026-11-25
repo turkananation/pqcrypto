@@ -37,10 +37,10 @@ Uint8List _mgf1(
     );
   }
 
-  final output = Uint8List(maskLength);
+  final output = allocUint8(maskLength);
   if (maskLength == 0) return output;
 
-  final input = Uint8List(seed.length + 4)..setRange(0, seed.length, seed);
+  final input = allocUint8(seed.length + 4)..setRange(0, seed.length, seed);
   Uint8List? block;
   try {
     var offset = 0;

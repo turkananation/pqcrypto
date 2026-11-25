@@ -5,6 +5,7 @@ import 'poly.dart';
 import 'symmetric.dart';
 import 'params.dart';
 import 'ntt.dart';
+import 'reduce.dart';
 import 'rounding.dart';
 import 'packing.dart';
 
@@ -24,10 +25,10 @@ class MlDsa {
   MlDsa._();
 
   static final Random _secureRng = Random.secure();
-  static final Uint8List _emptyCtx = Uint8List(0);
+  static final Uint8List _emptyCtx = allocUint8(0);
 
   static Uint8List _randomBytes(int len) {
-    final b = Uint8List(len);
+    final b = allocUint8(len);
     for (int i = 0; i < len; i++) {
       b[i] = _secureRng.nextInt(256);
     }
@@ -77,14 +78,14 @@ class MlDsa {
     }
 
     // (rho, rho', K) <- H(xi || IntegerToBytes(k,1) || IntegerToBytes(l,1), 128)
-    final seedInput = Uint8List(32 + 1 + 1);
+    final seedInput = allocUint8(32 + 1 + 1);
     seedInput.setRange(0, 32, seed);
     seedInput[32] = params.k;
     seedInput[33] = params.l;
     final expanded = DilithiumSymmetric.crh(seedInput, 128);
-    final rho = Uint8List(32)..setRange(0, 32, expanded.sublist(0, 32));
-    final rhoPrime = Uint8List(64)..setRange(0, 64, expanded.sublist(32, 96));
-    final kKey = Uint8List(32)..setRange(0, 32, expanded.sublist(96, 128));
+    final rho = allocUint8(32)..setRange(0, 32, expanded);
+    final rhoPrime = allocUint8(64)..setRange(0, 64, expanded, 32);
+    final kKey = allocUint8(32)..setRange(0, 32, expanded, 96);
 
     DilithiumPolyVec? s1, s2;
     try {
@@ -140,6 +141,11 @@ class MlDsa {
 
       // 10. sk = skEncode(rho, K, tr, s1, s2, t0)
       final sk = packSK(rho, kKey, tr, s1, s2, t0, params.eta);
+      _wipeVec(s1Hat);
+      _wipeVec(s2Hat);
+      _wipeVec(tHat);
+      _wipeVec(t0);
+      _wipeVec(t1);
 
       return (pk, sk);
     } finally {
@@ -201,7 +207,7 @@ class MlDsa {
     DilithiumParams params, {
     Uint8List? ctx,
   }) {
-    return sign(sk, m, params, ctx: ctx, rnd: Uint8List(32));
+    return sign(sk, m, params, ctx: ctx, rnd: allocUint8(32));
   }
 
   // ===========================================================================
@@ -250,7 +256,7 @@ class MlDsa {
     DilithiumParams params, {
     Uint8List? rnd,
   }) {
-    final rndBytes = rnd ?? Uint8List(32);
+    final rndBytes = rnd ?? allocUint8(32);
     if (rndBytes.length != 32) {
       throw ArgumentError('rnd must be 32 bytes');
     }
@@ -264,15 +270,18 @@ class MlDsa {
     );
 
     Uint8List? rhoPrime;
+    DilithiumPolyVec? s1Hat;
+    DilithiumPolyVec? s2Hat;
+    DilithiumPolyVec? t0Hat;
     try {
       // mu = H(tr || M', 64)
-      final muInput = Uint8List(tr.length + mPrime.length);
+      final muInput = allocUint8(tr.length + mPrime.length);
       muInput.setRange(0, tr.length, tr);
       muInput.setRange(tr.length, muInput.length, mPrime);
       final mu = DilithiumSymmetric.crh(muInput);
 
       // rho' = H(K || rnd || mu, 64)
-      final rhoPrimeInput = Uint8List(32 + 32 + 64);
+      final rhoPrimeInput = allocUint8(32 + 32 + 64);
       rhoPrimeInput.setRange(0, 32, kKey);
       rhoPrimeInput.setRange(32, 64, rndBytes);
       rhoPrimeInput.setRange(64, 128, mu);
@@ -280,15 +289,15 @@ class MlDsa {
 
       final aHat = DilithiumSymmetric.expandA(rho, params.k, params.l);
 
-      final s1Hat = DilithiumPolyVec.zero(params.l);
+      s1Hat = DilithiumPolyVec.zero(params.l);
       for (int i = 0; i < params.l; i++) {
         _copyReduceNtt(s1Hat[i], s1[i]);
       }
-      final s2Hat = DilithiumPolyVec.zero(params.k);
+      s2Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
         _copyReduceNtt(s2Hat[i], s2[i]);
       }
-      final t0Hat = DilithiumPolyVec.zero(params.k);
+      t0Hat = DilithiumPolyVec.zero(params.k);
       for (int i = 0; i < params.k; i++) {
         _copyReduceNtt(t0Hat[i], t0[i]);
       }
@@ -298,131 +307,160 @@ class MlDsa {
       int kappa = 0;
 
       while (true) {
-        // y <- ExpandMask(rho', kappa)
-        final y = DilithiumSymmetric.expandMask(
-          rhoPrime,
-          kappa,
-          params.l,
-          params.gamma1,
-        );
+        DilithiumPolyVec? y;
+        DilithiumPolyVec? yHat;
+        DilithiumPolyVec? w;
+        DilithiumPolyVec? w1;
+        DilithiumPolyVec? z;
+        DilithiumPolyVec? cs2;
+        DilithiumPolyVec? r0;
+        DilithiumPolyVec? ct0;
+        DilithiumPolyVec? h;
+        DilithiumPoly? c;
+        DilithiumPoly? cHat;
+        try {
+          // y <- ExpandMask(rho', kappa)
+          y = DilithiumSymmetric.expandMask(
+            rhoPrime,
+            kappa,
+            params.l,
+            params.gamma1,
+          );
 
-        // w = A * y
-        final yHat = DilithiumPolyVec.zero(params.l);
-        for (int i = 0; i < params.l; i++) {
-          _copyReduceNtt(yHat[i], y[i]);
-        }
-        final w = DilithiumPolyVec.zero(params.k);
-        for (int i = 0; i < params.k; i++) {
-          for (int j = 0; j < params.l; j++) {
-            w[i] = w[i] + aHat[i][j].pointwiseMul(yHat[j]);
+          // w = A * y
+          yHat = DilithiumPolyVec.zero(params.l);
+          for (int i = 0; i < params.l; i++) {
+            _copyReduceNtt(yHat[i], y[i]);
           }
-          DilithiumNTT.invNtt(w[i]);
-        }
-
-        // w1 = HighBits(w)
-        final w1 = DilithiumPolyVec.zero(params.k);
-        for (int i = 0; i < params.k; i++) {
-          for (int j = 0; j < n; j++) {
-            final (r1, _) = decompose(w[i].coeffs[j], alpha);
-            w1[i].coeffs[j] = r1;
+          w = DilithiumPolyVec.zero(params.k);
+          for (int i = 0; i < params.k; i++) {
+            for (int j = 0; j < params.l; j++) {
+              final prod = aHat[i][j].pointwiseMul(yHat[j]);
+              final sum = w[i] + prod;
+              secureZeroInt32(w[i].coeffs);
+              secureZeroInt32(prod.coeffs);
+              w[i] = sum;
+            }
+            DilithiumNTT.invNtt(w[i]);
           }
-        }
 
-        // c~ = H(mu || w1Encode(w1), cTildeSize)
-        final w1Packed = Uint8List(params.k * 32 * w1Bits);
-        int w1Off = 0;
-        for (int i = 0; i < params.k; i++) {
-          final packed = simpleBitPack(w1[i], w1Bits);
-          w1Packed.setRange(w1Off, w1Off + packed.length, packed);
-          w1Off += packed.length;
-        }
-        final cInput = Uint8List(mu.length + w1Packed.length);
-        cInput.setRange(0, mu.length, mu);
-        cInput.setRange(mu.length, cInput.length, w1Packed);
-        final cTilde = DilithiumSymmetric.crh(cInput, params.cTildeSize);
-
-        // c = SampleInBall(c~); c_hat = NTT(c)
-        final c = DilithiumSymmetric.sampleInBall(cTilde, params.tau);
-        final cHat = DilithiumPoly.zero();
-        _copyReduceNtt(cHat, c);
-
-        // z = y + c*s1
-        final z = DilithiumPolyVec.zero(params.l);
-        for (int i = 0; i < params.l; i++) {
-          final cs1 = cHat.pointwiseMul(s1Hat[i]);
-          DilithiumNTT.invNtt(cs1);
-          z[i] = y[i] + cs1;
-        }
-        bool reject = false;
-        for (int i = 0; i < params.l; i++) {
-          if (_normExceeds(z[i], params.gamma1 - params.beta)) {
-            reject = true;
-            break;
+          // w1 = HighBits(w)
+          w1 = DilithiumPolyVec.zero(params.k);
+          for (int i = 0; i < params.k; i++) {
+            for (int j = 0; j < n; j++) {
+              final (r1, _) = decompose(w[i].coeffs[j], alpha);
+              w1[i].coeffs[j] = r1;
+            }
           }
-        }
-        if (reject) {
-          kappa += params.l;
-          continue;
-        }
 
-        // r0 = LowBits(w - c*s2)
-        final cs2 = DilithiumPolyVec.zero(params.k);
-        for (int i = 0; i < params.k; i++) {
-          cs2[i] = cHat.pointwiseMul(s2Hat[i]);
-          DilithiumNTT.invNtt(cs2[i]);
-        }
-        final r0 = DilithiumPolyVec.zero(params.k);
-        for (int i = 0; i < params.k; i++) {
-          final diff = w[i] - cs2[i];
-          for (int j = 0; j < n; j++) {
-            final (_, r0Val) = decompose(diff.coeffs[j], alpha);
-            r0[i].coeffs[j] = r0Val;
+          // c~ = H(mu || w1Encode(w1), cTildeSize)
+          final w1Packed = allocUint8(params.k * 32 * w1Bits);
+          int w1Off = 0;
+          for (int i = 0; i < params.k; i++) {
+            final packed = simpleBitPack(w1[i], w1Bits);
+            w1Packed.setRange(w1Off, w1Off + packed.length, packed);
+            w1Off += packed.length;
           }
-          if (_normExceeds(r0[i], params.gamma2 - params.beta)) {
-            reject = true;
-            break;
-          }
-        }
-        if (reject) {
-          kappa += params.l;
-          continue;
-        }
+          final cInput = allocUint8(mu.length + w1Packed.length);
+          cInput.setRange(0, mu.length, mu);
+          cInput.setRange(mu.length, cInput.length, w1Packed);
+          final cTilde = DilithiumSymmetric.crh(cInput, params.cTildeSize);
 
-        // ct0 = c*t0; reject if ||ct0||_inf >= gamma2
-        final ct0 = DilithiumPolyVec.zero(params.k);
-        for (int i = 0; i < params.k; i++) {
-          ct0[i] = cHat.pointwiseMul(t0Hat[i]);
-          DilithiumNTT.invNtt(ct0[i]);
-          if (_normExceeds(ct0[i], params.gamma2)) {
-            reject = true;
-            break;
-          }
-        }
-        if (reject) {
-          kappa += params.l;
-          continue;
-        }
+          // c = SampleInBall(c~); c_hat = NTT(c)
+          c = DilithiumSymmetric.sampleInBall(cTilde, params.tau);
+          cHat = DilithiumPoly.zero();
+          _copyReduceNtt(cHat, c);
 
-        // h = MakeHint(-ct0, w - c*s2 + ct0)
-        final h = DilithiumPolyVec.zero(params.k);
-        int hintCount = 0;
-        for (int i = 0; i < params.k; i++) {
-          final r = (w[i] - cs2[i]) + ct0[i];
-          for (int j = 0; j < n; j++) {
-            final hBit = makeHint(-ct0[i].coeffs[j], r.coeffs[j], alpha);
-            h[i].coeffs[j] = hBit;
-            hintCount += hBit;
+          // z = y + c*s1
+          z = DilithiumPolyVec.zero(params.l);
+          for (int i = 0; i < params.l; i++) {
+            final cs1 = cHat.pointwiseMul(s1Hat[i]);
+            DilithiumNTT.invNtt(cs1);
+            final sum = y[i] + cs1;
+            secureZeroInt32(cs1.coeffs);
+            secureZeroInt32(y[i].coeffs);
+            z[i] = sum;
           }
-        }
-        if (hintCount > params.omega) {
-          kappa += params.l;
-          continue;
-        }
+          var reject = false;
+          for (int i = 0; i < params.l; i++) {
+            if (_normExceeds(z[i], params.gamma1 - params.beta)) {
+              reject = true;
+            }
+          }
+          if (reject) {
+            kappa += params.l;
+            continue;
+          }
 
-        for (int i = 0; i < params.l; i++) {
-          z[i].reduce();
+          // r0 = LowBits(w - c*s2)
+          cs2 = DilithiumPolyVec.zero(params.k);
+          for (int i = 0; i < params.k; i++) {
+            cs2[i] = cHat.pointwiseMul(s2Hat[i]);
+            DilithiumNTT.invNtt(cs2[i]);
+          }
+          r0 = DilithiumPolyVec.zero(params.k);
+          for (int i = 0; i < params.k; i++) {
+            final diff = w[i] - cs2[i];
+            for (int j = 0; j < n; j++) {
+              final (_, r0Val) = decompose(diff.coeffs[j], alpha);
+              r0[i].coeffs[j] = r0Val;
+            }
+            if (_normExceeds(r0[i], params.gamma2 - params.beta)) {
+              reject = true;
+            }
+          }
+          if (reject) {
+            kappa += params.l;
+            continue;
+          }
+
+          // ct0 = c*t0; reject if ||ct0||_inf >= gamma2
+          ct0 = DilithiumPolyVec.zero(params.k);
+          for (int i = 0; i < params.k; i++) {
+            ct0[i] = cHat.pointwiseMul(t0Hat[i]);
+            DilithiumNTT.invNtt(ct0[i]);
+            if (_normExceeds(ct0[i], params.gamma2)) {
+              reject = true;
+            }
+          }
+          if (reject) {
+            kappa += params.l;
+            continue;
+          }
+
+          // h = MakeHint(-ct0, w - c*s2 + ct0)
+          h = DilithiumPolyVec.zero(params.k);
+          int hintCount = 0;
+          for (int i = 0; i < params.k; i++) {
+            final r = (w[i] - cs2[i]) + ct0[i];
+            for (int j = 0; j < n; j++) {
+              final hBit = makeHint(-ct0[i].coeffs[j], r.coeffs[j], alpha);
+              h[i].coeffs[j] = hBit;
+              hintCount += hBit;
+            }
+          }
+          if (hintCount > params.omega) {
+            kappa += params.l;
+            continue;
+          }
+
+          for (int i = 0; i < params.l; i++) {
+            z[i].reduce();
+          }
+          return packSig(cTilde, z, h, params.gamma1, params.omega);
+        } finally {
+          _wipeVec(y);
+          _wipeVec(yHat);
+          _wipeVec(w);
+          _wipeVec(w1);
+          _wipeVec(z);
+          _wipeVec(cs2);
+          _wipeVec(r0);
+          _wipeVec(ct0);
+          _wipeVec(h);
+          if (c != null) secureZeroInt32(c.coeffs);
+          if (cHat != null) secureZeroInt32(cHat.coeffs);
         }
-        return packSig(cTilde, z, h, params.gamma1, params.omega);
       }
     } finally {
       secureZero(kKey);
@@ -436,6 +474,16 @@ class MlDsa {
       for (final p in t0.components) {
         secureZeroInt32(p.coeffs);
       }
+      _wipeVec(s1Hat);
+      _wipeVec(s2Hat);
+      _wipeVec(t0Hat);
+    }
+  }
+
+  static void _wipeVec(DilithiumPolyVec? vec) {
+    if (vec == null) return;
+    for (final poly in vec.components) {
+      secureZeroInt32(poly.coeffs);
     }
   }
 
@@ -524,15 +572,18 @@ class MlDsa {
       return false;
     }
 
-    // ||z||_inf < gamma1 - beta
+    // ||z||_inf < gamma1 - beta. Scan every polynomial; z is public here,
+    // and the trip count no longer depends on which polynomial fails.
+    var zTooLarge = false;
     for (int i = 0; i < params.l; i++) {
       if (_normExceeds(z[i], params.gamma1 - params.beta)) {
-        return false;
+        zTooLarge = true;
       }
     }
+    if (zTooLarge) return false;
 
     final tr = DilithiumSymmetric.crh(pk, 64);
-    final muInput = Uint8List(tr.length + mPrime.length);
+    final muInput = allocUint8(tr.length + mPrime.length);
     muInput.setRange(0, tr.length, tr);
     muInput.setRange(tr.length, muInput.length, mPrime);
     final mu = DilithiumSymmetric.crh(muInput);
@@ -564,7 +615,8 @@ class MlDsa {
       for (int x = 0; x < n; x++) {
         // Multiply by 2^d (NOT a left shift: dart2js '<<' is 32-bit and
         // prod*2^d can reach ~2^36; '*' stays exact within the 53-bit web int).
-        prod.coeffs[x] = (prod.coeffs[x] * (1 << d)) % q;
+        // 2^d < q, and invNTT left the coefficient in [0, q).
+        prod.coeffs[x] = mlDsaMulMod(prod.coeffs[x], 1 << d);
       }
       ct1[i] = prod;
     }
@@ -588,14 +640,14 @@ class MlDsa {
     }
 
     final w1Bits = (params.gamma2 == 95232) ? 6 : 4;
-    final w1Packed = Uint8List(params.k * 32 * w1Bits);
+    final w1Packed = allocUint8(params.k * 32 * w1Bits);
     int w1Off = 0;
     for (int i = 0; i < params.k; i++) {
       final packed = simpleBitPack(w1Prime[i], w1Bits);
       w1Packed.setRange(w1Off, w1Off + packed.length, packed);
       w1Off += packed.length;
     }
-    final cInput = Uint8List(mu.length + w1Packed.length);
+    final cInput = allocUint8(mu.length + w1Packed.length);
     cInput.setRange(0, mu.length, mu);
     cInput.setRange(mu.length, cInput.length, w1Packed);
     final cTildePrime = DilithiumSymmetric.crh(cInput, params.cTildeSize);
@@ -625,7 +677,7 @@ class MlDsa {
     Uint8List? oid,
   ) {
     final oidLen = oid?.length ?? 0;
-    final out = Uint8List(2 + ctx.length + oidLen + payload.length);
+    final out = allocUint8(2 + ctx.length + oidLen + payload.length);
     out[0] = domain;
     out[1] = ctx.length;
     int off = 2;
@@ -648,26 +700,18 @@ class MlDsa {
   /// Infinity-norm bound check: returns `true` iff some coefficient's centered
   /// representative has absolute value `>= bound`.
   ///
-  /// Hardening: every one of the 256 coefficients is evaluated with no early
-  /// exit, so the loop length is independent of secret data (the dominant and
-  /// most exploitable timing channel for this check is closed). Per-iteration
-  /// branch directions remain a residual side channel; in a pure-Dart library
-  /// that compiles to the VM, dart2js, and dart2wasm, fully branchless,
-  /// constant-time arithmetic is not portably achievable, so this is a
-  /// best-effort measure rather than a hard guarantee (see SECURITY_AUDIT.md).
-  ///
-  /// Uses only `%`, comparison, and subtraction so the result is identical on
-  /// the VM and the web compilers (no reliance on `>>`/`<<` of signed values,
-  /// which dart2js evaluates as 32-bit operations). Accepts coefficients in
-  /// `[0, q)` or in a signed domain such as `[-gamma1+1, gamma1]`.
+  /// Every coefficient is reduced, centered, and folded into [flag] with no
+  /// early exit. The per-coefficient steps are sign masks on signed 32-bit
+  /// values (`mlDsaReduce32` covers `[-2^31, 2^31)`). Masks are not a
+  /// constant-time guarantee on the VM, dart2js, or dart2wasm.
   static bool _normExceeds(DilithiumPoly p, int bound) {
-    int flag = 0;
-    for (int i = 0; i < n; i++) {
-      int c = p.coeffs[i] % q;
-      if (c < 0) c += q; // c in [0, q)
-      if (c > (q >> 1)) c -= q; // centered representative in (-q/2, q/2]
-      final a = c < 0 ? -c : c; // |centered|
-      if (a >= bound) flag = 1; // accumulate; no early exit
+    var flag = 0;
+    for (var i = 0; i < n; i++) {
+      var c = mlDsaReduce32(p.coeffs[i]);
+      c -= q & (((q >> 1) - c) >> 31);
+      final neg = c >> 31;
+      final a = (c ^ neg) - neg;
+      flag |= ((bound - 1 - a) >> 31) & 1;
     }
     return flag != 0;
   }

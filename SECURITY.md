@@ -53,9 +53,14 @@ claim boundary. In particular:
   pure Dart compiled to the VM, dart2js, and dart2wasm cannot *guarantee*
   constant-time execution (JIT, GC, and per-iteration branch directions are out
   of our control). Treat timing/cache side-channel resistance as best-effort.
-- **Best-effort zeroization.** `secureZero`/`secureZeroInt32` overwrite secret
-  buffers in `finally` blocks, but Dart's garbage collector may have already
-  copied or retained values; this is defense-in-depth, not a guarantee.
+- **Best-effort zeroization.** Internal helpers overwrite a buffer this
+  library can still name, once, with `vm:never-inline` and a read of the last
+  element so AOT cannot delete the stores. They are not exported. On the VM
+  those buffers are native memory, so the copying collector does not duplicate
+  their bytes. A from-space image of a caller-owned Dart list is not reachable.
+  dart2js and dart2wasm keep buffers on a movable heap. This is not a hard
+  memory-erasure guarantee. Application-owned secrets should be wiped with
+  `package:zeroize`, not through this package.
 - **Randomness.** Key generation and hedged signing draw from
   `Random.secure()` (the platform CSPRNG). This is not an SP 800-90A/B
   validation claim.

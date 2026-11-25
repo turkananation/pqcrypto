@@ -30,7 +30,7 @@ pqcrypto/
         sha2.dart                  # vendored FIPS 180-4 SHA-2 functions
         hmac.dart                  # HMAC-SHA-256/512 for SLH-DSA SHA-2 sets
         mgf1.dart                  # MGF1-SHA-256/512 for SLH-DSA SHA-2 sets
-        zeroize.dart               # best-effort secret zeroization helpers
+        zeroize.dart               # best-effort wipe; VM buffers are native memory
         poly.dart                  # ML-KEM polynomial arithmetic
       algos/
         kyber/                     # ML-KEM implementation
@@ -202,10 +202,11 @@ format `M'` (domain byte, context, and — for HashML-DSA — the pre-hash OID a
 digest) and delegate to deterministic `*_internal` cores. Signing is hedged by
 default (`rnd` from `Random.secure()`); rejection samplers squeeze an incremental
 SHAKE XOF so they cannot exhaust a fixed buffer; the infinity-norm check
-evaluates all 256 coefficients with no early exit. The whole surface is
-byte-exact against the checked-in KAT corpus (`test/data/MLDSA`); residual
-hardening (per-iteration branch directions, broader pre-hash support) is tracked
-in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+evaluates all 256 coefficients with no early exit, and a rejection check scans
+every polynomial before rejecting. The whole surface is byte-exact against the
+checked-in KAT corpus (`test/data/MLDSA`); residual hardening (rejection-sample
+branches, broader pre-hash support) is tracked in
+[SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ## Design Choices
 

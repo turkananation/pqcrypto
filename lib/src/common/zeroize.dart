@@ -1,33 +1,102 @@
+/// Overwrite of a buffer this library can still name.
+///
+/// On the VM, [allocUint8], [allocInt16], [allocInt32], and [allocUint32]
+/// place the bytes outside the Dart heap. The scavenger moves the wrapper,
+/// not those bytes, so the loop below is the only copy of that allocation.
+/// A from-space image of some earlier Dart-heap buffer is not reachable from
+/// here: the collector does not return the old address. Caller-owned lists,
+/// registers, JIT slots, dart2js, and dart2wasm stay outside this wipe.
+///
+/// Each wipe is `@pragma('vm:never-inline')` and finishes by mixing the last
+/// stored element into [_wipeAnchor]. That read keeps the stores live so AOT
+/// cannot treat the loop as a dead store. One zero pass only: there is no
+/// caller-selectable pattern.
+library;
+
 import 'dart:typed_data';
 
-/// Best-effort zeroization of sensitive buffers.
+import 'secret_alloc_stub.dart'
+    if (dart.library.io) 'secret_alloc_io.dart'
+    as pinned;
+
+/// Observable sink for the post-wipe read. Not a secret.
+int _wipeAnchor = 0;
+
+@pragma('vm:never-inline')
+void _wipe(List<int>? data) {
+  if (data == null || data.isEmpty) return;
+  for (var i = 0; i < data.length; i++) {
+    data[i] = 0;
+  }
+  _observe(data[data.length - 1]);
+}
+
+@pragma('vm:never-inline')
+void _observe(int value) {
+  final next = _wipeAnchor | value;
+  _wipeAnchor = next;
+}
+
+/// Overwrites every byte of [data]. Null and empty buffers are ignored.
+@pragma('vm:never-inline')
+void secureZero(Uint8List? data) => _wipe(data);
+
+/// Overwrites every element of [data].
+@pragma('vm:never-inline')
+void secureZeroInt16(Int16List? data) => _wipe(data);
+
+/// Overwrites every element of [data].
+@pragma('vm:never-inline')
+void secureZeroInt32(Int32List? data) => _wipe(data);
+
+/// Overwrites every element of [data].
+@pragma('vm:never-inline')
+void secureZeroUint32(Uint32List? data) => _wipe(data);
+
+/// Fresh byte buffer. Native memory on the VM; a normal list on web and wasm.
+Uint8List allocUint8(int length) => pinned.allocUint8(length);
+
+/// Fresh signed 16-bit buffer. Native memory on the VM.
+Int16List allocInt16(int length) => pinned.allocInt16(length);
+
+/// Fresh signed 32-bit buffer. Native memory on the VM.
+Int32List allocInt32(int length) => pinned.allocInt32(length);
+
+/// Fresh unsigned 32-bit buffer. Native memory on the VM.
+Uint32List allocUint32(int length) => pinned.allocUint32(length);
+
+/// Copies [source] from [start] inclusive to [end] exclusive into a fresh buffer.
 ///
-/// IMPORTANT (Dart limitation): On the Dart VM and especially on
-/// dart2js/dart2wasm, the runtime and garbage collector may copy buffers,
-/// keep them alive, or place them in registers/JIT temporaries that this
-/// function cannot reach. These helpers overwrite the *visible* backing store
-/// in place and are a defense-in-depth measure, not a hard memory-erasure
-/// guarantee. They are intentionally written so the compiler cannot trivially
-/// prove the writes are dead (the loop touches every element).
-void secureZero(Uint8List? b) {
-  if (b == null) return;
-  for (int i = 0; i < b.length; i++) {
-    b[i] = 0;
+/// Does not call [List.sublist], which would leave a movable typed-data copy.
+Uint8List allocUint8Copy(List<int> source, [int start = 0, int? end]) {
+  final stop = RangeError.checkValidRange(start, end, source.length);
+  final out = allocUint8(stop - start);
+  if (out.isNotEmpty) {
+    out.setRange(0, out.length, source, start);
   }
+  return out;
 }
 
-/// Best-effort zeroization of an [Int32List] (e.g. polynomial coefficients).
-void secureZeroInt32(Int32List? b) {
-  if (b == null) return;
-  for (int i = 0; i < b.length; i++) {
-    b[i] = 0;
+/// Element copy into a fresh signed 16-bit buffer. No intermediate `List`.
+Int16List allocInt16Copy(List<int> source) {
+  final out = allocInt16(source.length);
+  for (var i = 0; i < source.length; i++) {
+    out[i] = source[i];
   }
+  return out;
 }
 
-/// Best-effort zeroization of a [Uint32List] (e.g. sponge state words).
-void secureZeroUint32(Uint32List? b) {
-  if (b == null) return;
-  for (int i = 0; i < b.length; i++) {
-    b[i] = 0;
+/// Element copy into a fresh unsigned 32-bit buffer. No intermediate `List`.
+Uint32List allocUint32Copy(List<int> source) {
+  final out = allocUint32(source.length);
+  for (var i = 0; i < source.length; i++) {
+    out[i] = source[i];
   }
+  return out;
 }
+
+bool allocIsNative(TypedData data) => pinned.allocIsNative(data);
+
+int? allocNativeAddress(TypedData data) => pinned.allocNativeAddress(data);
+
+const bool allocUsesNativeHeap = pinned.allocUsesNativeHeap;

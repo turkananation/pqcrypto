@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:pqcrypto/src/common/zeroize.dart';
 
 /// FIPS 205 Table 1 address types.
 enum AdrsType {
@@ -19,7 +20,7 @@ enum AdrsType {
 ///
 /// Layout: layer (4) || tree (12) || type (4) || type-specific (12).
 final class Adrs {
-  Adrs() : this._(Uint8List(byteLength));
+  Adrs() : this._(allocUint8(byteLength));
 
   factory Adrs.fromBytes(Uint8List bytes) {
     if (bytes.length != byteLength) {
@@ -29,7 +30,7 @@ final class Adrs {
         'must be exactly $byteLength',
       );
     }
-    return Adrs._(Uint8List.fromList(bytes));
+    return Adrs._(allocUint8Copy(bytes));
   }
 
   Adrs._(this._bytes) : _byteData = ByteData.sublistView(_bytes);
@@ -46,7 +47,7 @@ final class Adrs {
   final Uint8List _bytes;
   final ByteData _byteData;
 
-  Uint8List toBytes() => Uint8List.fromList(_bytes);
+  Uint8List toBytes() => allocUint8Copy(_bytes);
 
   /// Return the FIPS 205 Figure 18 compressed address `ADRS^c`.
   ///
@@ -54,7 +55,7 @@ final class Adrs {
   /// hashing compresses it at the hash boundary, avoiding two mutable address
   /// layouts with different field offsets.
   Uint8List toCompressedBytes() {
-    final output = Uint8List(compressedByteLength);
+    final output = allocUint8(compressedByteLength);
     copyCompressedBytesTo(output, 0);
     return output;
   }

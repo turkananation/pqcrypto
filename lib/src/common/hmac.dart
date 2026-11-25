@@ -25,8 +25,8 @@ Uint8List _hmac(
   required int blockLength,
   required _Digest digest,
 }) {
-  final keyBlock = Uint8List(blockLength);
-  final innerInput = Uint8List(blockLength + message.length);
+  final keyBlock = allocUint8(blockLength);
+  final innerInput = allocUint8(blockLength + message.length);
   Uint8List? hashedKey;
   Uint8List? innerDigest;
   Uint8List? outerInput;
@@ -46,7 +46,7 @@ Uint8List _hmac(
     innerInput.setRange(blockLength, innerInput.length, message);
     innerDigest = digest(innerInput);
 
-    outerInput = Uint8List(blockLength + innerDigest.length);
+    outerInput = allocUint8(blockLength + innerDigest.length);
     for (var i = 0; i < blockLength; i++) {
       outerInput[i] = keyBlock[i] ^ 0x5c;
     }

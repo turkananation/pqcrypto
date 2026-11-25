@@ -65,7 +65,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
     _requireN(publicSeed, 'publicSeed');
     _requireN(publicRoot, 'publicRoot');
 
-    final innerInput = Uint8List(
+    final innerInput = allocUint8(
       randomizer.length +
           publicSeed.length +
           publicRoot.length +
@@ -87,7 +87,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
       innerDigest = _isCategory1 ? sha256(innerInput) : sha512(innerInput);
 
       mgfSeed =
-          Uint8List(randomizer.length + publicSeed.length + innerDigest.length)
+          allocUint8(randomizer.length + publicSeed.length + innerDigest.length)
             ..setRange(0, randomizer.length, randomizer)
             ..setRange(
               randomizer.length,
@@ -126,7 +126,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
   Uint8List prfMsg(Uint8List secretPrf, Uint8List optRand, Uint8List message) {
     _requireN(secretPrf, 'secretPrf');
     _requireN(optRand, 'optRand');
-    final input = Uint8List(optRand.length + message.length)
+    final input = allocUint8(optRand.length + message.length)
       ..setRange(0, optRand.length, optRand)
       ..setRange(optRand.length, optRand.length + message.length, message);
     Uint8List? digest;
@@ -209,7 +209,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
     required int blockLength,
     required Uint8List Function(Uint8List) digest,
   }) {
-    final input = Uint8List(
+    final input = allocUint8(
       blockLength + Adrs.compressedByteLength + message.length,
     );
     Uint8List? fullDigest;
@@ -229,8 +229,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
     }
   }
 
-  Uint8List _truncate(Uint8List digest) =>
-      Uint8List.fromList(digest.sublist(0, params.n));
+  Uint8List _truncate(Uint8List digest) => allocUint8Copy(digest, 0, params.n);
 
   void _requireN(Uint8List value, String name) {
     _requireLength(value, params.n, name);
@@ -335,7 +334,7 @@ final class SlhDsaShakeHashFunctions implements SlhDsaHashFunctions {
   ) {
     final addressOffset = prefix.length;
     final suffixOffset = addressOffset + Adrs.byteLength;
-    final input = Uint8List(suffixOffset + suffix.length);
+    final input = allocUint8(suffixOffset + suffix.length);
     try {
       input.setRange(0, addressOffset, prefix);
       address.copyBytesTo(input, addressOffset);
@@ -348,7 +347,7 @@ final class SlhDsaShakeHashFunctions implements SlhDsaHashFunctions {
 
   Uint8List _shake(List<Uint8List> parts, int outputLength) {
     final inputLength = parts.fold<int>(0, (sum, part) => sum + part.length);
-    final input = Uint8List(inputLength);
+    final input = allocUint8(inputLength);
     try {
       var offset = 0;
       for (final part in parts) {

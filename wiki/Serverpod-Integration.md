@@ -117,9 +117,11 @@ Future<void> establishSession() async {
 
 ## ⚠️ 6. Key Manager Distillation (Zeroization)
 
-Once the `sessionKey` is derived via HKDF, the underlying `ss_classical` and `ss_lattice` buffers **must** be zeroized. In Dart, you cannot force the Garbage Collector to wipe memory, but you can explicitly zero out the `Uint8List` indices before the variables fall out of scope.
+Once the `sessionKey` is derived via HKDF, the underlying `ss_classical` and `ss_lattice` buffers **must** be zeroized. `pqcrypto` does not export a wipe function. Depend on [`package:zeroize`](https://pub.dev/packages/zeroize) in the application and wipe the buffers you own. That package, like this one, cannot erase a copy the Dart garbage collector has already made.
 
 ```dart
+import 'package:zeroize/zeroize.dart';
+
 try {
   sessionKey = await hkdfSessionKey(...);
 } finally {

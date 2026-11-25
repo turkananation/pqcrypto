@@ -1,4 +1,7 @@
 import 'dart:typed_data';
+
+import 'package:pqcrypto/src/common/zeroize.dart';
+
 import '../../common/shake.dart';
 import '../../common/sha2.dart';
 import 'poly.dart';
@@ -6,6 +9,14 @@ import 'params.dart';
 import 'packing.dart';
 
 class DilithiumSymmetric {
+  /// `2 - (b mod 5)` for `b = 0..14`. Index 15 is never stored.
+  static const List<int> _eta2HalfByte = <int>[
+    2, 1, 0, -1, -2, //
+    2, 1, 0, -1, -2, //
+    2, 1, 0, -1, -2, //
+    0,
+  ];
+
   /// CRH(seed): variable output bytes from SHAKE-256 (default 64)
   static Uint8List crh(Uint8List seed, [int length = 64]) {
     // FIPS 204: H produces 2*lambda output.
@@ -115,7 +126,7 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 30: RejNTTPoly(rho || IntegerToBytes(s,1) || IntegerToBytes(r,1))
   // C ref: nonce = (r << 8) + s, t[0] = s, t[1] = r → 34 bytes total
   static DilithiumPoly _rejNttPoly(Uint8List rho, int s, int r) {
-    final inputStrict = Uint8List(34);
+    final inputStrict = allocUint8(34);
     inputStrict.setRange(0, 32, rho);
     inputStrict[32] = s & 0xFF;
     inputStrict[33] = r & 0xFF;
@@ -124,7 +135,7 @@ class DilithiumSymmetric {
     // bytes per candidate, accept when the 23-bit value is < q. Using the XOF
     // means the sampler can never exhaust a fixed buffer.
     final xof = Shake128.xof(inputStrict);
-    final coeffs = Int32List(n);
+    final coeffs = allocInt32(n);
     int ctr = 0;
     while (ctr < n) {
       final b0 = xof.squeezeByte();
@@ -142,24 +153,27 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 31: RejBoundedPoly(rho' || IntegerToBytes(kappa, 2))
   // C ref: seed is CRHBYTES=64 bytes, nonce is 2 bytes → 66 bytes total
   static DilithiumPoly _rejBoundedPoly(Uint8List rho, int kappa, int eta) {
-    final input = Uint8List(64 + 2);
+    final input = allocUint8(64 + 2);
     input.setRange(0, 64, rho);
     input[64] = kappa & 0xFF;
     input[65] = (kappa >> 8) & 0xFF;
 
-    // FIPS 204 Algorithm 31 RejBoundedPoly + Algorithm 15 CoeffFromHalfByte:
-    // incremental SHAKE256 squeeze, one byte (two half-bytes) per step.
-    //   eta=2: accept half-byte b<15, value = 2 - (b mod 5); reject b==15.
-    //   eta=4: accept half-byte b<9,  value = 4 - b;        reject b>=9.
+    // FIPS 204 Algorithm 31 RejBoundedPoly + Algorithm 15 CoeffFromHalfByte.
+    // eta=2 accepts a half-byte b<15 with value 2-(b mod 5). The 16-entry
+    // table is that map; index 15 is unused. The accept/reject branch is the
+    // sampler itself.
+    // eta=4 accepts b<9 with value 4-b.
     final xof = Shake256.xof(input);
-    final coeffs = Int32List(n);
+    final coeffs = allocInt32(n);
     int ctr = 0;
     if (eta == 2) {
       while (ctr < n) {
         final b = xof.squeezeByte();
         final t0 = b & 0x0F, t1 = b >> 4;
-        if (t0 < 15) coeffs[ctr++] = 2 - (t0 % 5);
-        if (ctr < n && t1 < 15) coeffs[ctr++] = 2 - (t1 % 5);
+        final v0 = _eta2HalfByte[t0];
+        final v1 = _eta2HalfByte[t1];
+        if (t0 < 15) coeffs[ctr++] = v0;
+        if (ctr < n && t1 < 15) coeffs[ctr++] = v1;
       }
     } else {
       while (ctr < n) {
@@ -201,7 +215,7 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 16 (ExpandMask): Direct BitUnpack, no rejection.
   // C ref: polyz_unpack(a, buf) with coeff = GAMMA1 - unpacked_val
   static DilithiumPoly _rejGamma1(Uint8List rho, int nonce, int gamma1) {
-    final input = Uint8List(64 + 2);
+    final input = allocUint8(64 + 2);
     input.setRange(0, 64, rho);
     input[64] = nonce & 0xFF;
     input[65] = (nonce >> 8) & 0xFF;
@@ -213,7 +227,7 @@ class DilithiumSymmetric {
 
     // Direct BitUnpack: unpack 18/20 bits per coefficient
     final mapped = simpleBitUnpack(stream, bits);
-    final coeffs = Int32List(256);
+    final coeffs = allocInt32(256);
     for (int i = 0; i < 256; i++) {
       coeffs[i] = gamma1 - mapped.coeffs[i];
     }

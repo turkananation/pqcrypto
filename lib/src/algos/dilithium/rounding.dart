@@ -1,46 +1,29 @@
 import 'params.dart'; // for q
+import 'reduce.dart';
 
 /// FIPS 204 Algorithm 3: Power2Round
 /// Returns (r1, r0) such that r = r1 * 2^d + r0
 /// r1 is "high bits", r0 is "low bits" in power-of-2 basis (sort of)
 /// For ML-DSA: d = 13
 (int r1, int r0) power2Round(int r) {
-  // r = r mod q
-  r = r % q;
-  if (r < 0) r += q;
-
-  // r0 = r mod 2^d (centered)
-  // standard: r0 = r mod 2^d, then adjust to [-2^(d-1), 2^(d-1)]
-  // But FIPS 204 Alg 3:
-  // r^+ = r mod q
-  // r0 = r^+ mod 2^d
-  // if r0 > 2^(d-1) then r0 = r0 - 2^d
-  // r1 = (r^+ - r0) / 2^d
+  // Signed 32-bit canonical residue. Callers pass Int32List coefficients.
+  r = mlDsaReduce32(r);
 
   const dConst = d; // 13
   const twoPowD = 1 << dConst; // 8192
   const mask = twoPowD - 1;
   const half = 1 << (dConst - 1); // 4096
 
-  int r0 = r & mask;
-  if (r0 > half) {
-    r0 = r0 - twoPowD;
-  }
-
-  // r1 = (r - r0) / 2^d
-  int r1 = (r - r0) >> dConst;
-
+  // r0 = r mod 2^d, then r0 -= 2^d when r0 > 2^(d-1).
+  var r0 = r & mask;
+  r0 -= twoPowD & ((half - r0) >> 31);
+  final r1 = (r - r0) >> dConst;
   return (r1, r0);
 }
 
 /// Split a signed int32 coefficient using an ML-DSA alpha.
 (int r1, int r0) decompose(int r, int alpha) {
-  // Bias the shift for dart2js; fold using q = 2^23 - 8191.
-  final high = ((r + 2147483648) >> 23) - 256;
-  r = (r & 0x7fffff) + high * 8191;
-  r += (r >> 31) & q;
-  r -= q;
-  r += (r >> 31) & q;
+  r = mlDsaReduce32(r);
 
   // Reciprocals from pq-crystals/dilithium ref/rounding.c.
   int r1 = (r + 127) >> 7;

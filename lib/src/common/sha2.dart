@@ -9,6 +9,7 @@
 library;
 
 import 'dart:typed_data';
+import 'package:pqcrypto/src/common/zeroize.dart';
 
 // ===========================================================================
 // SHA-256
@@ -31,18 +32,18 @@ const List<int> _k256 = [
 int _rotr32(int x, int n) => ((x >>> n) | (x << (32 - n))) & 0xFFFFFFFF;
 
 Uint8List _sha256Core(Uint8List msg, List<int> initialState, int outBytes) {
-  final h = Uint32List.fromList(initialState);
+  final h = allocUint32Copy(initialState);
 
   // Pad: 0x80, zeros, 64-bit big-endian bit length, to a multiple of 64 bytes.
   final bitLen = msg.length * 8;
   final padLen = ((msg.length + 8) ~/ 64 + 1) * 64;
-  final data = Uint8List(padLen)..setRange(0, msg.length, msg);
+  final data = allocUint8(padLen)..setRange(0, msg.length, msg);
   data[msg.length] = 0x80;
   for (int i = 0; i < 8; i++) {
     data[padLen - 1 - i] = (bitLen >>> (8 * i)) & 0xFF;
   }
 
-  final w = Uint32List(64);
+  final w = allocUint32(64);
   for (int off = 0; off < padLen; off += 64) {
     for (int t = 0; t < 16; t++) {
       final j = off + t * 4;
@@ -89,11 +90,14 @@ Uint8List _sha256Core(Uint8List msg, List<int> initialState, int outBytes) {
     h[7] = (h[7] + hh) & 0xFFFFFFFF;
   }
 
-  final out = Uint8List(outBytes);
+  final out = allocUint8(outBytes);
   for (int i = 0; i < outBytes; i++) {
     final word = h[i ~/ 4] & 0xFFFFFFFF;
     out[i] = (word >>> (24 - 8 * (i % 4))) & 0xFF;
   }
+  secureZeroUint32(h);
+  secureZero(data);
+  secureZeroUint32(w);
   return out;
 }
 
@@ -174,16 +178,16 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
   final bitLen = msg.length * 8;
   // 128-bit length field; messages here are far below 2^32 bytes.
   final padLen = ((msg.length + 16) ~/ 128 + 1) * 128;
-  final data = Uint8List(padLen)..setRange(0, msg.length, msg);
+  final data = allocUint8(padLen)..setRange(0, msg.length, msg);
   data[msg.length] = 0x80;
   for (int i = 0; i < 8; i++) {
     data[padLen - 1 - i] = (bitLen >>> (8 * i)) & 0xFF;
   }
 
-  final wHi = Uint32List(80), wLo = Uint32List(80);
-  final r = List<int>.filled(2, 0);
-  final r2 = List<int>.filled(2, 0);
-  final r3 = List<int>.filled(2, 0);
+  final wHi = allocUint32(80), wLo = allocUint32(80);
+  final r = allocUint32(2);
+  final r2 = allocUint32(2);
+  final r3 = allocUint32(2);
 
   for (int off = 0; off < padLen; off += 128) {
     for (int t = 0; t < 16; t++) {
@@ -342,12 +346,18 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
     _add64Into(h, 14, hH, hL);
   }
 
-  final out = Uint8List(outBytes);
+  final out = allocUint8(outBytes);
   for (int i = 0; i < outBytes; i++) {
     final word = i ~/ 4;
     final v = h[word] & 0xFFFFFFFF;
     out[i] = (v >>> (24 - 8 * (i % 4))) & 0xFF;
   }
+  secureZero(data);
+  secureZeroUint32(wHi);
+  secureZeroUint32(wLo);
+  secureZeroUint32(r);
+  secureZeroUint32(r2);
+  secureZeroUint32(r3);
   return out;
 }
 
@@ -362,44 +372,60 @@ void _add64Into(List<int> h, int idx, int addH, int addL) {
 
 /// FIPS 180-4 SHA-512. Returns a 64-byte digest.
 Uint8List sha512(Uint8List msg) {
-  final h = <int>[
+  final h = allocUint32Copy(const <int>[
     0x6a09e667, 0xf3bcc908, 0xbb67ae85, 0x84caa73b, //
     0x3c6ef372, 0xfe94f82b, 0xa54ff53a, 0x5f1d36f1,
     0x510e527f, 0xade682d1, 0x9b05688c, 0x2b3e6c1f,
     0x1f83d9ab, 0xfb41bd6b, 0x5be0cd19, 0x137e2179,
-  ];
-  return _sha512Core(msg, h, 64);
+  ]);
+  try {
+    return _sha512Core(msg, h, 64);
+  } finally {
+    secureZeroUint32(h);
+  }
 }
 
 /// FIPS 180-4 SHA-384. Returns a 48-byte digest.
 Uint8List sha384(Uint8List msg) {
-  final h = <int>[
+  final h = allocUint32Copy(const <int>[
     0xcbbb9d5d, 0xc1059ed8, 0x629a292a, 0x367cd507, //
     0x9159015a, 0x3070dd17, 0x152fecd8, 0xf70e5939,
     0x67332667, 0xffc00b31, 0x8eb44a87, 0x68581511,
     0xdb0c2e0d, 0x64f98fa7, 0x47b5481d, 0xbefa4fa4,
-  ];
-  return _sha512Core(msg, h, 48);
+  ]);
+  try {
+    return _sha512Core(msg, h, 48);
+  } finally {
+    secureZeroUint32(h);
+  }
 }
 
 /// FIPS 180-4 SHA-512/224. Returns a 28-byte digest.
 Uint8List sha512224(Uint8List msg) {
-  final h = <int>[
+  final h = allocUint32Copy(const <int>[
     0x8c3d37c8, 0x19544da2, 0x73e19966, 0x89dcd4d6, //
     0x1dfab7ae, 0x32ff9c82, 0x679dd514, 0x582f9fcf,
     0x0f6d2b69, 0x7bd44da8, 0x77e36f73, 0x04c48942,
     0x3f9d85a8, 0x6a1d36c8, 0x1112e6ad, 0x91d692a1,
-  ];
-  return _sha512Core(msg, h, 28);
+  ]);
+  try {
+    return _sha512Core(msg, h, 28);
+  } finally {
+    secureZeroUint32(h);
+  }
 }
 
 /// FIPS 180-4 SHA-512/256. Returns a 32-byte digest.
 Uint8List sha512256(Uint8List msg) {
-  final h = <int>[
+  final h = allocUint32Copy(const <int>[
     0x22312194, 0xfc2bf72c, 0x9f555fa3, 0xc84c64c2, //
     0x2393b86b, 0x6f53b151, 0x96387719, 0x5940eabd,
     0x96283ee2, 0xa88effe3, 0xbe5e1e25, 0x53863992,
     0x2b0199fc, 0x2c85b8aa, 0x0eb72ddc, 0x81c52ca2,
-  ];
-  return _sha512Core(msg, h, 32);
+  ]);
+  try {
+    return _sha512Core(msg, h, 32);
+  } finally {
+    secureZeroUint32(h);
+  }
 }
