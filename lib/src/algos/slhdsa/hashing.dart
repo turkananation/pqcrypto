@@ -229,8 +229,7 @@ final class SlhDsaSha2HashFunctions implements SlhDsaHashFunctions {
     }
   }
 
-  Uint8List _truncate(Uint8List digest) =>
-      Uint8List.fromList(digest.sublist(0, params.n));
+  Uint8List _truncate(Uint8List digest) => digest.sublist(0, params.n);
 
   void _requireN(Uint8List value, String name) {
     _requireLength(value, params.n, name);

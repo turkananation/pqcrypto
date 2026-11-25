@@ -298,16 +298,10 @@ final class SlhDsa {
     final hashes = SlhDsaHashFunctions.forParams(params);
     final fors = SlhDsaFors(hashes);
     final hypertree = SlhDsaHypertree(hashes);
-    final secretSeed = Uint8List.fromList(secretKey.sublist(0, params.n));
-    final secretPrf = Uint8List.fromList(
-      secretKey.sublist(params.n, 2 * params.n),
-    );
-    final publicSeed = Uint8List.fromList(
-      secretKey.sublist(2 * params.n, 3 * params.n),
-    );
-    final publicRoot = Uint8List.fromList(
-      secretKey.sublist(3 * params.n, 4 * params.n),
-    );
+    final secretSeed = secretKey.sublist(0, params.n);
+    final secretPrf = secretKey.sublist(params.n, 2 * params.n);
+    final publicSeed = secretKey.sublist(2 * params.n, 3 * params.n);
+    final publicRoot = secretKey.sublist(3 * params.n, 4 * params.n);
     final optRand = Uint8List.fromList(additionalRandomness ?? publicSeed);
 
     Uint8List? randomizer;

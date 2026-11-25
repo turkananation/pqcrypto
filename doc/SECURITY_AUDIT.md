@@ -1,6 +1,6 @@
 # Security Audit and Risk Register
 
-Last updated: 2026-06-16
+Last updated: 2026-11-25
 
 This document tracks security-relevant findings against the current repository
 state. It is evidence-scoped: when a finding is not directly verified in this
@@ -28,7 +28,7 @@ pass, it is marked as open or needs verification.
 | ID         | Area                       | Current evidence                                                                                   |
 | ---------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
 | KEM-01     | ML-KEM input validation    | `kem_validation_test.dart` covers pk/sk/ct validation paths.                                       |
-| KEM-02     | Canonical ML-KEM reduction | `poly_test.dart` covers `Poly.barrettReduce` canonical residues.                                   |
+| KEM-02     | Canonical ML-KEM reduction | `poly_test.dart` and `division_free_reduce_test.dart`: Barrett residues over `[-2000000, q^2]` and every residue product, with no `%`. |
 | KEM-03     | KAT runner discovery       | Runner is `test/kat_evaluator_test.dart`, so it is discovered by `dart test`.                      |
 | HASH-01    | Vendored SHA3/SHAKE        | `keccak_test.dart` and `fips202_examples_test.dart` cover SHA3-224/256/384/512 and SHAKE behavior. |
 | INTEROP-01 | Native interoperability    | `tool/openssl_interop/` and `tool/liboqs_interop/` cover ML-KEM, ML-DSA, and SLH-DSA.              |
@@ -36,7 +36,7 @@ pass, it is marked as open or needs verification.
 | DSA-02     | Production `print` leakage | `rg "print\\(" lib` shows no production-library `print()` calls.                                   |
 | DSA-10     | ML-DSA correctness         | `mldsa_kat_test.dart`: 300 keygens + 1800 signatures byte-exact, all verify.                       |
 | DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner.                                 |
-| DSA-12     | Norm-check side channel    | `_checkNorm` replaced by no-early-exit `_normExceeds` (all 256 coeffs).                            |
+| DSA-12     | Norm-check side channel    | `_normExceeds` masks every coefficient and signing scans every polynomial before rejecting. Not a constant-time claim. |
 | DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` squeeze an incremental XOF.                           |
 | SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`; applied in keygen/sign `finally` blocks.                            |
 | SHA2-01    | HashML-DSA pre-hash        | `sha2_test.dart` pins SHA-256/384/512 against direct NIST vectors.                                 |
@@ -47,7 +47,7 @@ pass, it is marked as open or needs verification.
 
 | ID      | Severity | Area                  | Finding                                                                    | Required action                                          |
 | ------- | -------- | --------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------- |
-| DSA-20  | Medium   | ML-DSA side channels  | No early exit, but not provably constant-time in Dart.                     | Deeper review; document best-effort.                     |
+| DSA-20  | Medium   | ML-DSA / ML-KEM side channels | Secret coefficient `%` / `~/` on the hot paths is gone. Rejection sampling still branches, and pure Dart is not provably constant-time. | Keep the best-effort wording; do not claim constant-time. |
 | DSA-21  | Low      | HashML-DSA coverage   | Only the level-bound SHA-2 pre-hash is exposed.                            | Add SHAKE pre-hash paths if needed.                      |
 | DOC-01  | Medium   | Assurance wording     | Any broad "FIPS validated" claim exceeds the evidence.                     | Keep wording evidence-scoped.                            |
 | HASH-20 | Medium   | FIPS 202 completeness | Non-byte examples and complete official corpus coverage remain incomplete. | Complete FIPS 202 guide gates before broad SHA-3 claims. |
@@ -67,6 +67,12 @@ ML-KEM is the package's supported security surface. Current evidence covers:
 - vendored FIPS 202 primitives;
 - web compiler round-trips;
 - OpenSSL/liboqs interop for ML-KEM-512/768/1024.
+
+Field multiplication, the short sums reduced before compression, and CBD noise
+no longer divide. The replacement is a Barrett multiply-shift plus one ±q
+mask, proved against the old residue on `[-2000000, q^2]` and on every product
+of two residues. That is not a constant-time guarantee on the Dart VM,
+dart2js, or dart2wasm.
 
 Remaining hardening work should focus on maintaining KAT/native-interop
 coverage, monitoring secret lifetime, and deepening side-channel review as the
@@ -102,16 +108,22 @@ implemented security posture includes:
 - byte-exact KAT conformance across raw/pure/hashed × deterministic/hedged;
 - hedged-by-default signing (explicit, discouraged deterministic path);
 - total verification (returns `false`, never throws, on malformed input);
-- a no-early-exit norm check (`_normExceeds`) over all 256 coefficients;
+- a norm check (`_normExceeds`) that folds every coefficient with a sign mask
+  and does not return early; signing also scans every polynomial in a
+  rejection check before rejecting;
 - unbounded incremental-XOF rejection sampling (no fixed-buffer exhaustion);
 - best-effort secret zeroization in keygen/sign `finally` blocks.
 
 Residual, accepted risks (do not affect KAT conformance):
 
-- Per-iteration branch directions in the norm check and rejection loops are a
-  best-effort, not provably constant-time, posture — a known limitation of pure
-  Dart targeting the VM, dart2js, and dart2wasm. Best-effort zeroization is also
-  not a hard memory-erasure guarantee under Dart's GC. See DSA-20.
+- Products, NTT butterflies, `power2Round`, and the norm canonicalizer no
+  longer use `%` or `~/`. `ExpandS` for `eta = 2` uses a 16-entry table in
+  place of `b mod 5`. The accept/reject branch in `ExpandS`, the signing
+  retry, and `SampleInBall`'s secret-dependent coefficient indexes are still
+  data-dependent. Masks and limb arithmetic are not a
+  constant-time guarantee on the VM, dart2js, or dart2wasm. Best-effort
+  zeroization is also not a hard memory-erasure guarantee under Dart's GC.
+  See DSA-20.
 - HashML-DSA exposes only the level-bound SHA-2 pre-hash (DSA-21).
 - This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140 validation.
 

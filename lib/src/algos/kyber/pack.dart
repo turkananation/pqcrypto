@@ -6,24 +6,21 @@ import 'params.dart';
 class Pack {
   static const int q = 3329;
 
-  /// Compress coefficient to d bits per FIPS 203 Definition 4.7
-  /// Maps field element uniformly to range [0, 2^d - 1]
+  /// Compress a canonical coefficient to d bits.
   static int compress(int x, int d) {
-    // Formula from FIPS 203: compress_d(x) = ⌈(2^d / q) * x⌉ mod 2^d
-    // where ⌈⌉ is "round to nearest, ties round up"
+    // Requires 0 <= x < q.
+    if (d < 1 || d > 11) {
+      throw ArgumentError.value(d, 'd', 'must be between 1 and 11');
+    }
 
-    // To avoid floating point, we compute: round((x * 2^d) / q)
-    // Using the formula: round(a/b) = (a + b/2) / b (integer division)
-    // BUT we need to handle the case where this might give 2^d
-
-    // Compute (2 * x * (1 << d) + q) / (2 * q) to do proper rounding
-    final numerator = 2 * x * (1 << d) + q;
-    final denominator = 2 * q;
-    final result = numerator ~/ denominator;
-
-    // Wrap to [0, 2^d - 1] per FIPS 203 — mod 2^d
-    final maxVal = (1 << d) - 1;
-    return result & maxVal;
+    // Use 5040 = ceil(2^24 / q), then correct any overestimate.
+    final n = (x << d) + 1664;
+    // Split the product to avoid dart2js overflow.
+    final scaled = (n >> 12) * 5040 + (((n & 0xfff) * 5040) >> 12);
+    final estimate = scaled >> 12;
+    final remainder = n - estimate * q;
+    final result = estimate - ((remainder >> 31) & 1);
+    return result & ((1 << d) - 1);
   }
 
   /// Decompress d-bit value to field element per FIPS 203 Definition 4.8
@@ -64,7 +61,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for ByteDecode12');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 2) {
@@ -119,7 +116,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress10');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 4) {
@@ -162,7 +159,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress4');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i += 2) {
       final byte = bytes[i ~/ 2];
@@ -193,7 +190,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress1');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i++) {
       final bit = (bytes[i ~/ 8] >> (i % 8)) & 1;
@@ -242,7 +239,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress11');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -312,7 +309,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress5');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -386,7 +383,7 @@ class Pack {
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 
-    final sCoeffs = List<int>.filled(256 * params.k, 0);
+    final sCoeffs = Int16List(256 * params.k);
     int inIdx = 0;
     for (int i = 0; i < sCoeffs.length; i += 2) {
       if (inIdx + 3 > sBytes) break;

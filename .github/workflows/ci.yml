@@ -152,3 +152,31 @@ jobs:
 
       - name: Run tests under dart2wasm (Chrome)
         run: dart test --concurrency=1 -p chrome --compiler dart2wasm
+
+  bench-referee:
+    name: NTT referee harness (pqcrypto vs pqlattice)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The side-by-side harness (test/benchmarks/side_by_side.dart) asserts
+    # bit-identical NTT/basemul results against the pqlattice engine before
+    # any timing; a parity failure exits non-zero and fails this job. The
+    # timing medians it also prints are informational only — shared CI
+    # runners are not claim-grade.
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart SDK (stable)
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Compile referee harness (AOT)
+        run: dart compile exe test/benchmarks/side_by_side.dart -o /tmp/side_by_side
+
+      - name: Run referee harness (parity gate + timing table)
+        run: /tmp/side_by_side
+

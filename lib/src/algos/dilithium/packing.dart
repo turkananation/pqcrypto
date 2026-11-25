@@ -60,12 +60,12 @@ Uint8List simpleBitPack(DilithiumPoly w, int b) {
 
 /// FIPS 204 Algorithm 10: SimpleBitUnpack(v, b)
 /// Unpacks byte array v into polynomial w with coefficients in [0, 2^b - 1]
-DilithiumPoly simpleBitUnpack(Uint8List v, int b) {
+DilithiumPoly simpleBitUnpack(Uint8List v, int b, [int offset = 0]) {
   final w = Int32List(n);
 
   int buffer = 0;
   int bitsInBuffer = 0;
-  int inIdx = 0;
+  int inIdx = offset;
 
   final mask = (1 << b) - 1;
 
@@ -123,12 +123,12 @@ Uint8List packPK(Uint8List rho, DilithiumPolyVec t1) {
   if (pk.length != 32 + k * 320) throw ArgumentError("Invalid PK length");
 
   final rho = Uint8List(32);
-  rho.setRange(0, 32, pk.sublist(0, 32));
+  rho.setRange(0, 32, pk);
 
   final t1Vec = DilithiumPolyVec.zero(k);
   int offset = 32;
   for (int i = 0; i < k; i++) {
-    t1Vec.components[i] = simpleBitUnpack(pk.sublist(offset, offset + 320), 10);
+    t1Vec.components[i] = simpleBitUnpack(pk, 10, offset);
     offset += 320;
   }
 
@@ -253,32 +253,32 @@ unpackSK(Uint8List sk, int k, int l, int eta) {
 
   int offset = 0;
   final rho = Uint8List(32);
-  rho.setRange(0, 32, sk.sublist(offset, offset + 32));
+  rho.setRange(0, 32, sk, offset);
   offset += 32;
 
   final K = Uint8List(32);
-  K.setRange(0, 32, sk.sublist(offset, offset + 32));
+  K.setRange(0, 32, sk, offset);
   offset += 32;
 
   final tr = Uint8List(64);
-  tr.setRange(0, 64, sk.sublist(offset, offset + 64));
+  tr.setRange(0, 64, sk, offset);
   offset += 64;
 
   final s1Vec = DilithiumPolyVec.zero(l);
   for (int i = 0; i < l; i++) {
-    s1Vec[i] = bitUnpack(sk.sublist(offset, offset + s1Bytes), eta);
+    s1Vec[i] = bitUnpack(sk, eta, offset);
     offset += s1Bytes;
   }
 
   final s2Vec = DilithiumPolyVec.zero(k);
   for (int i = 0; i < k; i++) {
-    s2Vec[i] = bitUnpack(sk.sublist(offset, offset + s2Bytes), eta);
+    s2Vec[i] = bitUnpack(sk, eta, offset);
     offset += s2Bytes;
   }
 
   final t0Vec = DilithiumPolyVec.zero(k);
   for (int i = 0; i < k; i++) {
-    t0Vec[i] = simpleBitUnpack(sk.sublist(offset, offset + t0Bytes), 13);
+    t0Vec[i] = simpleBitUnpack(sk, 13, offset);
     // FIPS 204 BitUnpack(v, 2^(d-1)-1, 2^(d-1)): coeff = 2^(d-1) - packed, in
     // the signed domain [-2^(d-1)+1, 2^(d-1)]. Not folded into [0, q-1] (the
     // value is only ever NTT-transformed downstream).
@@ -313,10 +313,10 @@ Uint8List bitPack(DilithiumPoly w, int eta) {
   return simpleBitPack(z, bits);
 }
 
-DilithiumPoly bitUnpack(Uint8List v, int eta) {
+DilithiumPoly bitUnpack(Uint8List v, int eta, [int offset = 0]) {
   int bits = (eta == 2) ? 3 : 4;
 
-  final z = simpleBitUnpack(v, bits);
+  final z = simpleBitUnpack(v, bits, offset);
 
   // FIPS 204 BitUnpack(v, eta, eta): w_i = eta - z_i, preserving the signed
   // domain [-eta, eta]. Downstream consumers (NTT, centered-norm checks) are
@@ -338,18 +338,18 @@ Uint8List bitPackZ(DilithiumPoly z, int gamma1) {
   // C ref: t[0] = GAMMA1 - a->coeffs[i]
   final mapped = DilithiumPoly.zero();
   for (int i = 0; i < n; i++) {
-    int val = z.coeffs[i];
-    if (val > (q >> 1)) val -= q;
+    var val = z.coeffs[i];
+    val -= q & (((q >> 1) - val) >> 31);
     mapped.coeffs[i] = gamma1 - val;
   }
 
   return simpleBitPack(mapped, bits);
 }
 
-DilithiumPoly bitUnpackZ(Uint8List v, int gamma1) {
+DilithiumPoly bitUnpackZ(Uint8List v, int gamma1, [int offset = 0]) {
   int bits = (gamma1 == (1 << 17)) ? 18 : 20;
 
-  final mapped = simpleBitUnpack(v, bits);
+  final mapped = simpleBitUnpack(v, bits, offset);
   final z = DilithiumPoly.zero();
 
   // FIPS 204 BitUnpack(v, gamma1-1, gamma1): coeff = gamma1 - mapped, in the
@@ -421,7 +421,7 @@ Uint8List packSig(
 ) {
   int offset = 0;
   final cTilde = Uint8List(cTildeSize);
-  cTilde.setRange(0, cTildeSize, sig.sublist(offset, offset + cTildeSize));
+  cTilde.setRange(0, cTildeSize, sig, offset);
   offset += cTildeSize;
 
   int zBits = (gamma1 == (1 << 17)) ? 18 : 20;
@@ -429,7 +429,7 @@ Uint8List packSig(
 
   final zVec = DilithiumPolyVec.zero(l);
   for (int i = 0; i < l; i++) {
-    zVec[i] = bitUnpackZ(sig.sublist(offset, offset + zBytes), gamma1);
+    zVec[i] = bitUnpackZ(sig, gamma1, offset);
     offset += zBytes;
   }
 

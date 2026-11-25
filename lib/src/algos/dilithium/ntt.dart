@@ -1,5 +1,8 @@
+import 'package:pqcrypto/src/common/mod_mask.dart';
+
 import 'poly.dart';
 import 'params.dart';
+import 'reduce.dart';
 
 /// FIPS 204 Number Theoretic Transform
 class DilithiumNTT {
@@ -262,6 +265,17 @@ class DilithiumNTT {
     7648983,
   ];
 
+  /// Montgomery form of [zetas], `zeta · R mod q`. Plain-domain butterflies
+  /// satisfy `REDC(zetaM · x) = zeta · x mod q`.
+  static final List<int> _zetasMont = List<int>.generate(
+    zetas.length,
+    (i) => mlDsaMulMod(zetas[i], mlDsaRMod),
+    growable: false,
+  );
+
+  /// Montgomery form of `256^{-1} mod q`.
+  static final int _invMont = mlDsaMulMod(8347681, mlDsaRMod);
+
   /// Forward NTT (FIPS 204 Algorithm 1)
   /// In-place transformation of [poly]
   static void ntt(DilithiumPoly poly) {
@@ -270,15 +284,13 @@ class DilithiumNTT {
 
     for (int len = 128; len >= 1; len >>= 1) {
       for (int start = 0; start < 256; start += (2 * len)) {
-        int zeta = zetas[k];
+        final zetaM = _zetasMont[k];
         k++;
         for (int j = start; j < start + len; j++) {
-          int t = (zeta * a[j + len]) % q;
-          a[j + len] = (a[j] - t);
-          if (a[j + len] < 0) a[j + len] += q;
-
-          a[j] = (a[j] + t);
-          if (a[j] >= q) a[j] -= q;
+          final t = mlDsaRedc(a[j + len], zetaM);
+          final fj = a[j];
+          a[j + len] = caddq(fj - t, q);
+          a[j] = csubq(fj + t, q);
         }
       }
     }
@@ -292,38 +304,24 @@ class DilithiumNTT {
 
     for (int len = 1; len < 256; len <<= 1) {
       for (int start = 0; start < 256; start += (2 * len)) {
-        int zeta = zetas[k];
+        // Spec: zeta <- -zetas[k]. q - zetaM is -zeta in Montgomery form
+        // when zetaM is in (0, q).
+        final zetaM = q - _zetasMont[k];
         k--;
-        // FIPS 204 Alg 2 says: zeta = -zetas[k] ?
-        // Actually Alg 2 uses zetas from index 255 down to 1?
-        // Let's check spec carefully.
-        // It uses zetas[255], zetas[254] ...
-        // Note: zetas in Alg 2 are inverse powers? Or simple negative?
-        // Spec: "zeta <- -zetas[k]"
-        // So we negate it.
-        zeta = q - zeta;
 
         for (int j = start; j < start + len; j++) {
-          int t = a[j]; // a[j]
-          int u = a[j + len]; // a[j+len]
-          // a[j] <- t + u
-          // a[j+len] <- (t - u) * zeta
-
-          a[j] = t + u;
-          if (a[j] >= q) a[j] -= q;
-
-          int diff = t - u;
-          if (diff < 0) diff += q;
-          a[j + len] = (diff * zeta) % q;
+          final t = a[j];
+          final u = a[j + len];
+          a[j] = csubq(t + u, q);
+          final diff = caddq(t - u, q);
+          a[j + len] = mlDsaRedc(diff, zetaM);
         }
       }
     }
 
-    // Final scaling by n^-1 mod q
-    // n = 256. f = 8347681 (which is 256^-1 mod q)
-    const f = 8347681;
+    // Final scaling by n^-1 mod q. f = 8347681 = 256^{-1} mod q.
     for (int i = 0; i < 256; i++) {
-      a[i] = (a[i] * f) % q;
+      a[i] = mlDsaRedc(a[i], _invMont);
     }
   }
 }

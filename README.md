@@ -408,7 +408,7 @@ arithmetic — so it diversifies against any future lattice cryptanalysis:
 
 - **Implicit Rejection**: Implementation of the modified Fujisaki-Okamoto transform guarantees that invalid ciphertexts produce a pseudo-random shared secret (derived from internal secret $z$) rather than failing. This prevents chosen-ciphertext timing attacks.
 - **Constant-time output selection**: ML-KEM decapsulation always computes both the re-encryption secret `K'` and the implicit-rejection secret `J(z‖c)` and selects between them with a branchless mask, so success vs. rejection does not leak through control flow.
-- **Best-effort zeroization**: secret intermediates in ML-KEM decapsulation and ML-DSA key generation / signing are overwritten in `finally` blocks (`lib/src/common/zeroize.dart`); see [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md) for the Dart limitations.
+- **Best-effort zeroization**: secret intermediates are overwritten in `finally` blocks by an internal helper (`lib/src/common/zeroize.dart`). The helper is not part of the public API. It does not catch buffers the garbage collector already copied. See [doc/SECURITY_AUDIT.md](doc/SECURITY_AUDIT.md).
 - **ML-DSA norm checks**: `_normExceeds` scans all 256 coefficients with no
   early exit; residual branch-direction timing remains documented as
   best-effort Dart hardening, not a constant-time proof.
@@ -671,7 +671,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  pqcrypto: ^0.4.4
+  pqcrypto: ^0.4.5
 ```
 
 `pqcrypto` pulls in no third-party dependencies of its own.

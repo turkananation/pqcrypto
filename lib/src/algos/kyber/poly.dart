@@ -1,26 +1,46 @@
+import 'dart:typed_data';
+
+import 'package:pqcrypto/src/common/mod_mask.dart';
+
 class Poly {
   static const int q = 3329; // Kyber modulus
   static const int n = 256;
-  final List<int> coeffs; // Degree 256
 
-  Poly(this.coeffs);
+  /// Coefficients in an `Int16List`. `q` fits in a signed 16-bit lane.
+  ///
+  /// Callers must keep every stored coefficient in `[-32768, 32767]`. ML-KEM
+  /// sums at most five residues before reduction, and `5q` is inside that
+  /// range. An existing [Int16List] is stored as-is so a later wipe hits the
+  /// same buffer; any other [List] is copied.
+  final Int16List coeffs;
 
-  /// Barrett reduction: returns a mod q in [0, q-1]
+  Poly(List<int> source)
+    : coeffs = source is Int16List ? source : Int16List.fromList(source);
+
+  /// Barrett reduction of [a] into `[0, q)`.
+  ///
+  /// Exact for every integer in `[-2000000, q^2]`, which covers a product of
+  /// two residues and the short sums reduced before compression. Adding
+  /// `601·q` moves that interval into `[0, 2^24)`, where a split multiply by
+  /// `ceil(2^26 / q) = 20159` is exact on dart2js. One conditional add and one
+  /// conditional subtraction finish the estimate. This removes the division;
+  /// it does not make Dart execution constant-time.
   static int barrettReduce(int a) {
-    const int v = 20159; // 2^26 / q
-    const int shift = 26;
-    final product = (a * v) >> shift;
-    var res = a - product * q;
-    if (res < 0 || res >= q) {
-      res %= q;
-    }
-    return res;
+    const bias = 2000729; // 601 * q
+    final x = a + bias;
+    final xLo = x & 0x1fff;
+    final xHi = x >> 13;
+    final hi = xHi * 20159;
+    final lo = xLo * 20159;
+    final mid = ((hi & 0x1fff) << 13) + lo;
+    final quot = (hi >> 13) + (mid >> 26);
+    return csubq(caddq(x - quot * q, q), q);
   }
 
   // NTT using pure modular arithmetic (matching Go mlkem768 implementation)
   // Input: normal domain, output: NTT domain
   static Poly ntt(Poly poly) {
-    final f = List<int>.from(poly.coeffs);
+    final f = Int16List.fromList(poly.coeffs);
     int k = 1;
 
     for (int len = 128; len >= 2; len >>= 1) {
@@ -43,7 +63,7 @@ class Poly {
   // InvNTT using pure modular arithmetic (matching Go mlkem768 implementation)
   // Input: NTT domain, output: normal domain
   static Poly invNtt(Poly poly) {
-    final f = List<int>.from(poly.coeffs);
+    final f = Int16List.fromList(poly.coeffs);
     int k = 127;
 
     for (int len = 2; len <= 128; len <<= 1) {
@@ -68,21 +88,12 @@ class Poly {
     return Poly(f);
   }
 
-  // Field element addition with single reduction
-  static int _fieldAdd(int a, int b) {
-    int x = a + b;
-    // Reduce once if >= q
-    if (x >= q) x -= q;
-    return x;
-  }
+  // Field element addition. Both inputs are in `[0, q)`; the sum is in `[0, 2q)`.
+  static int _fieldAdd(int a, int b) => csubq(a + b, q);
 
-  // Field element subtraction with reduction
-  static int _fieldSub(int a, int b) {
-    int x = a - b + q;
-    // Reduce once if >= q
-    if (x >= q) x -= q;
-    return x;
-  }
+  // Field element subtraction. Both inputs are in `[0, q)`; the difference
+  // is in `(-q, q)`.
+  static int _fieldSub(int a, int b) => caddq(a - b, q);
 
   // Field element multiplication using Barrett reduction
   static int _fieldMul(int a, int b) {
@@ -224,7 +235,7 @@ class Poly {
   /// Pointwise multiplication in NTT domain
   /// Implements MultiplyNTTs per FIPS 203, Algorithm 11 (matching Go mlkem768)
   static Poly baseMul(Poly a, Poly b) {
-    final h = List<int>.filled(256, 0);
+    final h = Int16List(256);
 
     // Process in pairs using gammas
     for (int i = 0; i < 256; i += 2) {
@@ -377,21 +388,17 @@ class Poly {
   ];
 
   Poly operator +(Poly other) {
-    final res = List<int>.filled(256, 0);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
-      int val = coeffs[i] + other.coeffs[i];
-      if (val >= q) val -= q; // Conditional reduction
-      res[i] = val;
+      res[i] = csubq(coeffs[i] + other.coeffs[i], q);
     }
     return Poly(res);
   }
 
   Poly operator -(Poly other) {
-    final res = List<int>.filled(256, 0);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
-      int val = coeffs[i] - other.coeffs[i];
-      if (val < 0) val += q;
-      res[i] = val;
+      res[i] = caddq(coeffs[i] - other.coeffs[i], q);
     }
     return Poly(res);
   }

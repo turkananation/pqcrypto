@@ -80,8 +80,17 @@ class KyberKem {
       ..[32] = params.k;
     final rhoSigma = _g(dk);
 
-    // Indcpa KeyGen
-    return Indcpa.generateKeyPair(rhoSigma, z, params);
+    // d is the caller's buffer only for a 32-byte seed. z is always a copy
+    // or a buffer this method allocated, and the secret key already holds it.
+    final ownsD = seed == null || seed.length == 64;
+    try {
+      return Indcpa.generateKeyPair(rhoSigma, z, params);
+    } finally {
+      secureZero(dk);
+      secureZero(rhoSigma);
+      if (ownsD) secureZero(d);
+      secureZero(z);
+    }
   }
 
   /// Encapsulate: Client generates shared secret from pk.
@@ -101,11 +110,18 @@ class KyberKem {
     final k = kr.sublist(0, 32);
     final r = kr.sublist(32, 64);
 
-    // 3. c := Encrypt(pk, m, r)
-    final ct = Indcpa.encrypt(pk, m, r, params);
-
-    // 4. return (c, K)
-    return (ct, k);
+    // 3. c := Encrypt(pk, m, r). k is a copy of the shared secret.
+    final ownsM = nonce == null;
+    try {
+      final ct = Indcpa.encrypt(pk, m, r, params);
+      return (ct, k);
+    } finally {
+      secureZero(input);
+      secureZero(hPk);
+      secureZero(kr);
+      secureZero(r);
+      if (ownsM) secureZero(m);
+    }
   }
 
   /// Decapsulate: Server recovers ss from ct.

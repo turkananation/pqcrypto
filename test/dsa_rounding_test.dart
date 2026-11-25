@@ -18,6 +18,53 @@ void main() {
   group('Decompose / HighBits / LowBits', () {
     for (final gamma2 in [95232, 261888]) {
       final alpha = 2 * gamma2;
+      test('exhaustive division equivalence (alpha=$alpha)', () {
+        final m = (q - 1) ~/ alpha;
+        for (int r = 0; r < q; r++) {
+          final expected = _divisionDecompose(r, alpha);
+          final actual = decompose(r, alpha);
+          // Avoid allocating matchers for every successful coefficient.
+          if (actual != expected ||
+              decompose(r - q, alpha) != expected ||
+              decompose(r + q, alpha) != expected) {
+            fail(
+              'decompose mismatch: r=$r alpha=$alpha expected=$expected '
+              'actual=$actual',
+            );
+          }
+          final (r1, r0) = expected;
+          final hinted = (r1 + (r0 > 0 ? 1 : -1) + m) % m;
+          if (useHint(0, r, alpha) != r1 || useHint(1, r, alpha) != hinted) {
+            fail('useHint mismatch: r=$r alpha=$alpha');
+          }
+        }
+      });
+
+      test('signed int32 normalization (alpha=$alpha)', () {
+        final rng = Random(alpha);
+        final values = [
+          -2147483648,
+          -2147483647,
+          2147483646,
+          2147483647,
+          -q - 1,
+          -q,
+          -1,
+          0,
+          q - 1,
+          q,
+          2 * q,
+          for (int i = 0; i < 10000; i++) rng.nextInt(1 << 30) * 4 - 2147483648,
+        ];
+        for (final r in values) {
+          expect(
+            decompose(r, alpha),
+            _divisionDecompose(r, alpha),
+            reason: 'r=$r alpha=$alpha',
+          );
+        }
+      });
+
       test('reconstructs across the range (alpha=$alpha)', () {
         final rng = Random(alpha);
         for (int t = 0; t < 4000; t++) {
@@ -62,4 +109,13 @@ void main() {
       });
     }
   });
+}
+
+// Independent, pre-fix division/remainder oracle; test code only.
+(int, int) _divisionDecompose(int r, int alpha) {
+  r %= q;
+  int r0 = r % alpha;
+  if (r0 > (alpha >> 1)) r0 -= alpha;
+  if (r - r0 == q - 1) return (0, r0 - 1);
+  return ((r - r0) ~/ alpha, r0);
 }

@@ -4,6 +4,22 @@ import 'package:pqcrypto/src/algos/kyber/poly.dart';
 
 void main() {
   group('FIPS 203 Serialization', () {
+    test('compression matches division for every canonical coefficient', () {
+      for (int d = 1; d <= 11; d++) {
+        for (int x = 0; x < Pack.q; x++) {
+          final expected =
+              ((2 * x * (1 << d) + Pack.q) ~/ (2 * Pack.q)) & ((1 << d) - 1);
+          expect(Pack.compress(x, d), expected, reason: 'x=$x d=$d');
+        }
+      }
+    });
+
+    test('compression rejects unsupported public widths', () {
+      for (final d in [0, 12]) {
+        expect(() => Pack.compress(0, d), throwsArgumentError);
+      }
+    });
+
     test('compress/decompress round-trip', () {
       // Test various compression levels
       for (final d in [1, 4, 5, 10, 11]) {
