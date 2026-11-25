@@ -93,8 +93,6 @@ jobs:
           body: |
             `pqcrypto` ${{ github.ref_name }}
 
-            KyberSlash division and remainder removal contributed by Tomi Bodwell Mamic (@xss3cut10n3r).
-
             Verified by the release workflow:
             - `dart format`
             - `dart analyze`
