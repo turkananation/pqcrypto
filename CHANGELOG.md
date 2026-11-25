@@ -4,6 +4,8 @@
 
 ### Security
 
+- The reported KyberSlash division and remainder removal was contributed by
+  [Tomi Bodwell Mamic](https://github.com/xss3cut10n3r).
 - Removed the remaining secret-dependent `%` and `~/` operations on ML-KEM
   and ML-DSA coefficient hot paths. ML-KEM field multiplication, compression
   inputs, and CBD noise use a Barrett multiply-shift and a single ±q mask.
