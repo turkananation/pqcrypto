@@ -30,7 +30,7 @@ pqcrypto/
         sha2.dart                  # vendored FIPS 180-4 SHA-2 functions
         hmac.dart                  # HMAC-SHA-256/512 for SLH-DSA SHA-2 sets
         mgf1.dart                  # MGF1-SHA-256/512 for SLH-DSA SHA-2 sets
-        zeroize.dart               # best-effort wipe; VM buffers are native memory
+        zeroize.dart               # best-effort secret zeroization helpers
         poly.dart                  # ML-KEM polynomial arithmetic
       algos/
         kyber/                     # ML-KEM implementation

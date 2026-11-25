@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:pqcrypto/src/algos/kyber/poly.dart';
 import 'params.dart';
-import 'package:pqcrypto/src/common/zeroize.dart';
 
 /// Serialization for ML-KEM (FIPS 203 compliant)
 class Pack {
@@ -40,7 +39,7 @@ class Pack {
   /// ByteEncode₁₂ per FIPS 203 Algorithm 5 (for public keys)
   /// 256 coefficients → 384 bytes (12 bits per coeff, 2 coeffs → 3 bytes)
   static Uint8List byteEncode12(Poly poly) {
-    final result = allocUint8(384);
+    final result = Uint8List(384);
     int outIdx = 0;
 
     for (int i = 0; i < 256; i += 2) {
@@ -62,7 +61,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for ByteDecode12');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 2) {
@@ -88,7 +87,7 @@ class Pack {
   /// Compress₁₀ + ByteEncode₁₀ for ciphertext u (ML-KEM-768)
   /// 256 coefficients → 320 bytes (10 bits per coeff, 4 coeffs → 5 bytes)
   static Uint8List compressAndEncode10(Poly poly) {
-    final result = allocUint8(320);
+    final result = Uint8List(320);
     int outIdx = 0;
 
     for (int i = 0; i < 256; i += 4) {
@@ -117,7 +116,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress10');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 4) {
@@ -142,7 +141,7 @@ class Pack {
   /// Compress₄ + ByteEncode₄ for ciphertext v (ML-KEM-768)
   /// 256 coefficients → 128 bytes (4 bits per coeff, 2 coeffs → 1 byte)
   static Uint8List compressAndEncode4(Poly poly) {
-    final result = allocUint8(128);
+    final result = Uint8List(128);
 
     for (int i = 0; i < 256; i += 2) {
       final c0 = compress(poly.coeffs[i], 4);
@@ -160,7 +159,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress4');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i += 2) {
       final byte = bytes[i ~/ 2];
@@ -175,7 +174,7 @@ class Pack {
   /// Compress₁ + ByteEncode₁ for messages
   /// 256 coefficients → 32 bytes (1 bit per coeff, 8 coeffs → 1 byte)
   static Uint8List compressAndEncode1(Poly poly) {
-    final result = allocUint8(32);
+    final result = Uint8List(32);
 
     for (int i = 0; i < 256; i++) {
       final bit = compress(poly.coeffs[i], 1);
@@ -191,7 +190,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress1');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i++) {
       final bit = (bytes[i ~/ 8] >> (i % 8)) & 1;
@@ -205,7 +204,7 @@ class Pack {
   /// Compress₁₁ + ByteEncode₁₁ for ciphertext u (ML-KEM-1024)
   /// 256 coefficients → 352 bytes (11 bits per coeff, 8 coeffs → 11 bytes)
   static Uint8List compressAndEncode11(Poly poly) {
-    final result = allocUint8(352);
+    final result = Uint8List(352);
     int outIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -240,7 +239,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress11');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -281,7 +280,7 @@ class Pack {
   /// Compress₅ + ByteEncode₅ for ciphertext v (ML-KEM-1024)
   /// 256 coefficients → 160 bytes (5 bits per coeff, 8 coeffs → 5 bytes)
   static Uint8List compressAndEncode5(Poly poly) {
-    final result = allocUint8(160);
+    final result = Uint8List(160);
     int outIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -310,7 +309,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress5');
     }
 
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -346,7 +345,7 @@ class Pack {
 
   static Uint8List encodePublicKey(Poly t, Uint8List h, KyberParams params) {
     final pkSize = params.publicKeyBytes;
-    final pk = allocUint8(pkSize);
+    final pk = Uint8List(pkSize);
 
     final coeffs = t.coeffs;
     // Pack t (12 bits) using ByteEncode12
@@ -384,7 +383,7 @@ class Pack {
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 
-    final sCoeffs = allocInt16(256 * params.k);
+    final sCoeffs = Int16List(256 * params.k);
     int inIdx = 0;
     for (int i = 0; i < sCoeffs.length; i += 2) {
       if (inIdx + 3 > sBytes) break;
@@ -396,13 +395,9 @@ class Pack {
       sCoeffs[i + 1] = (b1 >> 4) | (b2 << 4);
     }
 
-    final pk = allocUint8Copy(sk, sBytes, sBytes + pkBytes);
-    final h = allocUint8Copy(sk, sBytes + pkBytes, sBytes + pkBytes + 32);
-    final z = allocUint8Copy(
-      sk,
-      sBytes + pkBytes + 32,
-      sBytes + pkBytes + 32 + 32,
-    );
+    final pk = sk.sublist(sBytes, sBytes + pkBytes);
+    final h = sk.sublist(sBytes + pkBytes, sBytes + pkBytes + 32);
+    final z = sk.sublist(sBytes + pkBytes + 32, sBytes + pkBytes + 32 + 32);
 
     return (Poly(sCoeffs), h, pk, z);
   }
@@ -415,7 +410,7 @@ class Pack {
     KyberParams params,
   ) {
     final skSize = params.secretKeyBytes;
-    final sk = allocUint8(skSize);
+    final sk = Uint8List(skSize);
 
     int outIdx = 0;
     final coeffs = s.coeffs;

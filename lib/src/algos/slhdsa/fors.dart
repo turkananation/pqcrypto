@@ -58,7 +58,7 @@ final class SlhDsaFors {
     _requireN(publicSeed, 'publicSeed');
 
     final indices = base2b(messageDigest, params.a, params.k);
-    final signature = allocUint8(params.forsSignatureBytes);
+    final signature = Uint8List(params.forsSignatureBytes);
     final forsAddress = address.copy();
 
     for (var i = 0; i < params.k; i++) {
@@ -113,7 +113,7 @@ final class SlhDsaFors {
     _requireN(publicSeed, 'publicSeed');
 
     final indices = base2b(messageDigest, params.a, params.k);
-    final roots = allocUint8(params.k * params.n);
+    final roots = Uint8List(params.k * params.n);
     final keyPair = address.getKeyPairAddress();
 
     try {
@@ -144,7 +144,7 @@ final class SlhDsaFors {
             authOffset + params.n,
           );
           treeAddress.setTreeHeight(j + 1);
-          final hashInput = allocUint8(2 * params.n);
+          final hashInput = Uint8List(2 * params.n);
 
           // Parent index is treeIndex ~/ 2 in both cases: for odd treeIndex
           // (the else branch) (treeIndex - 1) ~/ 2 == treeIndex ~/ 2, since
@@ -228,7 +228,7 @@ final class SlhDsaFors {
       publicSeed,
       address,
     );
-    final hashInput = allocUint8(2 * params.n)
+    final hashInput = Uint8List(2 * params.n)
       ..setRange(0, params.n, left)
       ..setRange(params.n, 2 * params.n, right);
     final treeAddress = address.copy()

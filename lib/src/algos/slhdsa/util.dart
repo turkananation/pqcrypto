@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:pqcrypto/src/common/zeroize.dart';
 
 /// FIPS 205 Algorithm 1.
 int genLen2(int n, int lgW) {
@@ -45,7 +44,7 @@ Uint8List toByte(BigInt value, int length) {
     throw RangeError('value does not fit in $length bytes');
   }
 
-  final result = allocUint8(length);
+  final result = Uint8List(length);
   var remaining = value;
   for (var i = length - 1; i >= 0; i--) {
     result[i] = (remaining & BigInt.from(0xff)).toInt();
@@ -95,5 +94,5 @@ Uint8List truncN(Uint8List input, int length) {
   if (length < 0 || length > input.length) {
     throw RangeError.range(length, 0, input.length, 'length');
   }
-  return allocUint8Copy(input, 0, length);
+  return input.sublist(0, length);
 }

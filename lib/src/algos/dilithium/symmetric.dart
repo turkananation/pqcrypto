@@ -1,7 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:pqcrypto/src/common/zeroize.dart';
-
 import '../../common/shake.dart';
 import '../../common/sha2.dart';
 import 'poly.dart';
@@ -126,7 +124,7 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 30: RejNTTPoly(rho || IntegerToBytes(s,1) || IntegerToBytes(r,1))
   // C ref: nonce = (r << 8) + s, t[0] = s, t[1] = r → 34 bytes total
   static DilithiumPoly _rejNttPoly(Uint8List rho, int s, int r) {
-    final inputStrict = allocUint8(34);
+    final inputStrict = Uint8List(34);
     inputStrict.setRange(0, 32, rho);
     inputStrict[32] = s & 0xFF;
     inputStrict[33] = r & 0xFF;
@@ -135,7 +133,7 @@ class DilithiumSymmetric {
     // bytes per candidate, accept when the 23-bit value is < q. Using the XOF
     // means the sampler can never exhaust a fixed buffer.
     final xof = Shake128.xof(inputStrict);
-    final coeffs = allocInt32(n);
+    final coeffs = Int32List(n);
     int ctr = 0;
     while (ctr < n) {
       final b0 = xof.squeezeByte();
@@ -153,7 +151,7 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 31: RejBoundedPoly(rho' || IntegerToBytes(kappa, 2))
   // C ref: seed is CRHBYTES=64 bytes, nonce is 2 bytes → 66 bytes total
   static DilithiumPoly _rejBoundedPoly(Uint8List rho, int kappa, int eta) {
-    final input = allocUint8(64 + 2);
+    final input = Uint8List(64 + 2);
     input.setRange(0, 64, rho);
     input[64] = kappa & 0xFF;
     input[65] = (kappa >> 8) & 0xFF;
@@ -164,7 +162,7 @@ class DilithiumSymmetric {
     // sampler itself.
     // eta=4 accepts b<9 with value 4-b.
     final xof = Shake256.xof(input);
-    final coeffs = allocInt32(n);
+    final coeffs = Int32List(n);
     int ctr = 0;
     if (eta == 2) {
       while (ctr < n) {
@@ -215,7 +213,7 @@ class DilithiumSymmetric {
   // FIPS 204 Algorithm 16 (ExpandMask): Direct BitUnpack, no rejection.
   // C ref: polyz_unpack(a, buf) with coeff = GAMMA1 - unpacked_val
   static DilithiumPoly _rejGamma1(Uint8List rho, int nonce, int gamma1) {
-    final input = allocUint8(64 + 2);
+    final input = Uint8List(64 + 2);
     input.setRange(0, 64, rho);
     input[64] = nonce & 0xFF;
     input[65] = (nonce >> 8) & 0xFF;
@@ -227,7 +225,7 @@ class DilithiumSymmetric {
 
     // Direct BitUnpack: unpack 18/20 bits per coefficient
     final mapped = simpleBitUnpack(stream, bits);
-    final coeffs = allocInt32(256);
+    final coeffs = Int32List(256);
     for (int i = 0; i < 256; i++) {
       coeffs[i] = gamma1 - mapped.coeffs[i];
     }

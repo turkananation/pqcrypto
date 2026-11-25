@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:pqcrypto/src/common/zeroize.dart';
 
 import 'package:pqcrypto/src/common/mod_mask.dart';
 
@@ -17,7 +16,7 @@ class DilithiumPoly {
     }
   }
 
-  factory DilithiumPoly.zero() => DilithiumPoly(allocInt32(n));
+  factory DilithiumPoly.zero() => DilithiumPoly(Int32List(n));
 
   /// Reduce all coefficients modulo q
   /// Maps to [0, q-1]
@@ -29,7 +28,7 @@ class DilithiumPoly {
 
   /// Add two polynomials
   DilithiumPoly operator +(DilithiumPoly other) {
-    final res = allocInt32(n);
+    final res = Int32List(n);
     for (int i = 0; i < n; i++) {
       res[i] = _add(coeffs[i], other.coeffs[i]);
     }
@@ -38,7 +37,7 @@ class DilithiumPoly {
 
   /// Subtract two polynomials
   DilithiumPoly operator -(DilithiumPoly other) {
-    final res = allocInt32(n);
+    final res = Int32List(n);
     for (int i = 0; i < n; i++) {
       res[i] = _sub(coeffs[i], other.coeffs[i]);
     }
@@ -52,7 +51,7 @@ class DilithiumPoly {
     // However, FIPS 204 Alg 2 (InvNTT) expects standard pointwise if fully transformed?
     // Actually FIPS 204 uses PointwiseMult (Alg 3) which is simple component-wise
     // multiplication in the NTT domain.
-    final res = allocInt32(n);
+    final res = Int32List(n);
     for (int i = 0; i < n; i++) {
       res[i] = _mul(coeffs[i], other.coeffs[i]);
     }

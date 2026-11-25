@@ -38,7 +38,7 @@ pass, it is marked as open or needs verification.
 | DSA-11     | ML-DSA KAT validation      | Repo-local corpus `test/data/MLDSA` (18 files); discovered runner.                                 |
 | DSA-12     | Norm-check side channel    | `_normExceeds` masks every coefficient and signing scans every polynomial before rejecting. Not a constant-time claim. |
 | DSA-13     | Sampler exhaustion         | `RejNTTPoly`/`RejBoundedPoly`/`SampleInBall` squeeze an incremental XOF.                           |
-| SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`. VM allocations are native (`secret_alloc_io.dart`); the scavenger does not copy those bytes. Caller-owned Dart lists, registers, and web/wasm buffers are outside that wipe. |
+| SEC-01     | Secret lifetime            | `lib/src/common/zeroize.dart`; applied in keygen/sign `finally` blocks.                            |
 | SHA2-01    | HashML-DSA pre-hash        | `sha2_test.dart` pins SHA-256/384/512 against direct NIST vectors.                                 |
 | KEM-10     | Decapsulation selection    | Constant-time branchless select of K' vs implicit-rejection; 3000 KATs exact.                      |
 | KEM-11     | RNG allocation             | `_secureRng` is a cached `Random.secure()` reused across calls.                                    |
@@ -121,11 +121,9 @@ Residual, accepted risks (do not affect KAT conformance):
   place of `b mod 5`. The accept/reject branch in `ExpandS`, the signing
   retry, and `SampleInBall`'s secret-dependent coefficient indexes are still
   data-dependent. Masks and limb arithmetic are not a
-  constant-time guarantee on the VM, dart2js, or dart2wasm. On the VM,
-  library-owned secret buffers are native memory, so a wipe covers that
-  allocation. It is not a hard memory-erasure guarantee: a caller-owned Dart
-  list can already have a from-space image, and dart2js / dart2wasm have no
-  native heap. See DSA-20.
+  constant-time guarantee on the VM, dart2js, or dart2wasm. Best-effort
+  zeroization is also not a hard memory-erasure guarantee under Dart's GC.
+  See DSA-20.
 - HashML-DSA exposes only the level-bound SHA-2 pre-hash (DSA-21).
 - This is algorithm/KAT conformance evidence, not a CMVP/FIPS 140 validation.
 
@@ -147,7 +145,7 @@ release branch, tag, and publication remain maintainer actions.
 | SLH-02 | Medium   | Fault / grafting        | Mitigated/documented: hedged default plus optional verify-after-sign; hardware/mobile fault resistance remains best-effort.           |
 | SLH-03 | Medium   | RBG strength            | Documented: fresh `addrnd` from `Random.secure()`; no SP 800-90 validation claim; deterministic mode remains explicit.                |
 | SLH-04 | Low      | `s`-variant performance | Mitigated/measured: explicit opt-in and 29-56 second signing baselines; deployment-specific latency remains the caller's concern.     |
-| SLH-05 | Low      | Secret zeroization      | Mitigated/documented: generated secret material is wiped in `finally`. On the VM those buffers are native, so the scavenger does not copy them. Caller-owned lists and web/wasm buffers are still outside that wipe. |
+| SLH-05 | Low      | Secret zeroization      | Mitigated/documented: generated secret material is wiped in `finally`; Dart GC prevents a hard memory-erasure guarantee.              |
 
 The hash-based threat model differs from ML-DSA: there is no secret-dependent
 rejection-sampling timing loop (WOTS+ chain lengths and FORS leaf selection

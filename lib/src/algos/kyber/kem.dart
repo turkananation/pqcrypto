@@ -45,7 +45,7 @@ class KyberKem {
   static Uint8List _g(Uint8List data) => sha3512(data);
 
   static Uint8List _j(Uint8List z, Uint8List c, int len) {
-    final input = allocUint8(z.length + c.length);
+    final input = Uint8List(z.length + c.length);
     input.setAll(0, z);
     input.setAll(z.length, c);
     return Shake256.shake(input, len);
@@ -64,8 +64,8 @@ class KyberKem {
         d = seed;
         z = _randomBytes(32);
       } else if (seed.length == 64) {
-        d = allocUint8Copy(seed, 0, 32);
-        z = allocUint8Copy(seed, 32, 64);
+        d = seed.sublist(0, 32);
+        z = seed.sublist(32, 64);
       } else {
         throw ArgumentError("Seed must be 32 or 64 bytes");
       }
@@ -75,7 +75,7 @@ class KyberKem {
     }
 
     // (rho, sigma) := G(d || k)  — FIPS 203 §5.1 Algorithm 13
-    final Uint8List dk = allocUint8(33)
+    final Uint8List dk = Uint8List(33)
       ..setAll(0, d)
       ..[32] = params.k;
     final rhoSigma = _g(dk);
@@ -102,13 +102,13 @@ class KyberKem {
 
     // 2. (K, r) := G(m || H(pk))
     final hPk = _h(pk);
-    final input = allocUint8(32 + 32);
+    final input = Uint8List(32 + 32);
     input.setAll(0, m);
     input.setAll(32, hPk);
     final kr = _g(input);
 
-    final k = allocUint8Copy(kr, 0, 32);
-    final r = allocUint8Copy(kr, 32, 64);
+    final k = kr.sublist(0, 32);
+    final r = kr.sublist(32, 64);
 
     // 3. c := Encrypt(pk, m, r). k is a copy of the shared secret.
     final ownsM = nonce == null;
@@ -146,7 +146,7 @@ class KyberKem {
       mPrime = Indcpa.decrypt(sk, ct, params);
 
       // 3. (K', r') := G(m' || h)
-      final input = allocUint8(64)
+      final input = Uint8List(64)
         ..setAll(0, mPrime)
         ..setAll(32, h);
       krPrime = _g(input);
@@ -171,7 +171,7 @@ class KyberKem {
       final eqMask = (((diff | -diff) >> 31) & 0xFF) ^ 0xFF;
       final neMask = eqMask ^ 0xFF;
 
-      final out = allocUint8(32);
+      final out = Uint8List(32);
       for (int i = 0; i < 32; i++) {
         out[i] = (kPrime[i] & eqMask) | (kBar[i] & neMask);
       }
@@ -246,7 +246,7 @@ class KyberKem {
   static final Random _secureRng = Random.secure();
 
   Uint8List _randomBytes(int len) {
-    final b = allocUint8(len);
+    final b = Uint8List(len);
     for (int i = 0; i < len; i++) {
       b[i] = _secureRng.nextInt(256);
     }

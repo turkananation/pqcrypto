@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:pqcrypto/src/common/zeroize.dart';
 
 import 'package:pqcrypto/src/common/mod_mask.dart';
 
@@ -12,12 +11,11 @@ class Poly {
   /// Callers must keep every stored coefficient in `[-32768, 32767]`. ML-KEM
   /// sums at most five residues before reduction, and `5q` is inside that
   /// range. An existing [Int16List] is stored as-is so a later wipe hits the
-  /// same buffer. Any other [List] is copied into a fresh buffer, native
-  /// memory on the VM.
+  /// same buffer; any other [List] is copied.
   final Int16List coeffs;
 
   Poly(List<int> source)
-    : coeffs = source is Int16List ? source : allocInt16Copy(source);
+    : coeffs = source is Int16List ? source : Int16List.fromList(source);
 
   /// Barrett reduction of [a] into `[0, q)`.
   ///
@@ -42,7 +40,7 @@ class Poly {
   // NTT using pure modular arithmetic (matching Go mlkem768 implementation)
   // Input: normal domain, output: NTT domain
   static Poly ntt(Poly poly) {
-    final f = allocInt16Copy(poly.coeffs);
+    final f = Int16List.fromList(poly.coeffs);
     int k = 1;
 
     for (int len = 128; len >= 2; len >>= 1) {
@@ -65,7 +63,7 @@ class Poly {
   // InvNTT using pure modular arithmetic (matching Go mlkem768 implementation)
   // Input: NTT domain, output: normal domain
   static Poly invNtt(Poly poly) {
-    final f = allocInt16Copy(poly.coeffs);
+    final f = Int16List.fromList(poly.coeffs);
     int k = 127;
 
     for (int len = 2; len <= 128; len <<= 1) {
@@ -237,7 +235,7 @@ class Poly {
   /// Pointwise multiplication in NTT domain
   /// Implements MultiplyNTTs per FIPS 203, Algorithm 11 (matching Go mlkem768)
   static Poly baseMul(Poly a, Poly b) {
-    final h = allocInt16(256);
+    final h = Int16List(256);
 
     // Process in pairs using gammas
     for (int i = 0; i < 256; i += 2) {
@@ -390,7 +388,7 @@ class Poly {
   ];
 
   Poly operator +(Poly other) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       res[i] = csubq(coeffs[i] + other.coeffs[i], q);
     }
@@ -398,7 +396,7 @@ class Poly {
   }
 
   Poly operator -(Poly other) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       res[i] = caddq(coeffs[i] - other.coeffs[i], q);
     }

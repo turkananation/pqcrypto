@@ -17,12 +17,9 @@
   dart2wasm do not provide one.
 - Stopped exporting the wipe helpers. `secureZero` stays internal. Each wipe
   is a single zero pass marked `vm:never-inline`, followed by an opaque read
-  so AOT cannot delete the stores. On the VM, buffers this library allocates
-  are native memory (`calloc` / `CoTaskMemAlloc`). The scavenger moves the
-  wrapper, not those bytes, so the wipe covers that allocation. It still
-  cannot see a from-space image of a caller-owned Dart list, a register, or
-  a JIT slot, and dart2js / dart2wasm have no such native heap. Applications
-  that want to wipe buffers they own should depend on `package:zeroize`.
+  so AOT cannot delete the stores. That still does not reach copies the
+  garbage collector already made. Applications that want to wipe their own
+  buffers should depend on `package:zeroize` directly.
 - ML-KEM coefficients are stored in an `Int16List`. Key generation,
   encapsulation, and decapsulation wipe those secret polynomials and the
   copies of seeds this code owns. Decrypt and encrypt no longer branch on

@@ -48,7 +48,7 @@ final class SlhDsaWots {
     final secretAddress = wotsAddress.copy()
       ..setTypeAndClear(AdrsType.wotsPrf)
       ..setKeyPairAddress(keyPair);
-    final publicKeyElements = allocUint8(params.len * params.n);
+    final publicKeyElements = Uint8List(params.len * params.n);
 
     try {
       for (var i = 0; i < params.len; i++) {
@@ -106,7 +106,7 @@ final class SlhDsaWots {
     final secretAddress = wotsAddress.copy()
       ..setTypeAndClear(AdrsType.wotsPrf)
       ..setKeyPairAddress(keyPair);
-    final signature = allocUint8(params.wotsSignatureBytes);
+    final signature = Uint8List(params.wotsSignatureBytes);
 
     for (var i = 0; i < params.len; i++) {
       secretAddress.setChainAddress(i);
@@ -149,7 +149,7 @@ final class SlhDsaWots {
     final digits = _messageDigits(message);
     final wotsAddress = address.copy();
     final keyPair = wotsAddress.getKeyPairAddress();
-    final publicKeyElements = allocUint8(params.len * params.n);
+    final publicKeyElements = Uint8List(params.len * params.n);
 
     try {
       for (var i = 0; i < params.len; i++) {
@@ -187,7 +187,7 @@ final class SlhDsaWots {
     Uint8List publicSeed,
     Adrs address,
   ) {
-    var current = allocUint8Copy(input);
+    var current = Uint8List.fromList(input);
     for (var j = start; j < start + steps; j++) {
       address.setHashAddress(j);
       final next = hashes.f(publicSeed, address, current);

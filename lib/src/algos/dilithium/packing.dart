@@ -1,13 +1,12 @@
 import 'dart:typed_data';
 import 'params.dart';
 import 'poly.dart';
-import 'package:pqcrypto/src/common/zeroize.dart';
 
 /// FIPS 204 Algorithm 9: SimpleBitPack(w, b)
 /// Packs polynomial coefficients w where each coeff is in [0, 2^b - 1]
 /// Returns byte array of length 32 * b
 Uint8List simpleBitPack(DilithiumPoly w, int b) {
-  final out = allocUint8(32 * b);
+  final out = Uint8List(32 * b);
 
   // Logic depends on b.
   // FIPS 204 defines standard bitpacking for b < 8?
@@ -62,7 +61,7 @@ Uint8List simpleBitPack(DilithiumPoly w, int b) {
 /// FIPS 204 Algorithm 10: SimpleBitUnpack(v, b)
 /// Unpacks byte array v into polynomial w with coefficients in [0, 2^b - 1]
 DilithiumPoly simpleBitUnpack(Uint8List v, int b, [int offset = 0]) {
-  final w = allocInt32(n);
+  final w = Int32List(n);
 
   int buffer = 0;
   int bitsInBuffer = 0;
@@ -105,7 +104,7 @@ DilithiumPoly unpackT1(Uint8List bytes) {
 /// Total size = 32 + k * 320
 Uint8List packPK(Uint8List rho, DilithiumPolyVec t1) {
   final k = t1.length;
-  final out = allocUint8(32 + k * 320);
+  final out = Uint8List(32 + k * 320);
 
   // Copy rho
   out.setRange(0, 32, rho);
@@ -123,7 +122,7 @@ Uint8List packPK(Uint8List rho, DilithiumPolyVec t1) {
 (Uint8List rho, DilithiumPolyVec t1) unpackPK(Uint8List pk, int k) {
   if (pk.length != 32 + k * 320) throw ArgumentError("Invalid PK length");
 
-  final rho = allocUint8(32);
+  final rho = Uint8List(32);
   rho.setRange(0, 32, pk);
 
   final t1Vec = DilithiumPolyVec.zero(k);
@@ -144,7 +143,7 @@ Uint8List packHint(DilithiumPoly h, int omega) {
   // See FIPS 204 Alg ... (HintBitPack)
   // Actually Alg 13 in draft?
 
-  final out = allocUint8(omega + n ~/ 8); // Usually omega + k?
+  final out = Uint8List(omega + n ~/ 8); // Usually omega + k?
   // Correct logic:
   // Store indices i such that h[i] == 1.
 
@@ -192,7 +191,7 @@ Uint8List packSK(
   int t0Size = t0.length * 32 * t0Bits; // t0 has same dimension as t1 (k)
 
   int totalSize = 32 + 32 + 64 + s1Size + s2Size + t0Size;
-  final out = allocUint8(totalSize);
+  final out = Uint8List(totalSize);
 
   int offset = 0;
   out.setRange(offset, offset + 32, rho);
@@ -253,15 +252,15 @@ unpackSK(Uint8List sk, int k, int l, int eta) {
   int t0Bytes = 416; // 32 * 13 = 416
 
   int offset = 0;
-  final rho = allocUint8(32);
+  final rho = Uint8List(32);
   rho.setRange(0, 32, sk, offset);
   offset += 32;
 
-  final K = allocUint8(32);
+  final K = Uint8List(32);
   K.setRange(0, 32, sk, offset);
   offset += 32;
 
-  final tr = allocUint8(64);
+  final tr = Uint8List(64);
   tr.setRange(0, 64, sk, offset);
   offset += 64;
 
@@ -379,7 +378,7 @@ Uint8List packSig(
 
   int hSize = omega + h.length; // Hint size
 
-  final out = allocUint8(cTilde.length + zSize + hSize);
+  final out = Uint8List(cTilde.length + zSize + hSize);
 
   int offset = 0;
   out.setRange(offset, offset + cTilde.length, cTilde);
@@ -421,7 +420,7 @@ Uint8List packSig(
   int cTildeSize,
 ) {
   int offset = 0;
-  final cTilde = allocUint8(cTildeSize);
+  final cTilde = Uint8List(cTildeSize);
   cTilde.setRange(0, cTildeSize, sig, offset);
   offset += cTildeSize;
 

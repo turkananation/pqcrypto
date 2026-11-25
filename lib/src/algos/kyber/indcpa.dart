@@ -21,8 +21,8 @@ class Indcpa {
   ) {
     // pk = t_hat || rho
     final tSize = 384 * params.k;
-    final tPacked = allocUint8Copy(pk, 0, tSize);
-    final rho = allocUint8Copy(pk, tSize, tSize + 32);
+    final tPacked = pk.sublist(0, tSize);
+    final rho = pk.sublist(tSize, tSize + 32);
 
     final dropped = <Int16List>[];
     void drop(Poly p) => dropped.add(p.coeffs);
@@ -38,9 +38,9 @@ class Indcpa {
     Int16List? tCoeffs;
     try {
       // Expand t_hat
-      tHat = List.generate(params.k, (_) => Poly(allocInt16(256)));
+      tHat = List.generate(params.k, (_) => Poly(Int16List(256)));
       // Decode tPacked (NTT coeffs). Public key material; wiped with the rest.
-      tCoeffs = allocInt16(256 * params.k);
+      tCoeffs = Int16List(256 * params.k);
       int tOff = 0;
       int tPackOff = 0;
       while (tOff < 256 * params.k) {
@@ -75,9 +75,9 @@ class Indcpa {
       rHat = List.generate(params.k, (i) => Poly.ntt(rPolys[i]));
 
       // Compute u = InvNTT(A^T * r_hat) + e1
-      u = List.generate(params.k, (_) => Poly(allocInt16(256)));
+      u = List.generate(params.k, (_) => Poly(Int16List(256)));
       for (int i = 0; i < params.k; i++) {
-        var acc = Poly(allocInt16(256));
+        var acc = Poly(Int16List(256));
         for (int j = 0; j < params.k; j++) {
           // acc += A_hat[j][i] * r_hat[j]  (Transpose: A[j][i])
           final prod = Poly.baseMul(aHat[j][i], rHat[j]);
@@ -97,7 +97,7 @@ class Indcpa {
       }
 
       // Compute v = InvNTT(t_hat^T * r_hat) + e2 + m
-      var vAcc = Poly(allocInt16(256));
+      var vAcc = Poly(Int16List(256));
       for (int i = 0; i < params.k; i++) {
         // t_hat[i] * r_hat[i]
         final prod = Poly.baseMul(tHat[i], rHat[i]);
@@ -143,7 +143,7 @@ class Indcpa {
 
       // Concatenate all parts
       final totalSize = ctParts.fold<int>(0, (sum, part) => sum + part.length);
-      final ct = allocUint8(totalSize);
+      final ct = Uint8List(totalSize);
       int offset = 0;
       for (final part in ctParts) {
         ct.setAll(offset, part);
@@ -199,7 +199,7 @@ class Indcpa {
       // 2. Decode u, v using FIPS 203 decompression
       final uBytes = (256 * params.k * params.du) ~/ 8;
       var offset = 0;
-      u = List<Poly>.generate(params.k, (_) => Poly(allocInt16(256)));
+      u = List<Poly>.generate(params.k, (_) => Poly(Int16List(256)));
       for (int i = 0; i < params.k; i++) {
         if (params.du == 10) {
           u[i] = Pack.decodeAndDecompress10(
@@ -221,7 +221,7 @@ class Indcpa {
       // 3. Compute m = v - InvNTT(s_hat^T o NTT(u))
       final decodedU = u;
       uHat = List.generate(params.k, (i) => Poly.ntt(decodedU[i]));
-      var sprod = Poly(allocInt16(256));
+      var sprod = Poly(Int16List(256));
       for (int i = 0; i < params.k; i++) {
         final prod = Poly.baseMul(sHat[i], uHat[i]);
         final sum = _polyAdd(sprod, prod);
@@ -251,7 +251,7 @@ class Indcpa {
   }
 
   static Uint8List _msgFromPoly(Poly p) {
-    final m = allocUint8(32);
+    final m = Uint8List(32);
     for (int i = 0; i < 32; i++) {
       int byte = 0;
       for (int j = 0; j < 8; j++) {
@@ -272,7 +272,7 @@ class Indcpa {
     // FIPS 203 Algorithm 13 (KeyGen): A[i][j] = SampleNTT(XOF(rho, j, i))
     // Callers pass (rho, j, i) so formal `i` is column, formal `j` is row.
     // XOF input is rho || col || row, i.e. rho || i || j here.
-    final input = allocUint8(32 + 2);
+    final input = Uint8List(32 + 2);
     input.setAll(0, rho);
     input[32] = i;
     input[33] = j;
@@ -287,7 +287,7 @@ class Indcpa {
   static Poly _sampleNTT(Uint8List stream) {
     // Rejection sampling
     // 3 bytes -> 2 coeffs (d1, d2)
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     int count = 0;
     int offset = 0;
     int len = stream.length;
@@ -334,8 +334,8 @@ class Indcpa {
     KyberParams params,
   ) {
     // Copies. The caller's [rhoSigma] and [z] are left intact.
-    final rho = allocUint8Copy(rhoSigma, 0, 32);
-    final sigma = allocUint8Copy(rhoSigma, 32, 64);
+    final rho = rhoSigma.sublist(0, 32);
+    final sigma = rhoSigma.sublist(32, 64);
     try {
       return _generateKeyPairInternal(rho, sigma, z, params);
     } finally {
@@ -379,7 +379,7 @@ class Indcpa {
       eHat = List.generate(k, (i) => Poly.ntt(error[i]));
 
       // 4. Compute t_hat = A_hat * s_hat + e_hat
-      tHat = List.generate(k, (_) => Poly(allocInt16(256)));
+      tHat = List.generate(k, (_) => Poly(Int16List(256)));
 
       for (int i = 0; i < k; i++) {
         tHat[i].coeffs.setAll(0, eHat[i].coeffs);
@@ -428,7 +428,7 @@ class Indcpa {
   }
 
   static Poly _polyFromMsg(Uint8List m) {
-    final p = Poly(allocInt16(256));
+    final p = Poly(Int16List(256));
     // 32 bytes -> 256 coeffs
     for (int i = 0; i < 32; i++) {
       for (int j = 0; j < 8; j++) {
@@ -442,7 +442,7 @@ class Indcpa {
   // Polynomial addition WITHOUT automatic reduction (matches C reference behavior)
   // The C reference lets coefficients accumulate and only reduces when serializing
   static Poly _polyAdd(Poly a, Poly b) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       res[i] = a.coeffs[i] + b.coeffs[i];
       // No modulo here - let values accumulate like C int16_t
@@ -452,7 +452,7 @@ class Indcpa {
 
   // Explicit reduction when needed (e.g., before serialization)
   static Poly _polyReduce(Poly p) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       res[i] = Poly.barrettReduce(p.coeffs[i]);
     }
@@ -460,7 +460,7 @@ class Indcpa {
   }
 
   static Poly _polySub(Poly a, Poly b) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       res[i] = caddq(a.coeffs[i] - b.coeffs[i], 3329);
     }
@@ -468,7 +468,7 @@ class Indcpa {
   }
 
   static List<Poly> _unflattenPolyVec(Poly flat, int k) {
-    final vec = List.generate(k, (_) => Poly(allocInt16(256)));
+    final vec = List.generate(k, (_) => Poly(Int16List(256)));
     for (int i = 0; i < k; i++) {
       for (int j = 0; j < 256; j++) {
         vec[i].coeffs[j] = flat.coeffs[i * 256 + j];
@@ -482,7 +482,7 @@ class Indcpa {
     for (final p in vec) {
       n += p.coeffs.length;
     }
-    final all = allocInt16(n);
+    final all = Int16List(n);
     var offset = 0;
     for (final p in vec) {
       final src = p.coeffs;
@@ -508,7 +508,7 @@ class Indcpa {
   static Poly _sampleCBD(Uint8List seed, int nonce, int eta) {
     // PRF(seed, nonce)
     // Input: seed || nonce.
-    final input = allocUint8(seed.length + 1);
+    final input = Uint8List(seed.length + 1);
     input.setAll(0, seed);
     input[seed.length] = nonce;
 
@@ -519,7 +519,7 @@ class Indcpa {
   }
 
   static Poly _cbd(Uint8List buf, int eta) {
-    final coeffs = allocInt16(256);
+    final coeffs = Int16List(256);
     if (eta == 2) {
       for (int i = 0; i < 256; i++) {
         // eta=2: 4 bits per coeff. 2 coeffs per byte.
@@ -558,7 +558,7 @@ class Indcpa {
 
   // Normalize coefficients to [0, q-1]
   static Poly _polyNormalize(Poly p) {
-    final res = allocInt16(256);
+    final res = Int16List(256);
     for (int i = 0; i < 256; i++) {
       // Coefficients here are short sums of canonical residues, inside the
       // Barrett envelope proved for [-2000000, q^2].

@@ -25,10 +25,10 @@ class MlDsa {
   MlDsa._();
 
   static final Random _secureRng = Random.secure();
-  static final Uint8List _emptyCtx = allocUint8(0);
+  static final Uint8List _emptyCtx = Uint8List(0);
 
   static Uint8List _randomBytes(int len) {
-    final b = allocUint8(len);
+    final b = Uint8List(len);
     for (int i = 0; i < len; i++) {
       b[i] = _secureRng.nextInt(256);
     }
@@ -78,14 +78,14 @@ class MlDsa {
     }
 
     // (rho, rho', K) <- H(xi || IntegerToBytes(k,1) || IntegerToBytes(l,1), 128)
-    final seedInput = allocUint8(32 + 1 + 1);
+    final seedInput = Uint8List(32 + 1 + 1);
     seedInput.setRange(0, 32, seed);
     seedInput[32] = params.k;
     seedInput[33] = params.l;
     final expanded = DilithiumSymmetric.crh(seedInput, 128);
-    final rho = allocUint8(32)..setRange(0, 32, expanded);
-    final rhoPrime = allocUint8(64)..setRange(0, 64, expanded, 32);
-    final kKey = allocUint8(32)..setRange(0, 32, expanded, 96);
+    final rho = Uint8List(32)..setRange(0, 32, expanded);
+    final rhoPrime = Uint8List(64)..setRange(0, 64, expanded, 32);
+    final kKey = Uint8List(32)..setRange(0, 32, expanded, 96);
 
     DilithiumPolyVec? s1, s2;
     try {
@@ -207,7 +207,7 @@ class MlDsa {
     DilithiumParams params, {
     Uint8List? ctx,
   }) {
-    return sign(sk, m, params, ctx: ctx, rnd: allocUint8(32));
+    return sign(sk, m, params, ctx: ctx, rnd: Uint8List(32));
   }
 
   // ===========================================================================
@@ -256,7 +256,7 @@ class MlDsa {
     DilithiumParams params, {
     Uint8List? rnd,
   }) {
-    final rndBytes = rnd ?? allocUint8(32);
+    final rndBytes = rnd ?? Uint8List(32);
     if (rndBytes.length != 32) {
       throw ArgumentError('rnd must be 32 bytes');
     }
@@ -275,13 +275,13 @@ class MlDsa {
     DilithiumPolyVec? t0Hat;
     try {
       // mu = H(tr || M', 64)
-      final muInput = allocUint8(tr.length + mPrime.length);
+      final muInput = Uint8List(tr.length + mPrime.length);
       muInput.setRange(0, tr.length, tr);
       muInput.setRange(tr.length, muInput.length, mPrime);
       final mu = DilithiumSymmetric.crh(muInput);
 
       // rho' = H(K || rnd || mu, 64)
-      final rhoPrimeInput = allocUint8(32 + 32 + 64);
+      final rhoPrimeInput = Uint8List(32 + 32 + 64);
       rhoPrimeInput.setRange(0, 32, kKey);
       rhoPrimeInput.setRange(32, 64, rndBytes);
       rhoPrimeInput.setRange(64, 128, mu);
@@ -354,14 +354,14 @@ class MlDsa {
           }
 
           // c~ = H(mu || w1Encode(w1), cTildeSize)
-          final w1Packed = allocUint8(params.k * 32 * w1Bits);
+          final w1Packed = Uint8List(params.k * 32 * w1Bits);
           int w1Off = 0;
           for (int i = 0; i < params.k; i++) {
             final packed = simpleBitPack(w1[i], w1Bits);
             w1Packed.setRange(w1Off, w1Off + packed.length, packed);
             w1Off += packed.length;
           }
-          final cInput = allocUint8(mu.length + w1Packed.length);
+          final cInput = Uint8List(mu.length + w1Packed.length);
           cInput.setRange(0, mu.length, mu);
           cInput.setRange(mu.length, cInput.length, w1Packed);
           final cTilde = DilithiumSymmetric.crh(cInput, params.cTildeSize);
@@ -583,7 +583,7 @@ class MlDsa {
     if (zTooLarge) return false;
 
     final tr = DilithiumSymmetric.crh(pk, 64);
-    final muInput = allocUint8(tr.length + mPrime.length);
+    final muInput = Uint8List(tr.length + mPrime.length);
     muInput.setRange(0, tr.length, tr);
     muInput.setRange(tr.length, muInput.length, mPrime);
     final mu = DilithiumSymmetric.crh(muInput);
@@ -640,14 +640,14 @@ class MlDsa {
     }
 
     final w1Bits = (params.gamma2 == 95232) ? 6 : 4;
-    final w1Packed = allocUint8(params.k * 32 * w1Bits);
+    final w1Packed = Uint8List(params.k * 32 * w1Bits);
     int w1Off = 0;
     for (int i = 0; i < params.k; i++) {
       final packed = simpleBitPack(w1Prime[i], w1Bits);
       w1Packed.setRange(w1Off, w1Off + packed.length, packed);
       w1Off += packed.length;
     }
-    final cInput = allocUint8(mu.length + w1Packed.length);
+    final cInput = Uint8List(mu.length + w1Packed.length);
     cInput.setRange(0, mu.length, mu);
     cInput.setRange(mu.length, cInput.length, w1Packed);
     final cTildePrime = DilithiumSymmetric.crh(cInput, params.cTildeSize);
@@ -677,7 +677,7 @@ class MlDsa {
     Uint8List? oid,
   ) {
     final oidLen = oid?.length ?? 0;
-    final out = allocUint8(2 + ctx.length + oidLen + payload.length);
+    final out = Uint8List(2 + ctx.length + oidLen + payload.length);
     out[0] = domain;
     out[1] = ctx.length;
     int off = 2;

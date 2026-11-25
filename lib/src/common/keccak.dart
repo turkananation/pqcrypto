@@ -143,11 +143,11 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
   _validateSpongeArguments(rateBytes, domain);
   _validateOutputLength(outLen);
 
-  final a = allocUint32(50);
-  final b = allocUint32(50);
-  final c = allocUint32(10);
-  final d = allocUint32(10);
-  final block = allocUint8(rateBytes);
+  final a = Uint32List(50);
+  final b = Uint32List(50);
+  final c = Uint32List(10);
+  final d = Uint32List(10);
+  final block = Uint8List(rateBytes);
   try {
     // Absorb full blocks.
     var offset = 0;
@@ -167,7 +167,7 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
     _permute(a, b, c, d);
 
     // Squeeze.
-    final out = allocUint8(outLen);
+    final out = Uint8List(outLen);
     var got = 0;
     while (got < outLen) {
       final take = (outLen - got) < rateBytes ? (outLen - got) : rateBytes;
@@ -193,10 +193,10 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
 /// for rejection samplers that must never exhaust a fixed buffer (FIPS 204
 /// `H.Squeeze`). Structurally constant-time like [_keccak].
 class KeccakXof {
-  final Uint32List _a = allocUint32(50);
-  final Uint32List _b = allocUint32(50);
-  final Uint32List _c = allocUint32(10);
-  final Uint32List _d = allocUint32(10);
+  final Uint32List _a = Uint32List(50);
+  final Uint32List _b = Uint32List(50);
+  final Uint32List _c = Uint32List(10);
+  final Uint32List _d = Uint32List(10);
   final int _rate;
   final Uint8List _buf;
   int _pos = 0;
@@ -208,7 +208,7 @@ class KeccakXof {
 
   KeccakXof._validated(Uint8List input, int rateBytes, int domain)
     : _rate = rateBytes,
-      _buf = allocUint8(rateBytes) {
+      _buf = Uint8List(rateBytes) {
     var offset = 0;
     final n = input.length;
     while (n - offset >= rateBytes) {
@@ -216,7 +216,7 @@ class KeccakXof {
       _permute(_a, _b, _c, _d);
       offset += rateBytes;
     }
-    final block = allocUint8(rateBytes);
+    final block = Uint8List(rateBytes);
     try {
       final rem = n - offset;
       block.setRange(0, rem, input, offset);
@@ -239,7 +239,7 @@ class KeccakXof {
   /// Squeeze the next [len] output bytes.
   Uint8List squeeze(int len) {
     _validateOutputLength(len);
-    final out = allocUint8(len);
+    final out = Uint8List(len);
     var got = 0;
     while (got < len) {
       if (_pos == _rate) _refill();
