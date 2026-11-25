@@ -94,5 +94,5 @@ Uint8List truncN(Uint8List input, int length) {
   if (length < 0 || length > input.length) {
     throw RangeError.range(length, 0, input.length, 'length');
   }
-  return Uint8List.fromList(input.sublist(0, length));
+  return input.sublist(0, length);
 }

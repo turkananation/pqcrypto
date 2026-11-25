@@ -133,9 +133,11 @@ The same avoid-list as FIPS 203 applies ("FIPS validated", "CMVP validated",
 "FIPS 140 compliant module", "certified"). The canonical implementation and
 release record is [MLDSA_FIPS204_RELEASE_GUIDE.md](MLDSA_FIPS204_RELEASE_GUIDE.md).
 
-Residual hardening (does not affect KAT conformance): the norm check and
-rejection loops are best-effort, not provably constant-time, in pure Dart; and
-HashML-DSA exposes only the level-bound SHA-2 pre-hash. See
+Residual hardening (does not affect KAT conformance): secret coefficient
+division is gone from the ML-DSA hot path, and the norm check no longer
+returns early inside a polynomial. Rejection sampling still branches, and the
+implementation is not provably constant-time in pure Dart. HashML-DSA exposes
+only the level-bound SHA-2 pre-hash. See
 [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 
 ## FIPS 205 - SLH-DSA (all 12 sets)

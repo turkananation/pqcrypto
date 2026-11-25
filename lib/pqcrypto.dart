@@ -32,7 +32,6 @@ export 'src/common/keccak_parameters.dart';
 export 'src/common/mgf1.dart';
 export 'src/common/sha2.dart';
 export 'src/common/shake.dart';
-export 'src/common/zeroize.dart';
 
 // ML-KEM (FIPS 203)
 export 'src/algos/kyber/kem.dart' show KyberKem, PqcKem, KyberLevel;

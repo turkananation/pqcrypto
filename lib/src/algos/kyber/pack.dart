@@ -61,7 +61,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for ByteDecode12');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 2) {
@@ -116,7 +116,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress10');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 4) {
@@ -159,7 +159,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress4');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i += 2) {
       final byte = bytes[i ~/ 2];
@@ -190,7 +190,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress1');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
 
     for (int i = 0; i < 256; i++) {
       final bit = (bytes[i ~/ 8] >> (i % 8)) & 1;
@@ -239,7 +239,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress11');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -309,7 +309,7 @@ class Pack {
       throw ArgumentError('Invalid encoding length for DecodeDecompress5');
     }
 
-    final coeffs = List<int>.filled(256, 0);
+    final coeffs = Int16List(256);
     int inIdx = 0;
 
     for (int i = 0; i < 256; i += 8) {
@@ -383,7 +383,7 @@ class Pack {
     final sBytes = (12 * params.k * 256) ~/ 8;
     final pkBytes = params.publicKeyBytes;
 
-    final sCoeffs = List<int>.filled(256 * params.k, 0);
+    final sCoeffs = Int16List(256 * params.k);
     int inIdx = 0;
     for (int i = 0; i < sCoeffs.length; i += 2) {
       if (inIdx + 3 > sBytes) break;
