@@ -6,24 +6,21 @@ import 'params.dart';
 class Pack {
   static const int q = 3329;
 
-  /// Compress coefficient to d bits per FIPS 203 Definition 4.7
-  /// Maps field element uniformly to range [0, 2^d - 1]
+  /// Compress a canonical coefficient to d bits.
   static int compress(int x, int d) {
-    // Formula from FIPS 203: compress_d(x) = ⌈(2^d / q) * x⌉ mod 2^d
-    // where ⌈⌉ is "round to nearest, ties round up"
+    // Requires 0 <= x < q.
+    if (d < 1 || d > 11) {
+      throw ArgumentError.value(d, 'd', 'must be between 1 and 11');
+    }
 
-    // To avoid floating point, we compute: round((x * 2^d) / q)
-    // Using the formula: round(a/b) = (a + b/2) / b (integer division)
-    // BUT we need to handle the case where this might give 2^d
-
-    // Compute (2 * x * (1 << d) + q) / (2 * q) to do proper rounding
-    final numerator = 2 * x * (1 << d) + q;
-    final denominator = 2 * q;
-    final result = numerator ~/ denominator;
-
-    // Wrap to [0, 2^d - 1] per FIPS 203 — mod 2^d
-    final maxVal = (1 << d) - 1;
-    return result & maxVal;
+    // Use 5040 = ceil(2^24 / q), then correct any overestimate.
+    final n = (x << d) + 1664;
+    // Split the product to avoid dart2js overflow.
+    final scaled = (n >> 12) * 5040 + (((n & 0xfff) * 5040) >> 12);
+    final estimate = scaled >> 12;
+    final remainder = n - estimate * q;
+    final result = estimate - ((remainder >> 31) & 1);
+    return result & ((1 << d) - 1);
   }
 
   /// Decompress d-bit value to field element per FIPS 203 Definition 4.8
