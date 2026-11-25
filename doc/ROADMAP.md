@@ -1,6 +1,6 @@
 # Release Roadmap
 
-Last updated: 2026-06-16
+Last updated: 2026-11-25
 
 The roadmap starts from the `0.4.0` release: ML-KEM (FIPS 203) and ML-DSA
 (FIPS 204) are byte-exact against their checked-in KAT corpora, and SLH-DSA
@@ -19,6 +19,10 @@ CMVP/FIPS 140 module validation
 | 0.3.0   | ML-DSA validation + hardening | Byte-exact FIPS 204 KATs (44/65/87 × raw/pure/hashed × det/hedged), HashML-DSA, vendored SHA-2, KEM constant-time output selection, zeroization, SECURITY.md. |
 | 0.3.1   | Package metadata alignment    | Published package metadata reflects zero dependencies, ML-KEM, ML-DSA, and checked-in vector evidence.                                                        |
 | 0.4.0   | SLH-DSA (FIPS 205, 12 sets)   | All 12 SLH-DSA sets (SHAKE + SHA-2) byte-exact on the 1,248-case NIST ACVP corpus; hedged API, verify-after-sign, OpenSSL/liboqs interop.                     |
+| 0.4.2   | Docs in the published archive | Cookbook markdown ships in the pub.dev archive. Tag `vX.Y.Z` publishes and opens the GitHub Release.                                                          |
+| 0.4.3   | ML-KEM size tables exported   | `KyberParams` and `KyberLevel` are exported from the package root.                                                                                            |
+| 0.4.4   | Seeded SLH-DSA key generation | Public `SlhDsa.generateKeyPairSeeded` (FIPS 205 Algorithm 18).                                                                                                |
+| 0.4.5   | Division removal              | Secret-dependent `%` and `~/` removed from the ML-KEM and ML-DSA coefficient paths. ML-KEM coefficients are an `Int16List`. Published.                        |
 
 ## Completed Documentation and Boundary Cleanup
 
@@ -128,7 +132,7 @@ full A-Z implementation, hardening, and milestone plan.
 | ----------------------------------------------- | -------- | ------- |
 | Add automated benchmark suite.                  | P1       | Partial |
 | Measure AOT, dart2js, and dart2wasm paths.      | P1       | Partial |
-| Consider `Int32List` Kyber polynomial refactor. | P2       | Open    |
+| Consider `Int32List` Kyber polynomial refactor. | P2       | Superseded. Coefficients are an `Int16List` as of 0.4.5. |
 | Consider in-place Kyber NTT.                    | P2       | Open    |
 | Evaluate native SHAKE only as optional tooling. | P3       | Open    |
 

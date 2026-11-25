@@ -137,10 +137,9 @@ Expected as of this update:
 ML-DSA (FIPS 204) and SLH-DSA (FIPS 205, all 12 sets) are both complete per the
 Definitions of Done in
 [doc/MLDSA_FIPS204_RELEASE_GUIDE.md](doc/MLDSA_FIPS204_RELEASE_GUIDE.md) and
-[doc/SLHDSA_FIPS205_RELEASE_GUIDE.md](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md). The
-0.4.0 metadata is prepared; cutting the release branch, tag, and `dart pub
-publish` are deliberate, outward-facing steps left to the maintainer. Remaining
-engineering work:
+[doc/SLHDSA_FIPS205_RELEASE_GUIDE.md](doc/SLHDSA_FIPS205_RELEASE_GUIDE.md).
+0.4.0 through 0.4.5 are published. The next planned work is 0.5.0 performance
+and the 0.6.0 FIPS 202 / SP 800-185 stream. Remaining engineering work:
 
 - Deeper side-channel review: per-iteration branch directions in `_normExceeds`,
   the ML-DSA/SLH-DSA rejection loops, and SLH-DSA signing are best-effort, not

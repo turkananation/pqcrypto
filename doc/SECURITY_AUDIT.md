@@ -136,8 +136,8 @@ byte-exact. Hedged signing, explicit deterministic signing, context/pre-hash
 domain separation, total verification, slow-set opt-in, and optional
 verify-after-sign have focused regressions.
 BUFF/performance guidance and per-target benchmark baselines are published.
-The decomposed VM matrix and both web compiler suites are green. Cutting the
-release branch, tag, and publication remain maintainer actions.
+The decomposed VM matrix and both web compiler suites are green. 0.4.0 was
+tagged and published. The current package is 0.4.5.
 
 | ID     | Severity | Area                    | Status and residual                                                                                                                   |
 | ------ | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |

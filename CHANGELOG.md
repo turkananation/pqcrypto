@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Corrected documents that still described the 0.4.0 tag and publish as
+  unfinished, and marked the ML-KEM `Int32List` layout idea as superseded by
+  the `Int16List` storage shipped in 0.4.5.
+
 ## 0.4.5
 
 ### Security

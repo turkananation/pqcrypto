@@ -1,6 +1,6 @@
 # Improvements
 
-Last updated: 2026-06-16
+Last updated: 2026-11-25
 
 This file lists current improvement work in priority order. Completed quick wins
 from older 0.1.0-era audits are not repeated except where they define current
@@ -54,7 +54,7 @@ guardrails.
 | SLH-02 | Implement Algorithms 1-25 for SHAKE + SHA-2.    | Done   | Public Algorithms 21-25, source-only ACVP internals. |
 | SLH-03 | Add BUFF, slow-set, and verify-after-sign docs. | Done   | README, API docstrings, security audit, guide.       |
 | SLH-04 | Add native provider interop tooling.            | Done   | OpenSSL and liboqs suites under `tool/`.             |
-| SLH-05 | Cut the v0.4.0 release: tag and publication.    | Open   | Maintainer release workflow remains.                 |
+| SLH-05 | Cut the v0.4.0 release: tag and publication.    | Done   | Tagged and published. Current package is 0.4.5.      |
 
 ## P3 - Performance and Tooling
 
@@ -62,7 +62,7 @@ guardrails.
 | ------- | --------------------------------------- | ------- | ---------------------------------------------------- |
 | PERF-01 | Maintain SLH-DSA benchmark tooling.     | Partial | `tool/bench/slhdsa_bench.dart` supports all 12 sets. |
 | PERF-02 | Add statistical and AOT benchmark runs. | Open    | Current published table is single-sample SHAKE-only. |
-| PERF-03 | Evaluate `Int32List` for ML-KEM poly.   | Review  | Likely performance and GC win.                       |
+| PERF-03 | Evaluate `Int32List` for ML-KEM poly.   | Superseded | 0.4.5 stores ML-KEM coefficients in an `Int16List`. |
 | PERF-04 | Evaluate in-place ML-KEM NTT.           | Review  | Higher refactor risk.                                |
 
 ## Completed Guardrails

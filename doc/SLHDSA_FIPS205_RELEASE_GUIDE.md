@@ -44,8 +44,8 @@ Verify-after-sign, BUFF/performance documentation, a portable benchmark harness
 for all 12 sets, published SHAKE single-sample VM/dart2js/dart2wasm baselines,
 and OpenSSL 4.0.1 plus liboqs 0.15.0 cross-verification are complete locally.
 The decomposed VM matrix, both web compiler suites, native-provider suites, and
-package publish dry-run are green. The updated CI workflows have not yet run on
-GitHub. The v0.4.0 version bump, tag, and publication are not yet done.
+package publish dry-run are green. CI has run on GitHub. v0.4.0 was tagged
+and published. The current package is 0.4.5.
 
 What already exists and is reused: the vendored Keccak in
 `lib/src/common/keccak.dart` (`KeccakXof`, `shake256`, `sha3256`/`sha3512`), the
@@ -788,8 +788,8 @@ sets; negative tests green.
 - Completed release visibility: the canonical manifest, generated site,
   AI-discovery files, and agent rules present all 12 SLH-DSA sets as a released
   0.4.0 algorithm alongside ML-KEM and ML-DSA.
-- Remaining maintainer controls: cutting the release branch, tag, and pub.dev
-  publication.
+- Release controls completed: v0.4.0 was tagged and published. The current
+  package is 0.4.5.
 
 Exit gate: full platform matrix green; `dart pub publish --dry-run` clean; all
 12 sets (SHAKE and SHA-2) ship in 0.4.0.
@@ -898,7 +898,7 @@ Residual / deferred (do not block KAT conformance; track in
   secret-dependent timing surface is small, but not formally zero.
 - Zeroization is best-effort under Dart GC, not hard memory erasure.
 - A CMVP/FIPS 140 module validation is out of scope and not claimed.
-- The release version tag and `dart pub publish` are not yet done.
+- v0.4.0 was tagged and published. The current package is 0.4.5.
 
 ## Appendix A - Differences From the SPHINCS+ Submission
 
