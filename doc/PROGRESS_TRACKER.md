@@ -117,8 +117,9 @@ are tracked as SLH-01..SLH-05 in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 ## Phase 7 - FIPS 202 / SP 800-185 SHA-3 Foundation
 
 Target release: **0.6.0**, with **0.7.0** reserved for standards-complete
-spillover if the full evidence gate cannot close in 0.6.0. The byte-oriented
-shared-core prerequisite has started; non-byte examples and SP 800-185 remain.
+spillover if the full evidence gate cannot close in 0.6.0. The FIPS 202
+example harness, including the non-byte lengths, and the SP 800-185 encoding
+helpers are in place. cSHAKE, KMAC, TupleHash, and ParallelHash remain.
 Controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
@@ -126,11 +127,11 @@ Controlled by
 | ----------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
 | Publish FIPS 202 / SP 800-185 release guide.          | Done    | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). |
 | Create GitHub issue map SHA3-00..SHA3-12.             | Done    | Epic #48 and child issues #36..#47.                                     |
-| Acquire + normalize NIST FIPS 202 example vectors.    | Partial | Empty/1600-bit byte cases for all six functions; non-byte cases remain  |
-| Acquire + normalize NIST SP 800-185 example vectors.  | Open    | `test/data/SP800185` provenance manifest.                               |
+| Acquire + normalize NIST FIPS 202 example vectors.    | Done    | All six functions at 0/5/30/1600/1605/1630 bits, plus SHAKE truncation. |
+| Acquire + normalize NIST SP 800-185 example vectors.  | Done    | `test/data/SP800185` manifest and 40 official samples.                  |
 | Implement SHA3-224 and SHA3-384.                      | Done    | Official byte examples plus VM/dart2js focused tests.                   |
 | Add Keccak constants/suffix/rate/capacity tests.      | Done    | Active implementation tables are directly pinned in `keccak_test.dart`. |
-| Implement SP 800-185 encodings and cSHAKE.            | Open    | `sp800_185_encoding_test`, `sp800_185_cshake_test`.                     |
+| Implement SP 800-185 encodings and cSHAKE.            | Open    | Encodings match the NIST sample fields. cSHAKE is not implemented.     |
 | Implement KMAC/KMACXOF.                               | Open    | `sp800_185_kmac_test`; key/tag guidance docs.                           |
 | Implement TupleHash/ParallelHash families.            | Open    | Tuple-boundary and multi-block ParallelHash tests.                      |
 | Run VM/web gates and publish benchmark notes.         | Open    | VM, dart2js, dart2wasm, `PERFORMANCE.md`.                               |

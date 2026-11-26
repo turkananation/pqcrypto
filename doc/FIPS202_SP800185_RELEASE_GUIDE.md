@@ -825,11 +825,11 @@ Deliverables:
 | ID      | GitHub | Title                                               | Priority | Gate                                                                   |
 | ------- | ------ | --------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
 | SHA3-00 | #48    | Epic: FIPS 202 and SP 800-185 to release            | P0       | All child issues closed.                                               |
-| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | `test/data/FIPS202` and `test/data/SP800185` manifests.                |
+| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | Done: FIPS 202 and SP 800-185 manifests and normalized examples.       |
 | SHA3-02 | #37    | Complete FIPS 202 SHA3-224/SHA3-384 APIs            | P0       | Done: SHA3-224/384 NIST vectors pass.                                  |
-| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | 0/5/30/1600/1605/1630-bit examples covered or explicitly scoped.       |
+| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | Done: 0/5/30/1600/1605/1630-bit examples and SHAKE truncation pass.    |
 | SHA3-04 | #39    | Keccak constants, suffix, rate, and capacity tests  | P0       | Direct table and suffix tests pass.                                    |
-| SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | `left_encode`, `right_encode`, `encode_string`, `bytepad` tests pass.  |
+| SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | Done: helpers match section 2.3 and the NIST encoding fields.          |
 | SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | NIST cSHAKE vectors and SHAKE fallback pass.                           |
 | SHA3-07 | #42    | KMAC128/KMAC256 and KMACXOF                         | P0       | NIST KMAC/KMACXOF vectors plus misuse tests pass.                      |
 | SHA3-08 | #43    | TupleHash and TupleHashXOF                          | P1       | NIST vectors plus tuple-boundary tests pass.                           |

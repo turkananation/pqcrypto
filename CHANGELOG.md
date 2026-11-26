@@ -2,11 +2,24 @@
 
 ## Unreleased
 
+### Added
+
+- Checked in the NIST FIPS 202 examples for message lengths 0, 5, 30, 1600,
+  1605, and 1630 bits, the SHAKE128 truncation samples, and the NIST
+  SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash samples. Each record
+  carries the source PDF URL and SHA-256.
+- Added `leftEncode`, `rightEncode`, `encodeString`, and `bytepad` from
+  SP 800-185 section 2.3. cSHAKE, KMAC, TupleHash, and ParallelHash are not
+  implemented.
+
 ### Changed
 
 - Corrected documents that still described the 0.4.0 tag and publish as
   unfinished, and marked the ML-KEM `Int32List` layout idea as superseded by
   the `Int16List` storage shipped in 0.4.5.
+- The FIPS 202 bit-string examples are checked by `fips202AbsorbBits`. That
+  entry is not part of the exported package API. The public SHA3 and SHAKE
+  functions still accept byte strings only.
 
 ## 0.4.5
 

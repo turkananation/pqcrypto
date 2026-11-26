@@ -1,0 +1,45 @@
+{
+  "schema": "pqcrypto-sp800185-manifest-v1",
+  "source": "NIST SP 800-185 example values",
+  "sourcePage": "https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values",
+  "retrieved": "2026-11-25",
+  "standardPdfSha256": "0ebcdfb5b145bcb6a8a0f49737a201e8fb30dce06951595a07010774d402d7c5",
+  "decision": "Normalized sample inputs, encoding fields, and final outputs are checked in. The original PDFs are not.",
+  "files": [
+    {
+      "file": "cSHAKE_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/cSHAKE_samples.pdf",
+      "sha256": "49fbf71bed8b6dd8069720250b43ce029706695b6586c201270d76889b41873e"
+    },
+    {
+      "file": "KMAC_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/KMAC_samples.pdf",
+      "sha256": "445ee87689670da2bee611e88b765f22a43b4155295fd7f1cddea0ac671b24e1"
+    },
+    {
+      "file": "KMACXOF_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/KMACXOF_samples.pdf",
+      "sha256": "ba8432a008c998f6d27013bc7dbeabc793c114048da36861a285776200fc2959"
+    },
+    {
+      "file": "TupleHash_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/TupleHash_samples.pdf",
+      "sha256": "7d4491c28e6dcf4751975e6f15ec73c8b4a676a3b653d524e7561e3141cc6465"
+    },
+    {
+      "file": "TupleHashXOF_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/TupleHashXOF_samples.pdf",
+      "sha256": "c3be9c3891bfad850347ff5664e504cbbd832c4d942b98aec48555a1a390678c"
+    },
+    {
+      "file": "ParallelHash_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ParallelHash_samples.pdf",
+      "sha256": "4e1a6ff692f68bdebabbbcbf0596f6d35ec39636c9ab71dc434f5d47c5634d80"
+    },
+    {
+      "file": "ParallelHashXOF_samples.pdf",
+      "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ParallelHashXOF_samples.pdf",
+      "sha256": "c9d460ea1c8fcc8032f043fe0861b248fae1522f19c3d14935ccbb0a693e4ca6"
+    }
+  ]
+}
