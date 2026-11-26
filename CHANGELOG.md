@@ -7,6 +7,7 @@
 - FIPS 202 NIST examples for 0, 5, 30, 1600, 1605, and 1630-bit messages, plus SHAKE128 truncation samples.
 - SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash sample vectors.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
+- cSHAKE128 and cSHAKE256. Public output length is in bytes. Empty function name and customization return SHAKE128 or SHAKE256.
 
 ### Changed
 

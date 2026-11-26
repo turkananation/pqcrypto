@@ -1,11 +1,16 @@
-/// Byte-oriented encodings from NIST SP 800-185 section 2.3.
+/// Byte-oriented SP 800-185 encodings and cSHAKE128/cSHAKE256.
 ///
-/// These helpers are the shared prefix for cSHAKE, KMAC, TupleHash, and
-/// ParallelHash. Those functions are not implemented here. Nothing in this
-/// file is a CMVP or FIPS 140 validation claim.
+/// [leftEncode], [rightEncode], [encodeString], and [bytepad] are the shared
+/// prefix from section 2.3. [CShake128] and [CShake256] are the cSHAKE XOFs.
+/// KMAC, TupleHash, and ParallelHash are not implemented here. Nothing in
+/// this file is a CMVP or FIPS 140 validation claim.
 library;
 
 import 'dart:typed_data';
+
+import 'keccak.dart';
+import 'keccak_parameters.dart';
+import 'zeroize.dart';
 
 /// Largest integer the SP 800-185 encodings accept, exclusive: `2^2040`.
 const int _maximumEncodableBitLength = 2040;
@@ -71,6 +76,85 @@ Uint8List bytepad(Uint8List input, int w) {
   return out;
 }
 
+/// Delimited suffix for a byte-aligned cSHAKE input.
+///
+/// SP 800-185 appends the bits `00` to
+/// `bytepad(encode_string(N) || encode_string(S), rate) || X`. KECCAK then
+/// applies `pad10*1`. Those two zeros and the first pad bit pack into the
+/// domain byte `0x04`. [keccakAbsorbBytes] also sets the final pad bit
+/// `0x80` at the end of the rate.
+const int _cshakeDomainByte = 0x04;
+
+/// cSHAKE128 from NIST SP 800-185.
+///
+/// [hash] returns bytes. When [CShake128.hash]'s function name and
+/// customization are both omitted or empty, the result is SHAKE128 of the
+/// same message and length. Otherwise the sponge absorbs
+/// `bytepad(encode_string(N) || encode_string(S), 168) || message` with
+/// domain byte `0x04` (KECCAK[256], rate 168).
+///
+/// The function-name string `N` stays empty for ordinary cSHAKE. Derived
+/// functions set it to a fixed name. Different customization strings produce
+/// unrelated outputs for the same message, within the SP 800-185 security
+/// model.
+///
+/// Arguments are byte strings. Keccak-f[1600] runs a fixed 24-round
+/// permutation. Copies allocated by [hash] go through the package's
+/// best-effort wipe.
+final class CShake128 {
+  CShake128._();
+
+  /// Returns [outputLength] bytes of cSHAKE128.
+  ///
+  /// A negative [outputLength] throws [RangeError] before any output bytes
+  /// are produced. [functionName] and [customization] default to empty byte
+  /// strings when omitted.
+  static Uint8List hash(
+    Uint8List message, {
+    required int outputLength,
+    Uint8List? functionName,
+    Uint8List? customization,
+  }) {
+    return _cshake(
+      message,
+      outputLength: outputLength,
+      functionName: functionName,
+      customization: customization,
+      rateBytes: Fips202Parameters.shake128.rateBytes,
+      shake: shake128,
+    );
+  }
+}
+
+/// cSHAKE256 from NIST SP 800-185.
+///
+/// Same byte-string contract as [CShake128]. The empty-string fallback is
+/// SHAKE256. The rate is 136 bytes (KECCAK[512]). The domain byte is `0x04`.
+final class CShake256 {
+  CShake256._();
+
+  /// Returns [outputLength] bytes of cSHAKE256.
+  ///
+  /// A negative [outputLength] throws [RangeError] before any output bytes
+  /// are produced. [functionName] and [customization] default to empty byte
+  /// strings when omitted.
+  static Uint8List hash(
+    Uint8List message, {
+    required int outputLength,
+    Uint8List? functionName,
+    Uint8List? customization,
+  }) {
+    return _cshake(
+      message,
+      outputLength: outputLength,
+      functionName: functionName,
+      customization: customization,
+      rateBytes: Fips202Parameters.shake256.rateBytes,
+      shake: shake256,
+    );
+  }
+}
+
 /// `substring(X, a, b)` from SP 800-185 section 2.3.4.
 ///
 /// Bit positions are indexed from zero. Returns the empty list when [a] is
@@ -122,4 +206,51 @@ int _byteStringBitLength(Uint8List bytes) {
     );
   }
   return bytes.length * 8;
+}
+
+typedef _Shake = Uint8List Function(Uint8List input, int outputLength);
+
+Uint8List _cshake(
+  Uint8List message, {
+  required int outputLength,
+  required Uint8List? functionName,
+  required Uint8List? customization,
+  required int rateBytes,
+  required _Shake shake,
+}) {
+  if (outputLength < 0) {
+    throw RangeError.range(outputLength, 0, null, 'outputLength');
+  }
+  final nameEmpty = functionName == null || functionName.isEmpty;
+  final customEmpty = customization == null || customization.isEmpty;
+  if (nameEmpty && customEmpty) {
+    return shake(message, outputLength);
+  }
+
+  Uint8List? encodedName;
+  Uint8List? encodedCustom;
+  Uint8List? joined;
+  Uint8List? prefix;
+  Uint8List? input;
+  try {
+    encodedName = encodeString(functionName ?? Uint8List(0));
+    encodedCustom = encodeString(customization ?? Uint8List(0));
+    joined = _concat(encodedName, encodedCustom);
+    prefix = bytepad(joined, rateBytes);
+    input = _concat(prefix, message);
+    return keccakAbsorbBytes(input, rateBytes, _cshakeDomainByte, outputLength);
+  } finally {
+    secureZero(encodedName);
+    secureZero(encodedCustom);
+    secureZero(joined);
+    secureZero(prefix);
+    secureZero(input);
+  }
+}
+
+Uint8List _concat(Uint8List left, Uint8List right) {
+  final out = Uint8List(left.length + right.length);
+  out.setRange(0, left.length, left);
+  out.setRange(left.length, out.length, right);
+  return out;
 }

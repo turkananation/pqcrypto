@@ -333,6 +333,22 @@ Uint8List _fixedDigest(Uint8List input, Fips202Parameters parameters) =>
 Uint8List _xof(Uint8List input, Fips202Parameters parameters, int outLen) =>
     _keccak(input, parameters.rateBytes, parameters.domain, outLen);
 
+/// One-shot byte sponge with an explicit delimited suffix.
+///
+/// [domain] is written in the first byte after [input]. The final `pad10*1`
+/// bit is `0x80` at the end of the rate block, including when both land in
+/// the same byte. [shake128] and [shake256] keep domain `0x1F` and still go
+/// through [_xof]. cSHAKE passes `0x04` for a byte string: suffix bits `00`
+/// followed by the first bit of `pad10*1`.
+///
+/// This is not exported from `package:pqcrypto/pqcrypto.dart`.
+Uint8List keccakAbsorbBytes(
+  Uint8List input,
+  int rateBytes,
+  int domain,
+  int outputLength,
+) => _keccak(input, rateBytes, domain, outputLength);
+
 /// Absorbs a FIPS 202 bit string and returns [outputBytes] bytes.
 ///
 /// [messageBits] is in absorption order. The first bit becomes the least
