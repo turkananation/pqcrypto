@@ -82,15 +82,15 @@ code changes.
 
 Current FIPS 202 support is a shared primitive surface used by ML-KEM, ML-DSA,
 and SLH-DSA. It is not a complete standalone SHA-3 release. The official
-example corpus, including non-byte messages, passes on the VM. The public API
+example corpus, including non-byte messages, passes on the VM, Chrome, and
+dart2wasm. The public API
 accepts byte strings only. SP 800-185 encodings are tested. cSHAKE, KMAC,
 TupleHash, and ParallelHash are not implemented. Completion is controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 Security controls before any broader public claim:
 
-- Keep the VM corpus green, and run it on Chrome and dart2wasm before a
-  complete FIPS 202 claim.
+- Keep the FIPS 202 corpus green on the VM, Chrome, and dart2wasm.
 - Keep rate, capacity, suffix, and Keccak constant tests.
 - Keep the encoding tests green before cSHAKE, KMAC, TupleHash, or ParallelHash.
 - KMAC API docs must warn about key length and tag length when KMAC exists.

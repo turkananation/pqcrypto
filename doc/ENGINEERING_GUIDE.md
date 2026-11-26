@@ -48,7 +48,8 @@ separate: a passing ML-KEM set is not ML-DSA or SLH-DSA evidence.
 - Start readers at [INDEX.md](INDEX.md).
 - Keep all readiness claims tied to current test evidence.
 - SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are
-  implemented. The official FIPS 202 lengths pass on the VM. SP 800-185
+  implemented. The official FIPS 202 lengths pass on the VM, Chrome, and
+  dart2wasm. SP 800-185
   encodings are implemented. cSHAKE and the other derived functions are not.
   The gate is
   [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
@@ -124,9 +125,8 @@ Minimum checklist:
 1. Preserve current `sha3224`, `sha3256`, `sha3384`, `sha3512`, `shake128`,
    `shake256`, and XOF
    behavior.
-2. Keep the official FIPS 202 corpus, including non-byte examples, green before
-   any broad FIPS 202 claim. The VM corpus exists. Chrome and dart2wasm do not
-   yet run it.
+2. Keep the official FIPS 202 corpus, including non-byte examples, green on
+   the VM, Chrome, and dart2wasm before any broad FIPS 202 claim.
 3. Keep the SP 800-185 encodings green. They already exist. Do not add cSHAKE,
    KMAC, TupleHash, or ParallelHash without running that function's NIST outputs.
 4. Keep public APIs byte-oriented unless a bit-string API is deliberately

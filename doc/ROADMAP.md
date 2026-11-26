@@ -149,17 +149,16 @@ without weakening release evidence, the unfinished standards surface spills into
 **0.7.0** instead of shipping overbroad claims in 0.6.0.
 
 Current state: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs
-are implemented. The official FIPS 202 examples for all six lengths, including
-the non-byte messages, pass on the VM. SP 800-185 section 2.3 encodings pass
-the checked-in sample fields. cSHAKE, KMAC, TupleHash, and ParallelHash are
-not implemented. The full corpus is not yet on Chrome or dart2wasm.
+are implemented. The official FIPS 202 examples for all six lengths pass on
+the VM, Chrome, and dart2wasm. SP 800-185 encodings pass. cSHAKE, KMAC,
+TupleHash, and ParallelHash are not implemented.
 
 | Task                                                       | Priority | Status |
 | ---------------------------------------------------------- | -------- | ------ |
-| Lock NIST source corpus and example-vector provenance.     | P0       | Partial. PDF hashes are recorded. Normalized JSON hashes are not. |
+| Lock NIST source corpus and example-vector provenance.     | P0       | Done   |
 | Complete SHA3-224 and SHA3-384 APIs and tests.             | P0       | Done   |
 | Add selected FIPS 202 byte-example runner.                 | P0       | Done   |
-| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Partial. VM harness passes. Web corpus is open. |
+| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Done   |
 | Add Keccak constants, suffix, rate, and capacity tests.    | P0       | Done   |
 | Implement SP 800-185 encodings and cSHAKE.                 | P0       | Partial. Encodings pass. cSHAKE is not implemented. |
 | Implement KMAC/KMACXOF with key/tag guidance.              | P0       | Open   |

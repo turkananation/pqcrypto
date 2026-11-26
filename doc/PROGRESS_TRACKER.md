@@ -127,7 +127,7 @@ Controlled by
 | ----------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
 | Publish FIPS 202 / SP 800-185 release guide.          | Done    | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). |
 | Create GitHub issue map SHA3-00..SHA3-12.             | Done    | Epic #48 and child issues #36..#47.                                     |
-| Acquire + normalize NIST FIPS 202 example vectors.    | Partial | All six lengths are checked in. Normalized JSON SHA-256 is still open. |
+| Acquire + normalize NIST FIPS 202 example vectors.    | Done    | All six lengths, truncation samples, PDF hashes, and JSON hashes. |
 | Acquire + normalize NIST SP 800-185 example vectors.  | Done    | `test/data/SP800185` manifest and 40 official samples.                  |
 | Implement SHA3-224 and SHA3-384.                      | Done    | Official byte examples plus VM/dart2js focused tests.                   |
 | Add Keccak constants/suffix/rate/capacity tests.      | Done    | Active implementation tables are directly pinned in `keccak_test.dart`. |

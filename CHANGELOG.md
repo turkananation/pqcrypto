@@ -5,6 +5,7 @@
 ### Added
 
 - FIPS 202 NIST examples for 0, 5, 30, 1600, 1605, and 1630-bit messages, plus SHAKE128 truncation samples.
+- Run that FIPS 202 corpus on the VM, Chrome, and dart2wasm.
 - SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash sample vectors.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
 

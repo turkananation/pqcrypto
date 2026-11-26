@@ -14,7 +14,7 @@ CMVP/FIPS 140 module validation — see
 
 FIPS 202 support includes SHA3-224/256/384/512, SHAKE128/256, and incremental
 SHAKE XOFs. The official example lengths, including non-byte messages, pass on
-the VM. SP 800-185 encodings are implemented. cSHAKE, KMAC, TupleHash, and
+the VM, Chrome, and dart2wasm. SP 800-185 encodings are implemented. cSHAKE, KMAC, TupleHash, and
 ParallelHash are not. See
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
@@ -108,7 +108,7 @@ The full plan is in
 The current Keccak implementation is a shared primitive for ML-KEM, ML-DSA, and
 SLH-DSA. It is not a complete standalone SHA-3 release. SHA3-224/256/384/512,
 SHAKE128/256, and incremental SHAKE XOFs exist. The official NIST examples for
-every listed message length pass on the VM, including the non-byte lengths.
+every listed message length pass on the VM, Chrome, and dart2wasm.
 `lib/src/common/sp800_185.dart` has the section 2.3 encodings. cSHAKE, KMAC,
 TupleHash, and ParallelHash remain for 0.6.0, with 0.7.0 as spillover.
 

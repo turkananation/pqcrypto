@@ -36,19 +36,13 @@ In place:
 - `test/data/FIPS202` has all six functions at 0, 5, 30, 1600, 1605, and 1630
   bits, plus the SHAKE128 truncation samples. Each record has the source PDF
   URL and PDF SHA-256.
-- `fips202AbsorbBits` matches those examples on the VM. It is not exported.
-  The public API accepts byte strings only.
+- `test/fips202_examples_test.dart` runs that corpus on the VM, Chrome, and
+  dart2wasm. Non-byte messages use `fips202AbsorbBits` and the test-only
+  `BitString`. Neither is exported. The public API accepts byte strings only.
+- The manifests record the SHA-256 of the normalized JSON and of the source PDFs.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad` match SP 800-185
   section 2.3 and the encoding fields in the 40 checked-in SP 800-185 samples.
 - The package has zero runtime dependencies.
-
-Still open before a complete FIPS 202 claim:
-
-- SHA-256 of the normalized JSON, not only the source PDFs.
-- `test/fips202_examples_test.dart` still runs the 12-vector byte subset. The
-  full corpus runs from `test/fips202_conformance_test.dart` on the VM.
-- That full corpus on Chrome and dart2wasm.
-- The guide's `BitString` test helper.
 
 Still open before any SP 800-185 function claim:
 
@@ -811,9 +805,9 @@ Deliverables:
 | ID      | GitHub | Title                                               | Priority | Gate                                                                   |
 | ------- | ------ | --------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
 | SHA3-00 | #48    | Epic: FIPS 202 and SP 800-185 to release            | P0       | All child issues closed.                                               |
-| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | Partial: vectors are checked in. Normalized JSON SHA-256 is still open. |
+| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | Done: PDF and normalized JSON SHA-256 are recorded.                     |
 | SHA3-02 | #37    | Complete FIPS 202 SHA3-224/SHA3-384 APIs            | P0       | Done: SHA3-224/384 NIST vectors pass.                                  |
-| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | Partial: VM harness passes. Named runner, BitString, and web corpus remain. |
+| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | Done: full corpus passes on the VM, Chrome, and dart2wasm.              |
 | SHA3-04 | #39    | Keccak constants, suffix, rate, and capacity tests  | P0       | Direct table and suffix tests pass.                                    |
 | SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | Done: helpers match section 2.3 and the NIST encoding fields.          |
 | SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | NIST cSHAKE vectors and SHAKE fallback pass.                           |
@@ -865,11 +859,11 @@ The complete FIPS 202/SP 800-185 release is done only when:
 | -------------- | -------------- | ------------------------------------------------------------- |
 | Keccak-f[1600] | Present        | Direct constants/table tests are present; preserve coverage.  |
 | SHA3-224       | Present        | Preserve rate 144 bytes and 28-byte output coverage.          |
-| SHA3-256       | Present        | All six NIST lengths pass on the VM. Web corpus is still open. |
+| SHA3-256       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
 | SHA3-384       | Present        | Preserve rate 104 bytes and 48-byte output coverage.          |
-| SHA3-512       | Present        | All six NIST lengths pass on the VM. Web corpus is still open. |
-| SHAKE128       | Present        | VM corpus plus truncation samples. Web corpus is still open.  |
-| SHAKE256       | Present        | All six NIST lengths pass on the VM. Web corpus is still open. |
+| SHA3-512       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
+| SHAKE128       | Present        | Corpus and truncation samples pass on the VM, Chrome, and dart2wasm. |
+| SHAKE256       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
 | Encodings      | Present        | Section 2.3 helpers match the NIST encoding fields.           |
 | cSHAKE         | Missing        | Samples are checked in. The function is not implemented.      |
 | KMAC/KMACXOF   | Missing        | Implement after cSHAKE.                                       |
