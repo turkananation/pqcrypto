@@ -41,6 +41,31 @@ void main() {
     _ => throw FormatException(function),
   };
 
+  String hexDigest(Uint8List bytes) {
+    final out = StringBuffer();
+    for (final byte in bytes) {
+      out.write(byte.toRadixString(16).padLeft(2, '0'));
+    }
+    return out.toString();
+  }
+
+  test('normalized examples.json matches the manifest SHA-256', () {
+    expect(
+      manifest['standardPdfSha256'],
+      '0ebcdfb5b145bcb6a8a0f49737a201e8fb30dce06951595a07010774d402d7c5',
+    );
+    expect(
+      manifest['normalizedNote'],
+      'SHA-256 of the normalized JSON file bytes.',
+    );
+    final normalized = manifest['normalized']! as List<dynamic>;
+    expect(normalized, hasLength(1));
+    final record = normalized.single as Map<String, dynamic>;
+    expect(record['file'], 'examples.json');
+    final bytes = File('test/data/SP800185/examples.json').readAsBytesSync();
+    expect(hexDigest(sha256(bytes)), record['sha256']);
+  });
+
   test('the SP 800-185 manifest covers the official sample PDFs', () {
     final files = manifest['files']! as List<dynamic>;
     expect(files, hasLength(7));
