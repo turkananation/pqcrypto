@@ -1,10 +1,10 @@
 # pqcrypto Architecture
 
-Last updated: 2026-06-16
+Last updated: 2026-11-26
 
 `pqcrypto` is a pure Dart post-quantum cryptography package with three delivered
 algorithm families: ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA
-(FIPS 205). Version `0.4.0` ships all three. ML-KEM and ML-DSA are byte-exact
+(FIPS 205). The current package is `0.4.5`. ML-KEM and ML-DSA are byte-exact
 against their checked-in NIST KAT corpora; SLH-DSA is byte-exact on the
 checked-in 1,248-case official NIST ACVP sample corpus across all 12 SHA2/SHAKE
 parameter sets. Native OpenSSL/liboqs interop lives under `tool/` and remains
@@ -12,9 +12,11 @@ outside the runtime package. This is algorithm/KAT and interop evidence, not a
 CMVP/FIPS 140 module validation — see
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 
-FIPS 202 support currently includes SHA3-224/256/384/512, SHAKE128/256, and
-incremental SHAKE XOFs. Complete corpus/non-byte coverage and SP 800-185 remain
-planned in [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
+FIPS 202 support includes SHA3-224/256/384/512, SHAKE128/256, and incremental
+SHAKE XOFs. The official example lengths, including non-byte messages, pass on
+the VM. SP 800-185 encodings are implemented. cSHAKE, KMAC, TupleHash, and
+ParallelHash are not. See
+[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ## Package Shape
 
@@ -25,6 +27,7 @@ pqcrypto/
     src/
       common/
         keccak.dart                # vendored FIPS 202 SHA3/SHAKE + KeccakXof
+        sp800_185.dart             # SP 800-185 section 2.3 encodings
         keccak_parameters.dart     # tested Keccak-f[1600] and function profiles
         shake.dart                 # SHAKE wrappers + incremental XOF
         sha2.dart                  # vendored FIPS 180-4 SHA-2 functions
@@ -60,7 +63,7 @@ pqcrypto/
     data/
       MLKEM/                       # checked-in ML-KEM KAT corpus + README
       MLDSA/                       # checked-in ML-DSA KAT corpus (18 files) + README
-      FIPS202/                     # selected official byte examples + provenance
+      FIPS202/                     # official NIST examples, all six lengths, plus provenance
       SLHDSA/                      # official ACVP sample corpus + provenance
     kat_evaluator_test.dart        # VM-only ML-KEM KAT runner (3000 vectors)
     mldsa_kat_test.dart            # VM-only discovered ML-DSA KAT runner (18 files)
@@ -103,12 +106,11 @@ The full plan is in
 ## Planned: FIPS 202 Completion and SP 800-185
 
 The current Keccak implementation is a shared primitive for ML-KEM, ML-DSA, and
-SLH-DSA. It is **partial FIPS 202 support**, not a complete standalone SHA-3
-release surface: SHA3-224/256/384/512, SHAKE128/256, and incremental
-SHAKE XOFs exist. Selected official NIST byte examples and direct constants,
-suffix, rate, and capacity tests are present. Non-byte example handling, the
-complete official corpus, and SP 800-185 remain planned for 0.6.0 or controlled
-0.7.0 spillover.
+SLH-DSA. It is not a complete standalone SHA-3 release. SHA3-224/256/384/512,
+SHAKE128/256, and incremental SHAKE XOFs exist. The official NIST examples for
+every listed message length pass on the VM, including the non-byte lengths.
+`lib/src/common/sp800_185.dart` has the section 2.3 encodings. cSHAKE, KMAC,
+TupleHash, and ParallelHash remain for 0.6.0, with 0.7.0 as spillover.
 
 The target architecture keeps Keccak ownership in `lib/src/common/keccak.dart`
 and adds `lib/src/common/sp800_185.dart` for the derived functions:

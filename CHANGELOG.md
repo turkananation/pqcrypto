@@ -20,6 +20,9 @@
 - The FIPS 202 bit-string examples are checked by `fips202AbsorbBits`. That
   entry is not part of the exported package API. The public SHA3 and SHAKE
   functions still accept byte strings only.
+- Corrected the SHA-3 status in the roadmap and the hand-maintained docs.
+  The official FIPS 202 lengths pass on the VM. SP 800-185 encodings exist.
+  cSHAKE, KMAC, TupleHash, and ParallelHash do not.
 
 ## 0.4.5
 

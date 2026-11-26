@@ -1,6 +1,6 @@
 # Release Roadmap
 
-Last updated: 2026-11-25
+Last updated: 2026-11-26
 
 The roadmap starts from the `0.4.0` release: ML-KEM (FIPS 203) and ML-DSA
 (FIPS 204) are byte-exact against their checked-in KAT corpora, and SLH-DSA
@@ -109,9 +109,8 @@ Release criteria:
 - BUFF and performance caveats surfaced at the API level; default `shake128f`;
 - evidence-scoped docs (no CMVP/FIPS 140 claim); zero added runtime dependencies.
 
-Engineering release gates are complete and the package metadata is bumped to
-0.4.0. Cutting the release branch, tag, and pub.dev publication remain
-maintainer actions.
+Engineering release gates are complete. 0.4.0 was tagged and published. The
+current package is 0.4.5.
 
 ### SHA-2 family (originally a separate later release, folded into 0.4.0)
 
@@ -149,20 +148,20 @@ Target release: **0.6.0**. If implementation or validation scope cannot close
 without weakening release evidence, the unfinished standards surface spills into
 **0.7.0** instead of shipping overbroad claims in 0.6.0.
 
-Current state: `keccak.dart` already provides SHA3-224, SHA3-256, SHA3-384,
-SHA3-512, SHAKE128, SHAKE256, and incremental SHAKE XOFs. Selected official
-byte examples, direct constants/profile tests, and VM/web focused tests are
-present. Missing: complete official FIPS 202 corpus coverage, non-byte
-conformance examples, and all SP 800-185 functions.
+Current state: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs
+are implemented. The official FIPS 202 examples for all six lengths, including
+the non-byte messages, pass on the VM. SP 800-185 section 2.3 encodings pass
+the checked-in sample fields. cSHAKE, KMAC, TupleHash, and ParallelHash are
+not implemented. The full corpus is not yet on Chrome or dart2wasm.
 
 | Task                                                       | Priority | Status |
 | ---------------------------------------------------------- | -------- | ------ |
-| Lock NIST source corpus and example-vector provenance.     | P0       | Open   |
+| Lock NIST source corpus and example-vector provenance.     | P0       | Partial. PDF hashes are recorded. Normalized JSON hashes are not. |
 | Complete SHA3-224 and SHA3-384 APIs and tests.             | P0       | Done   |
 | Add selected FIPS 202 byte-example runner.                 | P0       | Done   |
-| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Open   |
+| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Partial. VM harness passes. Web corpus is open. |
 | Add Keccak constants, suffix, rate, and capacity tests.    | P0       | Done   |
-| Implement SP 800-185 encodings and cSHAKE.                 | P0       | Open   |
+| Implement SP 800-185 encodings and cSHAKE.                 | P0       | Partial. Encodings pass. cSHAKE is not implemented. |
 | Implement KMAC/KMACXOF with key/tag guidance.              | P0       | Open   |
 | Implement TupleHash/TupleHashXOF and ParallelHash/XOF.     | P1       | Open   |
 | Add VM/web portability gates and benchmark report.         | P1       | Open   |

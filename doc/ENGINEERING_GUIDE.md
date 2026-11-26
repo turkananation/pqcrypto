@@ -47,9 +47,10 @@ separate: a passing ML-KEM set is not ML-DSA or SLH-DSA evidence.
 - Use `doc/` as the only documentation root.
 - Start readers at [INDEX.md](INDEX.md).
 - Keep all readiness claims tied to current test evidence.
-- Current FIPS 202 support is partial: SHA3-224/256/384/512, SHAKE128/256, and
-  incremental SHAKE XOFs are implemented; complete corpus/non-byte coverage and
-  SP 800-185 work are controlled by
+- SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are
+  implemented. The official FIPS 202 lengths pass on the VM. SP 800-185
+  encodings are implemented. cSHAKE and the other derived functions are not.
+  The gate is
   [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 - ML-DSA is FIPS 204-aligned and byte-exact on the checked-in KAT corpus; keep
   any change byte-exact via `dart test test/mldsa_kat_test.dart`.
@@ -62,7 +63,7 @@ separate: a passing ML-KEM set is not ML-DSA or SLH-DSA evidence.
 | `lib/pqcrypto.dart`             | Public exports.                                   |
 | `lib/src/common/keccak.dart`    | Partial vendored FIPS 202 (SHA3/SHAKE + XOF).     |
 | `lib/src/common/shake.dart`     | SHAKE wrappers + incremental XOF.                 |
-| `lib/src/common/sp800_185.dart` | Planned SHA-3-derived functions; not present yet. |
+| `lib/src/common/sp800_185.dart` | SP 800-185 encodings. Derived functions are not implemented. |
 | `lib/src/common/sha2.dart`      | Vendored FIPS 180-4 SHA-2 family.                 |
 | `lib/src/common/hmac.dart`      | HMAC-SHA-256/512 for SLH-DSA SHA-2 sets.          |
 | `lib/src/common/mgf1.dart`      | MGF1-SHA-256/512 for SLH-DSA SHA-2 sets.          |
@@ -123,9 +124,11 @@ Minimum checklist:
 1. Preserve current `sha3224`, `sha3256`, `sha3384`, `sha3512`, `shake128`,
    `shake256`, and XOF
    behavior.
-2. Extend FIPS 202 corpus coverage, including non-byte examples, before broad
-   FIPS 202 claims.
-3. Add SP 800-185 encodings before cSHAKE/KMAC/TupleHash/ParallelHash.
+2. Keep the official FIPS 202 corpus, including non-byte examples, green before
+   any broad FIPS 202 claim. The VM corpus exists. Chrome and dart2wasm do not
+   yet run it.
+3. Keep the SP 800-185 encodings green. They already exist. Do not add cSHAKE,
+   KMAC, TupleHash, or ParallelHash without running that function's NIST outputs.
 4. Keep public APIs byte-oriented unless a bit-string API is deliberately
    designed.
 5. Add official NIST example vectors with source URLs, retrieval dates, and

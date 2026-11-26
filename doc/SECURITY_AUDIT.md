@@ -13,7 +13,7 @@ pass, it is marked as open or needs verification.
 | ML-KEM    | Supported surface with KAT, input-validation, Keccak, web, and OpenSSL/liboqs interop evidence. |
 | ML-DSA    | FIPS 204-aligned; byte-exact on the checked-in KAT corpus; best-effort hardening.               |
 | SLH-DSA   | FIPS 205-aligned (all 12 sets); external API shipped in 0.4.0; 1,248 ACVP cases complete.       |
-| Common    | Partial vendored FIPS 202 + FIPS 180-4 SHA-2; SP 800-185 planned; no runtime dependencies.      |
+| Common    | Vendored FIPS 202 and FIPS 180-4. SP 800-185 encodings only. No runtime dependencies. |
 | Package   | Not FIPS 140/CMVP validated (see FIPS_140_BOUNDARY.md); zero runtime deps.                      |
 
 ## Current Verification Snapshot
@@ -81,21 +81,20 @@ code changes.
 ## FIPS 202 / SP 800-185 Security Boundary
 
 Current FIPS 202 support is a shared primitive surface used by ML-KEM, ML-DSA,
-and SLH-DSA. It is not yet a complete standalone SHA-3 release surface.
-The planned completion work is controlled by
+and SLH-DSA. It is not a complete standalone SHA-3 release. The official
+example corpus, including non-byte messages, passes on the VM. The public API
+accepts byte strings only. SP 800-185 encodings are tested. cSHAKE, KMAC,
+TupleHash, and ParallelHash are not implemented. Completion is controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
-Security controls to verify before expanding public claims:
+Security controls before any broader public claim:
 
-- The complete FIPS 202 example corpus, including non-byte cases, must be
-  covered or explicitly scoped before broad FIPS 202 claims.
-- FIPS 202 tests must continue to cover rates, capacities, suffixes, Keccak
-  constants, and official byte/non-byte examples.
-- SP 800-185 encodings must be tested before cSHAKE, KMAC, TupleHash, or
-  ParallelHash are built on them.
-- KMAC API docs must warn about key length and tag length selection.
-- Byte-only public API limitations must be explicit if non-byte bit-string
-  inputs remain test-only.
+- Keep the VM corpus green, and run it on Chrome and dart2wasm before a
+  complete FIPS 202 claim.
+- Keep rate, capacity, suffix, and Keccak constant tests.
+- Keep the encoding tests green before cSHAKE, KMAC, TupleHash, or ParallelHash.
+- KMAC API docs must warn about key length and tag length when KMAC exists.
+- The public API stays byte-only unless a bit-string API is added on purpose.
 - No hard constant-time or hard memory-erasure guarantee may be made for Dart.
 
 ## ML-DSA Security Boundary
