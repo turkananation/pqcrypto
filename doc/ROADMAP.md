@@ -127,44 +127,37 @@ full A-Z implementation, hardening, and milestone plan.
 
 ## 0.5.0 - Performance and Platform Work
 
-| Task                                            | Priority | Status  |
-| ----------------------------------------------- | -------- | ------- |
-| Add automated benchmark suite.                  | P1       | Partial |
-| Measure AOT, dart2js, and dart2wasm paths.      | P1       | Partial |
-| Consider `Int32List` Kyber polynomial refactor. | P2       | Superseded. Coefficients are an `Int16List` as of 0.4.5. |
-| Consider in-place Kyber NTT.                    | P2       | Open    |
-| Evaluate native SHAKE only as optional tooling. | P3       | Open    |
+GitHub milestone: **v0.5.0 - Performance and Platform Work**.
 
-The package should preserve zero runtime dependencies unless a deliberate
-feature flag or separate package boundary is introduced.
+| Issue | Task                                            | Priority | Status |
+| ----- | ----------------------------------------------- | -------- | ------ |
+| #7    | Add automated benchmark suite.                  | P1       | Open   |
+| #11   | Measure AOT, dart2js, and dart2wasm paths.      | P1       | Open   |
+| #12   | Consider `Int32List` Kyber polynomial refactor. | P2       | Closed. Coefficients are an `Int16List`. |
+| #13   | Consider in-place Kyber NTT.                    | P2       | Open   |
+| #14   | Evaluate native SHAKE only as optional tooling. | P3       | Open   |
 
-## 0.6.0 - Foundational SHA-3 Workstream (FIPS 202 and SP 800-185)
+Zero runtime dependencies stay unless a separate package boundary is introduced.
 
-This workstream completes the package's SHA-3 foundation before any public claim
-of full FIPS 202 or SP 800-185 coverage. It is controlled by
-[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
+## 0.6.0 - FIPS 202 and SP 800-185
 
-Target release: **0.6.0**. If implementation or validation scope cannot close
-without weakening release evidence, the unfinished standards surface spills into
-**0.7.0** instead of shipping overbroad claims in 0.6.0.
+GitHub milestone: **v0.6.0 - FIPS 202 and SP 800-185**. Spillover milestone: **v0.7.0 - FIPS 202 and SP 800-185 spillover** (no issues). Controlled by [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
-Current state: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs
-are implemented. The official FIPS 202 examples for all six lengths pass on
-the VM, Chrome, and dart2wasm. SP 800-185 encodings pass. cSHAKE, KMAC,
-TupleHash, and ParallelHash are not implemented.
-
-| Task                                                       | Priority | Status |
-| ---------------------------------------------------------- | -------- | ------ |
-| Lock NIST source corpus and example-vector provenance.     | P0       | Done   |
-| Complete SHA3-224 and SHA3-384 APIs and tests.             | P0       | Done   |
-| Add selected FIPS 202 byte-example runner.                 | P0       | Done   |
-| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Done   |
-| Add Keccak constants, suffix, rate, and capacity tests.    | P0       | Done   |
-| Implement SP 800-185 encodings and cSHAKE.                 | P0       | Partial. Encodings pass. cSHAKE is not implemented. |
-| Implement KMAC/KMACXOF with key/tag guidance.              | P0       | Open   |
-| Implement TupleHash/TupleHashXOF and ParallelHash/XOF.     | P1       | Open   |
-| Add VM/web portability gates and benchmark report.         | P1       | Open   |
-| Sync docs, changelog, metadata, and release claim wording. | P0       | Open   |
+| Issue | Task                                              | Priority | Status |
+| ----- | ------------------------------------------------- | -------- | ------ |
+| #36   | Source corpus and NIST example-vector provenance. | P0       | Open   |
+| #37   | SHA3-224 and SHA3-384 APIs.                       | P0       | Closed |
+| #38   | FIPS 202 conformance harness, including bit cases.| P0       | Open   |
+| #39   | Keccak constants, suffix, rate, and capacity.     | P0       | Closed |
+| #40   | SP 800-185 encoding helpers.                      | P0       | Open   |
+| #41   | cSHAKE128/256.                                    | P0       | Open   |
+| #42   | KMAC128/256 and KMACXOF.                          | P0       | Open   |
+| #43   | TupleHash and TupleHashXOF.                       | P1       | Open   |
+| #44   | ParallelHash and ParallelHashXOF.                 | P1       | Open   |
+| #45   | Security, zeroization, and API misuse docs.       | P1       | Open   |
+| #46   | VM/web portability and benchmarks.                | P1       | Open   |
+| #47   | Release docs, changelog, and package metadata.    | P0       | Open   |
+| #48   | Epic.                                             | P0       | Open   |
 
 Release criteria:
 
@@ -177,6 +170,8 @@ Release criteria:
 - public wording remains algorithm/vector evidence only, not CMVP/FIPS 140.
 
 ## 1.0.0 - Stable API
+
+GitHub milestone: **v1.0.0 - Stable API**. Open issues: #31, #32, #33.
 
 Release criteria:
 
