@@ -51,7 +51,7 @@ pass, it is marked as open or needs verification.
 | DSA-21  | Low      | HashML-DSA coverage   | Only the level-bound SHA-2 pre-hash is exposed.                            | Add SHAKE pre-hash paths if needed.                      |
 | DOC-01  | Medium   | Assurance wording     | Any broad "FIPS validated" claim exceeds the evidence.                     | Keep wording evidence-scoped.                            |
 | HASH-20 | Medium   | FIPS 202 completeness | Non-byte examples and complete official corpus coverage remain incomplete. | Complete FIPS 202 guide gates before broad SHA-3 claims. |
-| HASH-21 | Medium   | SP 800-185            | TupleHash and ParallelHash are not implemented. cSHAKE and KMAC match their NIST samples. | Keep TupleHash and ParallelHash behind their vector gates. |
+| HASH-21 | Medium   | SP 800-185            | ParallelHash is not implemented. cSHAKE, KMAC, and TupleHash match their NIST samples. | Keep ParallelHash behind its vector gate. |
 
 DOC-01 detail: the acceptable/unacceptable wording list is in
 [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
@@ -85,8 +85,8 @@ and SLH-DSA. It is not a complete standalone SHA-3 release. The official
 example corpus, including non-byte messages, passes on the VM, Chrome, and
 dart2wasm. The public API
 accepts byte strings only. SP 800-185 encodings, cSHAKE128/256, and
-KMAC/KMACXOF are tested. TupleHash and ParallelHash are not implemented.
-Completion is controlled by
+KMAC/KMACXOF, and TupleHash/TupleHashXOF are tested. ParallelHash is not
+implemented. Completion is controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 Security controls before any broader public claim:

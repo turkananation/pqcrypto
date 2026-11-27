@@ -66,6 +66,7 @@ separate: a passing ML-KEM set is not ML-DSA or SLH-DSA evidence.
 | `lib/src/common/shake.dart`     | SHAKE wrappers + incremental XOF.                 |
 | `lib/src/common/sp800_185.dart` | Encodings and cSHAKE128/256.                      |
 | `lib/src/common/kmac.dart`      | KMAC128/256 and KMACXOF128/256.                   |
+| `lib/src/common/tuplehash.dart` | TupleHash128/256 and TupleHashXOF128/256.         |
 | `lib/src/common/sha2.dart`      | Vendored FIPS 180-4 SHA-2 family.                 |
 | `lib/src/common/hmac.dart`      | HMAC-SHA-256/512 for SLH-DSA SHA-2 sets.          |
 | `lib/src/common/mgf1.dart`      | MGF1-SHA-256/512 for SLH-DSA SHA-2 sets.          |
