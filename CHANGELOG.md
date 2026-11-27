@@ -8,6 +8,7 @@
 - Run that FIPS 202 corpus on the VM, Chrome, and dart2wasm.
 - SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash sample vectors.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
+- cSHAKE128 and cSHAKE256. Public output length is in bytes. Empty function name and customization return SHAKE128 or SHAKE256.
 
 ### Changed
 
