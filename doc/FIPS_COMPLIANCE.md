@@ -13,7 +13,7 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 | ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | FIPS 203   | ML-KEM-512/768/1024                   | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL/liboqs interop.                                                         |
 | FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Vendored. All six official message lengths pass on the VM, Chrome, and dart2wasm. |
-| SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Encodings are implemented and tested. The four functions are not. Target 0.6.0, spillover 0.7.0. |
+| SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Encodings, cSHAKE, and ParallelHash/ParallelHashXOF are implemented. KMAC and TupleHash are not. |
 | FIPS 204   | ML-DSA-44/65/87                       | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
 | FIPS 205   | SLH-DSA                               | All 12 sets (SHAKE + SHA-2) shipped in 0.4.0, byte-exact on all 1,248 official NIST ACVP cases. Not CMVP/FIPS 140 validated.                   |
 | FIPS 180-4 | SHA-224/256/384/512 and SHA-512/t     | Vendored for HashML-DSA/HashSLH-DSA pre-hash; pinned by direct vectors.                                                                        |
@@ -82,15 +82,12 @@ surface spills into 0.7.0 instead of receiving broad release wording.
 
 ## SP 800-185 - SHA-3 Derived Functions
 
-SP 800-185 section 2.3 encodings are implemented. cSHAKE, KMAC, TupleHash, and
-ParallelHash are not. The target release is 0.6.0, with 0.7.0 reserved for any
-surface that cannot satisfy the complete evidence gate. The remaining surface is:
+SP 800-185 encodings, cSHAKE128/256, and ParallelHash128/256 with
+ParallelHashXOF128/256 are implemented. KMAC and TupleHash are not. The
+remaining surface is:
 
-- cSHAKE128 and cSHAKE256;
-- KMAC128, KMAC256, KMACXOF128, and KMACXOF256;
-- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256; and
-- ParallelHash128, ParallelHash256, ParallelHashXOF128, and
-  ParallelHashXOF256.
+- KMAC128, KMAC256, KMACXOF128, and KMACXOF256; and
+- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256.
 
 No README, changelog, package metadata, or release note may claim SP 800-185
 support until the relevant issue gates and NIST example-vector tests in

@@ -17,5 +17,6 @@ for <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>.
 `examples.json` keeps the sample inputs, the printed encoding fields
 (`encode_string`, `bytepad`, `left_encode`, and `right_encode`), and the
 final output. `test/sp800_185_encoding_corpus_test.dart` checks the encoding
-fields. It does not execute cSHAKE, KMAC, TupleHash, or ParallelHash. Those
-functions are not implemented, so a final-output match is not claimed.
+fields. `test/sp800_185_cshake_test.dart` and
+`test/sp800_185_parallelhash_test.dart` match the cSHAKE and ParallelHash
+outputs. KMAC and TupleHash are not executed here.

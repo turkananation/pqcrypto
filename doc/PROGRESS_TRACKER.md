@@ -13,7 +13,7 @@ claim boundary for both algorithms.
 | Version           | 0.4.5            | `pubspec.yaml`, `CHANGELOG.md`.                                                               |
 | Runtime deps      | Complete         | No runtime dependencies; FIPS 202 and FIPS 180-4 primitives vendored.                         |
 | FIPS 202          | Partial          | SHA3-224/256/384/512 plus SHAKE128/256; official byte examples and table tests pass.          |
-| SP 800-185        | Not started      | cSHAKE/KMAC/TupleHash/ParallelHash planned for 0.6.0, with 0.7.0 spillover if needed.         |
+| SP 800-185        | Partial          | Encodings, cSHAKE, and ParallelHash/ParallelHashXOF are in. KMAC and TupleHash are not. |
 | ML-KEM            | Supported        | Checked-in KAT corpus, unit tests, OpenSSL/liboqs interop.                                    |
 | Native interop    | Supported        | OpenSSL and liboqs tool suites cover ML-KEM, ML-DSA, and SLH-DSA outside the runtime package. |
 | Web support       | Tested surface   | CI has `dart2js` and `dart2wasm` test jobs.                                                   |
@@ -119,8 +119,8 @@ are tracked as SLH-01..SLH-05 in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 Target release: **0.6.0**, with **0.7.0** reserved for standards-complete
 spillover if the full evidence gate cannot close in 0.6.0. The FIPS 202
 example harness, including the non-byte lengths, and the SP 800-185 encoding
-helpers are in place. cSHAKE, KMAC, TupleHash, and ParallelHash remain.
-Controlled by
+helpers are in place. cSHAKE and ParallelHash/ParallelHashXOF match their NIST
+samples. KMAC and TupleHash remain. Controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 | Task                                                  | Status  | Gate / evidence                                                         |
@@ -131,9 +131,9 @@ Controlled by
 | Acquire + normalize NIST SP 800-185 example vectors.  | Done    | `test/data/SP800185` manifest and 40 official samples.                  |
 | Implement SHA3-224 and SHA3-384.                      | Done    | Official byte examples plus VM/dart2js focused tests.                   |
 | Add Keccak constants/suffix/rate/capacity tests.      | Done    | Active implementation tables are directly pinned in `keccak_test.dart`. |
-| Implement SP 800-185 encodings and cSHAKE.            | Open    | Encodings match the NIST sample fields. cSHAKE is not implemented.     |
+| Implement SP 800-185 encodings and cSHAKE.            | Done    | Encodings match the NIST sample fields. cSHAKE samples pass.           |
 | Implement KMAC/KMACXOF.                               | Open    | `sp800_185_kmac_test`; key/tag guidance docs.                           |
-| Implement TupleHash/ParallelHash families.            | Open    | Tuple-boundary and multi-block ParallelHash tests.                      |
+| Implement TupleHash/ParallelHash families.            | Partial | ParallelHash NIST samples pass. TupleHash is open.                      |
 | Run VM/web gates and publish benchmark notes.         | Open    | VM, dart2js, dart2wasm, `PERFORMANCE.md`.                               |
 | Update release docs and claims after evidence passes. | Open    | README, CHANGELOG, FIPS docs, `dart pub publish --dry-run`.             |
 

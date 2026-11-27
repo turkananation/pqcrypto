@@ -42,12 +42,15 @@ In place:
 - The manifests record the SHA-256 of the normalized JSON and of the source PDFs.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad` match SP 800-185
   section 2.3 and the encoding fields in the 40 checked-in SP 800-185 samples.
+- cSHAKE128/256 and ParallelHash128/256 with ParallelHashXOF128/256 match
+  their NIST samples. ParallelHash blocks are hashed in order. Output length
+  is in bytes.
 - The package has zero runtime dependencies.
 
-Still open before any SP 800-185 function claim:
+Still open before any further SP 800-185 function claim:
 
-- cSHAKE128/256, KMAC and KMACXOF, TupleHash and TupleHashXOF, ParallelHash
-  and ParallelHashXOF. Their sample outputs are checked in and are not executed.
+- KMAC, KMACXOF, TupleHash, and TupleHashXOF. Their sample outputs are
+  checked in and are not executed.
 - KMAC key and tag guidance.
 - VM, dart2js, and dart2wasm gates for those functions.
 
@@ -810,10 +813,10 @@ Deliverables:
 | SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | Done: full corpus passes on the VM, Chrome, and dart2wasm.              |
 | SHA3-04 | #39    | Keccak constants, suffix, rate, and capacity tests  | P0       | Direct table and suffix tests pass.                                    |
 | SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | Done: helpers match section 2.3 and the NIST encoding fields.          |
-| SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | NIST cSHAKE vectors and SHAKE fallback pass.                           |
+| SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | Done: NIST samples and the SHAKE fallback pass.                       |
 | SHA3-07 | #42    | KMAC128/KMAC256 and KMACXOF                         | P0       | NIST KMAC/KMACXOF vectors plus misuse tests pass.                      |
 | SHA3-08 | #43    | TupleHash and TupleHashXOF                          | P1       | NIST vectors plus tuple-boundary tests pass.                           |
-| SHA3-09 | #44    | ParallelHash and ParallelHashXOF                    | P1       | NIST vectors plus multi-block tests pass.                              |
+| SHA3-09 | #44    | ParallelHash and ParallelHashXOF                    | P1       | Done: NIST samples pass, including more than one block.               |
 | SHA3-10 | #45    | Security, zeroization, and API misuse docs          | P1       | KMAC key/tag guidance and no-overclaim docs complete.                  |
 | SHA3-11 | #46    | VM/web portability and performance benchmarks       | P1       | VM, dart2js, dart2wasm gates and benchmark report complete.            |
 | SHA3-12 | #47    | Release docs, changelog, and package metadata       | P0       | Release wording matches evidence and `pub publish --dry-run` is clean. |
@@ -865,10 +868,10 @@ The complete FIPS 202/SP 800-185 release is done only when:
 | SHAKE128       | Present        | Corpus and truncation samples pass on the VM, Chrome, and dart2wasm. |
 | SHAKE256       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
 | Encodings      | Present        | Section 2.3 helpers match the NIST encoding fields.           |
-| cSHAKE         | Missing        | Samples are checked in. The function is not implemented.      |
+| cSHAKE         | Present        | NIST samples and the SHAKE fallback pass.                 |
 | KMAC/KMACXOF   | Missing        | Implement after cSHAKE.                                       |
 | TupleHash      | Missing        | Implement after cSHAKE.                                       |
-| ParallelHash   | Missing        | Implement after cSHAKE and benchmark sequential baseline.     |
+| ParallelHash   | Present        | NIST samples pass. Blocks are hashed in order.               |
 
 ## Appendix B - Release Claim Checklist
 
