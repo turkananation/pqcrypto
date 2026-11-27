@@ -12,6 +12,7 @@
 
 ### Changed
 
+- Keccak-f[1600] rounds are straight-line 32-bit lanes, and one-shot sponges reuse one wiped scratch. SHA-512 rotates return into locals.
 - Record 0.4.0 through 0.4.5 as published. ML-KEM coefficients are an `Int16List`.
 - Check non-byte FIPS 202 examples with internal `fips202AbsorbBits`.
 
