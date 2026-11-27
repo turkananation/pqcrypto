@@ -15,7 +15,7 @@ and
 | FIPS 203   | ML-KEM-512/768/1024                            | Byte-exact KATs + OpenSSL interop                    |
 | FIPS 204   | ML-DSA-44/65/87 (incl. HashML-DSA)             | Byte-exact KATs (raw/pure/hashed × det/hedged)       |
 | FIPS 180-4 | SHA-256/384/512 (vendored, for HashML-DSA)     | Used internally                                      |
-| FIPS 202   | SHA3-256/512, SHAKE128/256 (vendored, partial) | Internal; full FIPS 202 + SP 800-185 planned (0.7.0) |
+| FIPS 202   | SHA3-224/256/384/512, SHAKE128/256 | Vendored. Official lengths pass on the VM, Chrome, and dart2wasm. Encodings exist. Derived functions do not. Target 0.6.0. |
 
 ## Algorithm conformance vs. module validation
 

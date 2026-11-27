@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-06-16
+Last updated: 2026-11-25
 
 This tracker reconciles the current codebase, changelog, and local verification
 snapshot. It deliberately separates ML-KEM evidence, ML-DSA evidence, and the
@@ -105,7 +105,7 @@ first (reuses `KeccakXof`, no new primitive); the SHA-2 family followed
 | Full VM and web package platform matrix.                    | Done   | VM decomposed matrix; 217/217 on dart2js and dart2wasm.  |
 | Visibility and AI-discovery release boundary.               | Done   | Generated surfaces present SLH-DSA as released in 0.4.0. |
 | Package publication preflight.                              | Done   | Valid archive; expected dirty-worktree warning only.     |
-| Maintainer v0.4.0 tag/publish decision.                     | Open   | 0.4.0 metadata done; tag/publish are maintainer actions. |
+| Maintainer v0.4.0 tag/publish decision.                     | Done   | Tagged and published. Current package is 0.4.5.           |
 | Vendor + KAT-gate HMAC-SHA-256/512 (RFC 4231).              | Done   | `hmac_test` green.                                       |
 | Vendor + KAT-gate MGF1-SHA-256/512 (RFC 8017).              | Done   | `mgf1_test` green.                                       |
 | `ADRS^c` (22B) + SHA-2 hashing (cat 1 + cat 3/5 split).     | Done   | `slhdsa_hashing_test`, `slhdsa_address_test` green.      |
@@ -117,8 +117,9 @@ are tracked as SLH-01..SLH-05 in [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 ## Phase 7 - FIPS 202 / SP 800-185 SHA-3 Foundation
 
 Target release: **0.6.0**, with **0.7.0** reserved for standards-complete
-spillover if the full evidence gate cannot close in 0.6.0. The byte-oriented
-shared-core prerequisite has started; non-byte examples and SP 800-185 remain.
+spillover if the full evidence gate cannot close in 0.6.0. The FIPS 202
+example harness, including the non-byte lengths, and the SP 800-185 encoding
+helpers are in place. cSHAKE, KMAC, TupleHash, and ParallelHash remain.
 Controlled by
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
@@ -126,11 +127,11 @@ Controlled by
 | ----------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
 | Publish FIPS 202 / SP 800-185 release guide.          | Done    | [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). |
 | Create GitHub issue map SHA3-00..SHA3-12.             | Done    | Epic #48 and child issues #36..#47.                                     |
-| Acquire + normalize NIST FIPS 202 example vectors.    | Partial | Empty/1600-bit byte cases for all six functions; non-byte cases remain  |
-| Acquire + normalize NIST SP 800-185 example vectors.  | Open    | `test/data/SP800185` provenance manifest.                               |
+| Acquire + normalize NIST FIPS 202 example vectors.    | Done    | All six lengths, truncation samples, PDF hashes, and JSON hashes. |
+| Acquire + normalize NIST SP 800-185 example vectors.  | Done    | `test/data/SP800185` manifest and 40 official samples.                  |
 | Implement SHA3-224 and SHA3-384.                      | Done    | Official byte examples plus VM/dart2js focused tests.                   |
 | Add Keccak constants/suffix/rate/capacity tests.      | Done    | Active implementation tables are directly pinned in `keccak_test.dart`. |
-| Implement SP 800-185 encodings and cSHAKE.            | Open    | `sp800_185_encoding_test`, `sp800_185_cshake_test`.                     |
+| Implement SP 800-185 encodings and cSHAKE.            | Open    | Encodings match the NIST sample fields. cSHAKE is not implemented.     |
 | Implement KMAC/KMACXOF.                               | Open    | `sp800_185_kmac_test`; key/tag guidance docs.                           |
 | Implement TupleHash/ParallelHash families.            | Open    | Tuple-boundary and multi-block ParallelHash tests.                      |
 | Run VM/web gates and publish benchmark notes.         | Open    | VM, dart2js, dart2wasm, `PERFORMANCE.md`.                               |
@@ -167,5 +168,4 @@ Fresh M4 verification on 2026-06-15:
 - `dart pub publish --dry-run --ignore-warnings` validated the 190 KB package
   archive, with only the expected uncommitted-worktree warning.
 
-The 0.4.0 version is set; cutting the release branch, tag, and publication
-remain maintainer actions.
+0.4.0 was tagged and published. The current package is 0.4.5.

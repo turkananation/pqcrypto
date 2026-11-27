@@ -1,6 +1,6 @@
 # FIPS 202 and SP 800-185 Compliance and Release Guide
 
-Last updated: 2026-06-16
+Last updated: 2026-11-26
 
 This is the engineering guide for completing, validating, and releasing
 `pqcrypto`'s SHA-3 / SHAKE and SHA-3-derived function surface:
@@ -26,50 +26,30 @@ SP 800-185 release scope. **0.7.0** is reserved for spillover if the full
 standards surface or its validation evidence cannot close in 0.6.0 without
 weakening the claim boundary.
 
-## Completion Status (2026-06-16)
+## Completion Status (2026-11-26)
 
-**Not complete.** The repo contains the byte-oriented FIPS 202 function family,
-but it has not yet closed the complete official corpus/non-byte evidence gate or
-implemented any SP 800-185 functions.
+**Not complete.** The Definition of Done below is still open.
 
-Current implementation:
+In place:
 
-- `lib/src/common/keccak.dart` implements Keccak-f[1600] using portable
-  32-bit lane halves.
-- The exposed one-shot functions are `sha3224`, `sha3256`, `sha3384`,
-  `sha3512`, `shake128`, and `shake256`.
-- Incremental SHAKE output is available through `shake128Xof` and
-  `shake256Xof`.
-- `test/keccak_test.dart` pins SHA3-224, SHA3-256, SHA3-384, SHA3-512,
-  SHAKE128, and SHAKE256 against known-answer values, including multi-block
-  input, direct Keccak parameter tables, and XOF prefix stability.
-- `test/fips202_examples_test.dart` runs the selected official byte-aligned
-  FIPS 202 example corpus under `test/data/FIPS202`.
+- Byte-oriented SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs.
+- `test/data/FIPS202` has all six functions at 0, 5, 30, 1600, 1605, and 1630
+  bits, plus the SHAKE128 truncation samples. Each record has the source PDF
+  URL and PDF SHA-256.
+- `test/fips202_examples_test.dart` runs that corpus on the VM, Chrome, and
+  dart2wasm. Non-byte messages use `fips202AbsorbBits` and the test-only
+  `BitString`. Neither is exported. The public API accepts byte strings only.
+- The manifests record the SHA-256 of the normalized JSON and of the source PDFs.
+- `leftEncode`, `rightEncode`, `encodeString`, and `bytepad` match SP 800-185
+  section 2.3 and the encoding fields in the 40 checked-in SP 800-185 samples.
 - The package has zero runtime dependencies.
 
-Missing before any complete FIPS 202 claim:
+Still open before any SP 800-185 function claim:
 
-- A public or test-only bit-string representation for non-byte-aligned NIST
-  examples.
-- Complete checked-in FIPS 202 example-corpus coverage beyond the selected
-  byte-aligned subset.
-- Coverage of non-byte NIST examples such as 5-bit, 30-bit, 1605-bit, and
-  1630-bit messages for all six FIPS 202 functions, or an explicit scoped
-  deferral for byte-only APIs.
-
-Missing before any SP 800-185 claim:
-
-- `left_encode`, `right_encode`, `encode_string`, `bytepad`, and substring
-  helpers.
-- cSHAKE128 and cSHAKE256.
-- KMAC128, KMAC256, KMACXOF128, and KMACXOF256.
-- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256.
-- ParallelHash128, ParallelHash256, ParallelHashXOF128, and
-  ParallelHashXOF256.
-- A checked-in SP 800-185 example corpus with provenance.
-- API-level validation for length limits, block-size limits, customization
-  strings, key length guidance, and unsupported bit-level inputs.
-- VM, dart2js, and dart2wasm tests for the implemented byte-oriented surface.
+- cSHAKE128/256, KMAC and KMACXOF, TupleHash and TupleHashXOF, ParallelHash
+  and ParallelHashXOF. Their sample outputs are checked in and are not executed.
+- KMAC key and tag guidance.
+- VM, dart2js, and dart2wasm gates for those functions.
 
 ## Release Strategy
 
@@ -825,11 +805,11 @@ Deliverables:
 | ID      | GitHub | Title                                               | Priority | Gate                                                                   |
 | ------- | ------ | --------------------------------------------------- | -------- | ---------------------------------------------------------------------- |
 | SHA3-00 | #48    | Epic: FIPS 202 and SP 800-185 to release            | P0       | All child issues closed.                                               |
-| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | `test/data/FIPS202` and `test/data/SP800185` manifests.                |
+| SHA3-01 | #36    | Source corpus and NIST example-vector provenance    | P0       | Done: PDF and normalized JSON SHA-256 are recorded.                     |
 | SHA3-02 | #37    | Complete FIPS 202 SHA3-224/SHA3-384 APIs            | P0       | Done: SHA3-224/384 NIST vectors pass.                                  |
-| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | 0/5/30/1600/1605/1630-bit examples covered or explicitly scoped.       |
+| SHA3-03 | #38    | FIPS 202 conformance harness for bit-level examples | P0       | Done: full corpus passes on the VM, Chrome, and dart2wasm.              |
 | SHA3-04 | #39    | Keccak constants, suffix, rate, and capacity tests  | P0       | Direct table and suffix tests pass.                                    |
-| SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | `left_encode`, `right_encode`, `encode_string`, `bytepad` tests pass.  |
+| SHA3-05 | #40    | SP 800-185 encoding helpers                         | P0       | Done: helpers match section 2.3 and the NIST encoding fields.          |
 | SHA3-06 | #41    | cSHAKE128/cSHAKE256                                 | P0       | NIST cSHAKE vectors and SHAKE fallback pass.                           |
 | SHA3-07 | #42    | KMAC128/KMAC256 and KMACXOF                         | P0       | NIST KMAC/KMACXOF vectors plus misuse tests pass.                      |
 | SHA3-08 | #43    | TupleHash and TupleHashXOF                          | P1       | NIST vectors plus tuple-boundary tests pass.                           |
@@ -879,12 +859,13 @@ The complete FIPS 202/SP 800-185 release is done only when:
 | -------------- | -------------- | ------------------------------------------------------------- |
 | Keccak-f[1600] | Present        | Direct constants/table tests are present; preserve coverage.  |
 | SHA3-224       | Present        | Preserve rate 144 bytes and 28-byte output coverage.          |
-| SHA3-256       | Present        | Expand official vector coverage.                              |
+| SHA3-256       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
 | SHA3-384       | Present        | Preserve rate 104 bytes and 48-byte output coverage.          |
-| SHA3-512       | Present        | Expand official vector coverage.                              |
-| SHAKE128       | Present        | Expand official vector coverage and non-byte output handling. |
-| SHAKE256       | Present        | Expand official vector coverage and non-byte output handling. |
-| cSHAKE         | Missing        | Implement after encoding helpers.                             |
+| SHA3-512       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
+| SHAKE128       | Present        | Corpus and truncation samples pass on the VM, Chrome, and dart2wasm. |
+| SHAKE256       | Present        | All six NIST lengths pass on the VM, Chrome, and dart2wasm.    |
+| Encodings      | Present        | Section 2.3 helpers match the NIST encoding fields.           |
+| cSHAKE         | Missing        | Samples are checked in. The function is not implemented.      |
 | KMAC/KMACXOF   | Missing        | Implement after cSHAKE.                                       |
 | TupleHash      | Missing        | Implement after cSHAKE.                                       |
 | ParallelHash   | Missing        | Implement after cSHAKE and benchmark sequential baseline.     |

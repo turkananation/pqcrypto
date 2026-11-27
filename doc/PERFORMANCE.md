@@ -69,7 +69,7 @@ and payload-size planning.
 
 | Area                      | Why it matters                                     | Improvement direction                              |
 | ------------------------- | -------------------------------------------------- | -------------------------------------------------- |
-| ML-KEM NTT                | Many modular reductions and polynomial operations. | Measure `Int32List`, in-place NTT, lazy reduction. |
+| ML-KEM NTT                | Many modular reductions and polynomial operations. | Coefficients are an `Int16List` as of 0.4.5. Measure in-place NTT before another layout change. |
 | Matrix generation         | Repeated SHAKE calls during K-PKE operations.      | Streaming XOF or precomputed matrix options.       |
 | Serialization/compression | Bit packing is on every key/ciphertext path.       | Keep regression tests before micro-optimizing.     |
 | Keccak/FIPS 202           | Pure Dart Keccak is portable but compute-heavy.    | Optimize vendored implementation cautiously.       |
@@ -115,7 +115,7 @@ Future statistical benchmark work should report:
 
 | ID      | Candidate                             | Risk | Notes                                       |
 | ------- | ------------------------------------- | ---- | ------------------------------------------- |
-| PERF-01 | `Int32List` for ML-KEM `Poly.coeffs`. | Med  | May reduce boxing/GC; requires broad tests. |
+| PERF-01 | `Int32List` for ML-KEM `Poly.coeffs`. | Med  | Superseded. 0.4.5 stores coefficients in an `Int16List`. |
 | PERF-02 | In-place ML-KEM NTT.                  | High | Touches core arithmetic; KAT gate required. |
 | PERF-03 | Streaming SHAKE/XOF API.              | Med  | Could reduce over-squeeze allocation.       |
 | PERF-04 | Precomputed matrix API.               | Med  | Useful for batch encapsulation contexts.    |

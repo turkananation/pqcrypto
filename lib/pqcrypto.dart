@@ -27,7 +27,9 @@
 library;
 
 export 'src/common/hmac.dart';
-export 'src/common/keccak.dart';
+export 'src/common/keccak.dart' hide fips202AbsorbBits;
+export 'src/common/sp800_185.dart'
+    show leftEncode, rightEncode, encodeString, bytepad;
 export 'src/common/keccak_parameters.dart';
 export 'src/common/mgf1.dart';
 export 'src/common/sha2.dart';

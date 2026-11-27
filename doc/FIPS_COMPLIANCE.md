@@ -12,8 +12,8 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 | Standard   | Scope in repo                         | Current status                                                                                                                                 |
 | ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | FIPS 203   | ML-KEM-512/768/1024                   | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL/liboqs interop.                                                         |
-| FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Partial vendored implementation with selected official byte examples; non-byte and full-corpus completion target 0.6.0/0.7.0.                  |
-| SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Not implemented yet. Controlled by the FIPS 202 / SP 800-185 release guide; targets 0.6.0 with disciplined 0.7.0 spillover.                    |
+| FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Vendored. All six official message lengths pass on the VM, Chrome, and dart2wasm. |
+| SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Encodings are implemented and tested. The four functions are not. Target 0.6.0, spillover 0.7.0. |
 | FIPS 204   | ML-DSA-44/65/87                       | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
 | FIPS 205   | SLH-DSA                               | All 12 sets (SHAKE + SHA-2) shipped in 0.4.0, byte-exact on all 1,248 official NIST ACVP cases. Not CMVP/FIPS 140 validated.                   |
 | FIPS 180-4 | SHA-224/256/384/512 and SHA-512/t     | Vendored for HashML-DSA/HashSLH-DSA pre-hash; pinned by direct vectors.                                                                        |
@@ -62,16 +62,17 @@ Evidence:
 - `test/keccak_test.dart` pins all four SHA3 functions plus SHAKE128/256,
   including direct Keccak-f[1600] constants/profiles, rate boundaries,
   multi-block absorb, and XOF chunk/prefix behavior.
-- `test/data/FIPS202` records selected official NIST empty/1600-bit byte
-  examples for all six functions, source URLs, retrieval date, and PDF hashes;
-  `test/fips202_examples_test.dart` executes the normalized corpus.
+- `test/data/FIPS202` records the official NIST examples for message lengths
+  0, 5, 30, 1600, 1605, and 1630 bits, plus SHAKE128 truncation samples, with
+  source URLs and PDF SHA-256 hashes.
+- `test/fips202_examples_test.dart` runs that corpus on the VM, Chrome, and
+  dart2wasm. The manifests include the normalized JSON SHA-256.
 - `pubspec.yaml` has no runtime dependencies; `lints` and `test` are
   dev-only dependencies.
 
 Current limitations:
 
-- Non-byte-aligned FIPS 202 examples are not covered yet.
-- The checked-in NIST subset does not yet cover every published example.
+- The public API is byte-only. Non-byte examples are test-only.
 
 Full FIPS 202 completion targets 0.6.0 and is planned in
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). The
@@ -81,9 +82,9 @@ surface spills into 0.7.0 instead of receiving broad release wording.
 
 ## SP 800-185 - SHA-3 Derived Functions
 
-SP 800-185 support is **not implemented yet**. The target release is 0.6.0, with
-0.7.0 reserved for any surface that cannot satisfy the complete evidence gate.
-The planned surface includes:
+SP 800-185 section 2.3 encodings are implemented. cSHAKE, KMAC, TupleHash, and
+ParallelHash are not. The target release is 0.6.0, with 0.7.0 reserved for any
+surface that cannot satisfy the complete evidence gate. The remaining surface is:
 
 - cSHAKE128 and cSHAKE256;
 - KMAC128, KMAC256, KMACXOF128, and KMACXOF256;

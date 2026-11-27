@@ -332,3 +332,105 @@ Uint8List _fixedDigest(Uint8List input, Fips202Parameters parameters) =>
 
 Uint8List _xof(Uint8List input, Fips202Parameters parameters, int outLen) =>
     _keccak(input, parameters.rateBytes, parameters.domain, outLen);
+
+/// Absorbs a FIPS 202 bit string and returns [outputBytes] bytes.
+///
+/// [messageBits] is in absorption order. The first bit becomes the least
+/// significant bit of the first byte. [suffixBits] is the domain suffix in
+/// that same order: `0, 1` for SHA3 and `1, 1, 1, 1` for SHAKE. The padding
+/// rule is FIPS 202 `pad10*1`.
+///
+/// The byte-oriented wrappers in this file are unchanged. This entry exists
+/// so the NIST examples whose length is not a multiple of 8 can be checked.
+/// It is not exported from `package:pqcrypto/pqcrypto.dart`.
+Uint8List fips202AbsorbBits({
+  required List<int> messageBits,
+  required int rateBytes,
+  required List<int> suffixBits,
+  required int outputBytes,
+}) {
+  if (rateBytes <= 0 ||
+      rateBytes >= KeccakF1600Parameters.stateBits ~/ 8 ||
+      rateBytes % 8 != 0) {
+    throw ArgumentError.value(
+      rateBytes,
+      'rateBytes',
+      'must be a positive multiple of 8 smaller than 200',
+    );
+  }
+  _validateOutputLength(outputBytes);
+  _requireBits(messageBits, 'messageBits');
+  _requireBits(suffixBits, 'suffixBits');
+  if (suffixBits.isEmpty) {
+    throw ArgumentError.value(suffixBits, 'suffixBits', 'must be non-empty');
+  }
+
+  final rateBits = rateBytes * 8;
+  final bodyBits = messageBits.length + suffixBits.length;
+  final zeroPad = _nonNegativeMod(-bodyBits - 2, rateBits);
+  final totalBits = bodyBits + 2 + zeroPad;
+  final packed = Uint8List(totalBits >> 3);
+  final state = Uint32List(50);
+  final scratchB = Uint32List(50);
+  final scratchC = Uint32List(10);
+  final scratchD = Uint32List(10);
+  try {
+    var bitIndex = 0;
+    void writeBit(int bit) {
+      if (bit != 0) {
+        packed[bitIndex >> 3] |= 1 << (bitIndex & 7);
+      }
+      bitIndex++;
+    }
+
+    for (final bit in messageBits) {
+      writeBit(bit);
+    }
+    for (final bit in suffixBits) {
+      writeBit(bit);
+    }
+    writeBit(1);
+    for (var i = 0; i < zeroPad; i++) {
+      writeBit(0);
+    }
+    writeBit(1);
+
+    for (var offset = 0; offset < packed.length; offset += rateBytes) {
+      _xorBlock(state, packed, offset, rateBytes);
+      _permute(state, scratchB, scratchC, scratchD);
+    }
+
+    final out = Uint8List(outputBytes);
+    var got = 0;
+    while (got < outputBytes) {
+      final take = (outputBytes - got) < rateBytes
+          ? (outputBytes - got)
+          : rateBytes;
+      _extractBlock(state, out, got, take);
+      got += take;
+      if (got < outputBytes) {
+        _permute(state, scratchB, scratchC, scratchD);
+      }
+    }
+    return out;
+  } finally {
+    secureZero(packed);
+    secureZeroUint32(state);
+    secureZeroUint32(scratchB);
+    secureZeroUint32(scratchC);
+    secureZeroUint32(scratchD);
+  }
+}
+
+void _requireBits(List<int> bits, String name) {
+  for (final bit in bits) {
+    if (bit != 0 && bit != 1) {
+      throw ArgumentError.value(bit, name, 'must contain only 0 and 1');
+    }
+  }
+}
+
+int _nonNegativeMod(int value, int modulus) {
+  final remainder = value % modulus;
+  return remainder < 0 ? remainder + modulus : remainder;
+}

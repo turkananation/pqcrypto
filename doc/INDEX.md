@@ -1,6 +1,6 @@
 # pqcrypto Documentation Index
 
-Last updated: 2026-06-16
+Last updated: 2026-11-26
 
 This is the canonical documentation root for `pqcrypto`. Use `doc/` links for
 project documentation; the older documentation directory has been retired.
@@ -13,7 +13,7 @@ project documentation; the older documentation directory has been retired.
 | Runtime dependencies         | None. Partial FIPS 202 SHA3/SHAKE is vendored in `lib/src/common/keccak.dart`.                                                                    |
 | ML-KEM                       | Supported for ML-KEM-512, ML-KEM-768, and ML-KEM-1024 with checked-in KAT and interop evidence.                                                   |
 | ML-DSA                       | FIPS 204-aligned for ML-DSA-44/65/87; byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated.        |
-| FIPS 202 / SP 800-185        | FIPS 202 is partial today (SHA3-224/256/384/512, SHAKE128/256, incremental SHAKE XOFs). SP 800-185 targets 0.6.0, with 0.7.0 spillover if needed. |
+| FIPS 202 / SP 800-185        | SHA3-224/256/384/512, SHAKE128/256, and XOFs. Official lengths pass on the VM, Chrome, and dart2wasm. Encodings exist. cSHAKE, KMAC, TupleHash, and ParallelHash do not. Target 0.6.0, spillover 0.7.0. |
 | SLH-DSA                      | FIPS 205-aligned. All 12 sets (SHAKE + SHA-2) ship in 0.4.0; 1,248/1,248 ACVP cases pass. Not CMVP/FIPS 140 validated.                            |
 | Native interop               | OpenSSL and liboqs tool suites cover ML-KEM, ML-DSA, and SLH-DSA outside the runtime package boundary.                                            |
 | Certification claim boundary | Implementation/KAT evidence, not CMVP/FIPS 140 module validation. See [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).                               |

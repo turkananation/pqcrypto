@@ -1,6 +1,6 @@
 # Release Roadmap
 
-Last updated: 2026-06-16
+Last updated: 2026-11-26
 
 The roadmap starts from the `0.4.0` release: ML-KEM (FIPS 203) and ML-DSA
 (FIPS 204) are byte-exact against their checked-in KAT corpora, and SLH-DSA
@@ -19,6 +19,10 @@ CMVP/FIPS 140 module validation
 | 0.3.0   | ML-DSA validation + hardening | Byte-exact FIPS 204 KATs (44/65/87 × raw/pure/hashed × det/hedged), HashML-DSA, vendored SHA-2, KEM constant-time output selection, zeroization, SECURITY.md. |
 | 0.3.1   | Package metadata alignment    | Published package metadata reflects zero dependencies, ML-KEM, ML-DSA, and checked-in vector evidence.                                                        |
 | 0.4.0   | SLH-DSA (FIPS 205, 12 sets)   | All 12 SLH-DSA sets (SHAKE + SHA-2) byte-exact on the 1,248-case NIST ACVP corpus; hedged API, verify-after-sign, OpenSSL/liboqs interop.                     |
+| 0.4.2   | Docs in the published archive | Cookbook markdown ships in the pub.dev archive. Tag `vX.Y.Z` publishes and opens the GitHub Release.                                                          |
+| 0.4.3   | ML-KEM size tables exported   | `KyberParams` and `KyberLevel` are exported from the package root.                                                                                            |
+| 0.4.4   | Seeded SLH-DSA key generation | Public `SlhDsa.generateKeyPairSeeded` (FIPS 205 Algorithm 18).                                                                                                |
+| 0.4.5   | Division removal              | Secret-dependent `%` and `~/` removed from the ML-KEM and ML-DSA coefficient paths. ML-KEM coefficients are an `Int16List`. Published.                        |
 
 ## Completed Documentation and Boundary Cleanup
 
@@ -105,9 +109,8 @@ Release criteria:
 - BUFF and performance caveats surfaced at the API level; default `shake128f`;
 - evidence-scoped docs (no CMVP/FIPS 140 claim); zero added runtime dependencies.
 
-Engineering release gates are complete and the package metadata is bumped to
-0.4.0. Cutting the release branch, tag, and pub.dev publication remain
-maintainer actions.
+Engineering release gates are complete. 0.4.0 was tagged and published. The
+current package is 0.4.5.
 
 ### SHA-2 family (originally a separate later release, folded into 0.4.0)
 
@@ -124,45 +127,37 @@ full A-Z implementation, hardening, and milestone plan.
 
 ## 0.5.0 - Performance and Platform Work
 
-| Task                                            | Priority | Status  |
-| ----------------------------------------------- | -------- | ------- |
-| Add automated benchmark suite.                  | P1       | Partial |
-| Measure AOT, dart2js, and dart2wasm paths.      | P1       | Partial |
-| Consider `Int32List` Kyber polynomial refactor. | P2       | Open    |
-| Consider in-place Kyber NTT.                    | P2       | Open    |
-| Evaluate native SHAKE only as optional tooling. | P3       | Open    |
+GitHub milestone: **v0.5.0 - Performance and Platform Work**.
 
-The package should preserve zero runtime dependencies unless a deliberate
-feature flag or separate package boundary is introduced.
+| Issue | Task                                            | Priority | Status |
+| ----- | ----------------------------------------------- | -------- | ------ |
+| #7    | Add automated benchmark suite.                  | P1       | Open   |
+| #11   | Measure AOT, dart2js, and dart2wasm paths.      | P1       | Open   |
+| #12   | Consider `Int32List` Kyber polynomial refactor. | P2       | Closed. Coefficients are an `Int16List`. |
+| #13   | Consider in-place Kyber NTT.                    | P2       | Open   |
+| #14   | Evaluate native SHAKE only as optional tooling. | P3       | Open   |
 
-## 0.6.0 - Foundational SHA-3 Workstream (FIPS 202 and SP 800-185)
+Zero runtime dependencies stay unless a separate package boundary is introduced.
 
-This workstream completes the package's SHA-3 foundation before any public claim
-of full FIPS 202 or SP 800-185 coverage. It is controlled by
-[FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
+## 0.6.0 - FIPS 202 and SP 800-185
 
-Target release: **0.6.0**. If implementation or validation scope cannot close
-without weakening release evidence, the unfinished standards surface spills into
-**0.7.0** instead of shipping overbroad claims in 0.6.0.
+GitHub milestone: **v0.6.0 - FIPS 202 and SP 800-185**. Spillover milestone: **v0.7.0 - FIPS 202 and SP 800-185 spillover** (no issues). Controlled by [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
-Current state: `keccak.dart` already provides SHA3-224, SHA3-256, SHA3-384,
-SHA3-512, SHAKE128, SHAKE256, and incremental SHAKE XOFs. Selected official
-byte examples, direct constants/profile tests, and VM/web focused tests are
-present. Missing: complete official FIPS 202 corpus coverage, non-byte
-conformance examples, and all SP 800-185 functions.
-
-| Task                                                       | Priority | Status |
-| ---------------------------------------------------------- | -------- | ------ |
-| Lock NIST source corpus and example-vector provenance.     | P0       | Open   |
-| Complete SHA3-224 and SHA3-384 APIs and tests.             | P0       | Done   |
-| Add selected FIPS 202 byte-example runner.                 | P0       | Done   |
-| Add complete FIPS 202 corpus runner, including bit cases.  | P0       | Open   |
-| Add Keccak constants, suffix, rate, and capacity tests.    | P0       | Done   |
-| Implement SP 800-185 encodings and cSHAKE.                 | P0       | Open   |
-| Implement KMAC/KMACXOF with key/tag guidance.              | P0       | Open   |
-| Implement TupleHash/TupleHashXOF and ParallelHash/XOF.     | P1       | Open   |
-| Add VM/web portability gates and benchmark report.         | P1       | Open   |
-| Sync docs, changelog, metadata, and release claim wording. | P0       | Open   |
+| Issue | Task                                              | Priority | Status |
+| ----- | ------------------------------------------------- | -------- | ------ |
+| #36   | Source corpus and NIST example-vector provenance. | P0       | Open   |
+| #37   | SHA3-224 and SHA3-384 APIs.                       | P0       | Closed |
+| #38   | FIPS 202 conformance harness, including bit cases.| P0       | Open   |
+| #39   | Keccak constants, suffix, rate, and capacity.     | P0       | Closed |
+| #40   | SP 800-185 encoding helpers.                      | P0       | Open   |
+| #41   | cSHAKE128/256.                                    | P0       | Open   |
+| #42   | KMAC128/256 and KMACXOF.                          | P0       | Open   |
+| #43   | TupleHash and TupleHashXOF.                       | P1       | Open   |
+| #44   | ParallelHash and ParallelHashXOF.                 | P1       | Open   |
+| #45   | Security, zeroization, and API misuse docs.       | P1       | Open   |
+| #46   | VM/web portability and benchmarks.                | P1       | Open   |
+| #47   | Release docs, changelog, and package metadata.    | P0       | Open   |
+| #48   | Epic.                                             | P0       | Open   |
 
 Release criteria:
 
@@ -175,6 +170,8 @@ Release criteria:
 - public wording remains algorithm/vector evidence only, not CMVP/FIPS 140.
 
 ## 1.0.0 - Stable API
+
+GitHub milestone: **v1.0.0 - Stable API**. Open issues: #31, #32, #33.
 
 Release criteria:
 

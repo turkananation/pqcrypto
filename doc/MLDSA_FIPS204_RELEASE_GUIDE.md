@@ -602,4 +602,5 @@ Residual / deferred (do not block KAT-conformance, tracked in SECURITY_AUDIT.md)
 - HashML-DSA surfaces only the level-bound SHA-2 pre-hash; other approved
   pre-hash functions (e.g. SHAKE) are not yet exposed.
 - A CMVP/FIPS 140 module validation is out of scope and not claimed.
-- The release version tag and `dart pub publish` are not yet done.
+- The ML-DSA release shipped in 0.3.0 and remains in the published package.
+  The current package is 0.4.5.

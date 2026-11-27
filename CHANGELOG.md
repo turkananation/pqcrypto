@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- FIPS 202 NIST examples for 0, 5, 30, 1600, 1605, and 1630-bit messages, plus SHAKE128 truncation samples.
+- Run that FIPS 202 corpus on the VM, Chrome, and dart2wasm.
+- SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash sample vectors.
+- `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
+
+### Changed
+
+- Record 0.4.0 through 0.4.5 as published. ML-KEM coefficients are an `Int16List`.
+- Check non-byte FIPS 202 examples with internal `fips202AbsorbBits`.
+
 ## 0.4.5
 
 ### Security
