@@ -12,7 +12,7 @@ validation, see [FIPS_140_BOUNDARY.md](FIPS_140_BOUNDARY.md).
 | Standard   | Scope in repo                         | Current status                                                                                                                                 |
 | ---------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | FIPS 203   | ML-KEM-512/768/1024                   | Evidence-backed implementation alignment: checked-in KATs plus OpenSSL/liboqs interop.                                                         |
-| FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Vendored. All six official message lengths pass on the VM. Web corpus and a complete FIPS 202 claim are still open. |
+| FIPS 202   | SHA3-224/256/384/512 and SHAKE128/256 | Vendored. All six official message lengths pass on the VM, Chrome, and dart2wasm. |
 | SP 800-185 | cSHAKE, KMAC, TupleHash, ParallelHash | Encodings are implemented and tested. The four functions are not. Target 0.6.0, spillover 0.7.0. |
 | FIPS 204   | ML-DSA-44/65/87                       | Evidence-backed implementation alignment: byte-exact on the checked-in KAT corpus (raw/pure/hashed × det/hedged). Not CMVP/FIPS 140 validated. |
 | FIPS 205   | SLH-DSA                               | All 12 sets (SHAKE + SHA-2) shipped in 0.4.0, byte-exact on all 1,248 official NIST ACVP cases. Not CMVP/FIPS 140 validated.                   |
@@ -65,16 +65,14 @@ Evidence:
 - `test/data/FIPS202` records the official NIST examples for message lengths
   0, 5, 30, 1600, 1605, and 1630 bits, plus SHAKE128 truncation samples, with
   source URLs and PDF SHA-256 hashes.
-- `test/fips202_conformance_test.dart` runs that corpus on the VM.
-  `test/fips202_examples_test.dart` still runs the 12-vector byte subset.
+- `test/fips202_examples_test.dart` runs that corpus on the VM, Chrome, and
+  dart2wasm. The manifests include the normalized JSON SHA-256.
 - `pubspec.yaml` has no runtime dependencies; `lints` and `test` are
   dev-only dependencies.
 
 Current limitations:
 
-- Non-byte examples pass on the VM through `fips202AbsorbBits`. The public API
-  is byte-only. Chrome and dart2wasm do not yet run the full corpus.
-- The normalized JSON files do not yet have their own SHA-256 records.
+- The public API is byte-only. Non-byte examples are test-only.
 
 Full FIPS 202 completion targets 0.6.0 and is planned in
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md). The

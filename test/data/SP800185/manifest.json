@@ -41,5 +41,12 @@
       "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ParallelHashXOF_samples.pdf",
       "sha256": "c9d460ea1c8fcc8032f043fe0861b248fae1522f19c3d14935ccbb0a693e4ca6"
     }
+  ],
+  "normalizedNote": "SHA-256 of the normalized JSON file bytes.",
+  "normalized": [
+    {
+      "file": "examples.json",
+      "sha256": "0056e00d723727c929f41e0ac7459b1ace27752e7cea4b43e128202daf1d31dc"
+    }
   ]
 }

@@ -399,7 +399,7 @@ arithmetic — so it diversifies against any future lattice cryptanalysis:
   $\eta \in \{2,3\}$.
 - **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
   bounded sampling, mask expansion, and challenge sampling.
-- **Vendored FIPS 202 foundation**: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are in `lib/src/common/keccak.dart`. The official NIST lengths, including non-byte messages, pass on the VM. SP 800-185 encodings are in `lib/src/common/sp800_185.dart`. cSHAKE, KMAC, TupleHash, and ParallelHash are not implemented. Target 0.6.0, spillover 0.7.0. See [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
+- **Vendored FIPS 202 foundation**: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are in `lib/src/common/keccak.dart`. The official NIST lengths pass on the VM, Chrome, and dart2wasm. SP 800-185 encodings are in `lib/src/common/sp800_185.dart`. cSHAKE, KMAC, TupleHash, and ParallelHash are not implemented. Target 0.6.0, spillover 0.7.0. See [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 - **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
   (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
   pairs for SHA-384/512 portability across the VM and web compilers.
@@ -495,8 +495,7 @@ test/
 ├── hmac_test.dart                # 🔐 RFC 4231 HMAC-SHA-256/512
 ├── mgf1_test.dart                # 🎭 RFC 8017 MGF1-SHA-256/512
 ├── keccak_test.dart              # 🧱 FIPS 202 (SHA3/SHAKE) known-answer tests
-├── fips202_examples_test.dart    # 📚 12 byte-aligned FIPS 202 examples
-├── fips202_conformance_test.dart # 📚 Full FIPS 202 corpus, including non-byte lengths (VM)
+├── fips202_examples_test.dart    # 📚 Full FIPS 202 NIST corpus (VM, Chrome, dart2wasm)
 ├── roundtrip_test.dart           # 🔁 End-to-end KEM round-trip (runs on VM + web)
 ├── kem_validation_test.dart      # 🔎 Public key, secret key, and ciphertext checks
 ├── keygen_derivation_test.dart   # 🔑 G(d‖k) + matrix XOF-ordering unit tests

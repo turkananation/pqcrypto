@@ -190,5 +190,20 @@
       "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/ShakeTruncation.pdf",
       "sha256": "f9a906d5942892990e1ea39e2f8ef589cf8d7d1e27b4d74af807f2f8a75db93a"
     }
+  ],
+  "normalizedNote": "SHA-256 of the normalized JSON file bytes.",
+  "normalized": [
+    {
+      "file": "all_examples.json",
+      "sha256": "3b8785a5245bdca5f736eff36f67f9041299b6de6a7ae37377669fe278225938"
+    },
+    {
+      "file": "shake_truncation.json",
+      "sha256": "8ba4aaac8571cc3831b54932b591dab60be00cad8d8cb95ff362e0525d0af48f"
+    },
+    {
+      "file": "byte_aligned_vectors.json",
+      "sha256": "c9e28aa2ee2a1e71beaceb4986f297b444df8035690e3356159267e2800bbb67"
+    }
   ]
 }

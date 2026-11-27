@@ -4,7 +4,8 @@ Checked-in normalization of the official NIST SP 800-185 example values for
 cSHAKE, KMAC, KMACXOF, TupleHash, TupleHashXOF, ParallelHash, and
 ParallelHashXOF. The original PDFs are not stored in this repository. Each
 sample carries the source URL and the SHA-256 of the PDF bytes retrieved on
-2026-11-25. Those hashes are listed again in `manifest.json`.
+2026-11-25. Those hashes are listed again in `manifest.json`. The same
+manifest records the SHA-256 of `examples.json` under `normalized`.
 
 Source page:
 <https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/example-values>
