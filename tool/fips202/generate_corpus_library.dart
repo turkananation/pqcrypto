@@ -132,13 +132,13 @@ void _writeCorpusLibrary({
     ..writeln('// trailing newline. The SHA-256 constants are the digests of')
     ..writeln('// those file bytes and match test/data/FIPS202/manifest.json.')
     ..writeln()
-    ..writeln("const String fips202AllExamplesSha256 = '$allExamplesSha256';")
+    ..writeln('const String fips202AllExamplesSha256 =')
+    ..writeln("    '$allExamplesSha256';")
     ..writeln()
     ..writeln("const String fips202AllExamplesJson = r'''$allExamples''';")
     ..writeln()
-    ..writeln(
-      "const String fips202ShakeTruncationSha256 = '$truncationSha256';",
-    )
+    ..writeln('const String fips202ShakeTruncationSha256 =')
+    ..writeln("    '$truncationSha256';")
     ..writeln()
     ..writeln("const String fips202ShakeTruncationJson = r'''$truncation''';");
   File('test/fips202_corpus.dart').writeAsStringSync(library.toString());

@@ -5,7 +5,8 @@
 // trailing newline. The SHA-256 constants are the digests of
 // those file bytes and match test/data/FIPS202/manifest.json.
 
-const String fips202AllExamplesSha256 = '3b8785a5245bdca5f736eff36f67f9041299b6de6a7ae37377669fe278225938';
+const String fips202AllExamplesSha256 =
+    '3b8785a5245bdca5f736eff36f67f9041299b6de6a7ae37377669fe278225938';
 
 const String fips202AllExamplesJson = r'''{
   "schema": "pqcrypto-fips202-examples-v1",
@@ -341,7 +342,8 @@ const String fips202AllExamplesJson = r'''{
 }
 ''';
 
-const String fips202ShakeTruncationSha256 = '8ba4aaac8571cc3831b54932b591dab60be00cad8d8cb95ff362e0525d0af48f';
+const String fips202ShakeTruncationSha256 =
+    '8ba4aaac8571cc3831b54932b591dab60be00cad8d8cb95ff362e0525d0af48f';
 
 const String fips202ShakeTruncationJson = r'''{
   "schema": "pqcrypto-fips202-shake-truncation-v1",
