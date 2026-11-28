@@ -12,6 +12,7 @@
 - KMAC128, KMAC256, KMACXOF128, and KMACXOF256.
 - TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256.
 - ParallelHash128, ParallelHash256, ParallelHashXOF128, and ParallelHashXOF256. Blocks are hashed in order.
+- NIST ACVP `prompt.json` and `expectedResults.json` for cSHAKE, KMAC, TupleHash, ParallelHash, ML-KEM, and ML-DSA. Existing SLH-DSA and `.rsp` corpora are unchanged.
 
 ### Changed
 
