@@ -77,7 +77,7 @@ not claimed.
     [doc/PERFORMANCE.md](doc/PERFORMANCE.md).
 - **Platform Agnostic**:
   - 100% Pure Dart. Works on Android, iOS, Windows, Linux, macOS, and Web (dart2js/dart2wasm) — verified on all three backends in CI.
-  - **Zero dependencies.** No third-party packages at all. SHA3-224/256/384/512, SHAKE128/256, incremental SHAKE XOFs, and the SP 800-185 section 2.3 encodings are vendored in `lib/`. cSHAKE128/256 are in `lib/src/common/sp800_185.dart`. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash and ParallelHash are not implemented. That work targets 0.6.0, with 0.7.0 spillover, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
+  - **Zero dependencies.** No third-party packages at all. SHA3-224/256/384/512, SHAKE128/256, incremental SHAKE XOFs, and the SP 800-185 section 2.3 encodings are vendored in `lib/`. cSHAKE128/256 are in `lib/src/common/sp800_185.dart`. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash128/256 and TupleHashXOF128/256 are in `lib/src/common/tuplehash.dart`. ParallelHash128/256 and ParallelHashXOF128/256 are in `lib/src/common/parallelhash.dart`. The release target is 0.6.0, with 0.7.0 spillover, and is tracked in [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ---
 
@@ -399,7 +399,7 @@ arithmetic — so it diversifies against any future lattice cryptanalysis:
   $\eta \in \{2,3\}$.
 - **ML-DSA XOF/CRH**: SHAKE-128 for `ExpandA`; SHAKE-256 for `H`, `G`, `CRH`,
   bounded sampling, mask expansion, and challenge sampling.
-- **Vendored FIPS 202 foundation**: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are in `lib/src/common/keccak.dart`. The official NIST lengths pass on the VM, Chrome, and dart2wasm. Encodings and cSHAKE128/256 are in `lib/src/common/sp800_185.dart`. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash and ParallelHash are not implemented. Target 0.6.0, spillover 0.7.0. See [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
+- **Vendored FIPS 202 foundation**: SHA3-224/256/384/512, SHAKE128/256, and incremental SHAKE XOFs are in `lib/src/common/keccak.dart`. The official NIST lengths pass on the VM, Chrome, and dart2wasm. Encodings and cSHAKE128/256 are in `lib/src/common/sp800_185.dart`. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash128/256 and TupleHashXOF128/256 are in `lib/src/common/tuplehash.dart`. ParallelHash128/256 and ParallelHashXOF128/256 are in `lib/src/common/parallelhash.dart`. Target 0.6.0, spillover 0.7.0. See [doc/FIPS202_SP800185_RELEASE_GUIDE.md](doc/FIPS202_SP800185_RELEASE_GUIDE.md).
 - **Vendored FIPS 180-4**: SHA-256/384/512 are implemented in-tree
   (`lib/src/common/sha2.dart`) for HashML-DSA pre-hashing, using 32-bit word
   pairs for SHA-384/512 portability across the VM and web compilers.
