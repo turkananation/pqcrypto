@@ -10,6 +10,7 @@
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
 - cSHAKE128 and cSHAKE256. Public output length is in bytes. Empty function name and customization return SHAKE128 or SHAKE256.
 - KMAC128, KMAC256, KMACXOF128, and KMACXOF256.
+- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256.
 
 ### Changed
 

@@ -14,8 +14,7 @@ CMVP/FIPS 140 module validation — see
 
 FIPS 202 support includes SHA3-224/256/384/512, SHAKE128/256, and incremental
 SHAKE XOFs. The official example lengths, including non-byte messages, pass on
-the VM, Chrome, and dart2wasm. SP 800-185 encodings and cSHAKE128/256 are implemented. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash and
-ParallelHash are not. See
+the VM, Chrome, and dart2wasm. SP 800-185 encodings and cSHAKE128/256 are implemented. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash128/256 and TupleHashXOF128/256 are in `lib/src/common/tuplehash.dart`. ParallelHash is not. See
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ## Package Shape
@@ -29,6 +28,7 @@ pqcrypto/
         keccak.dart                # vendored FIPS 202 SHA3/SHAKE + KeccakXof
         sp800_185.dart             # encodings and cSHAKE128/256
         kmac.dart                  # KMAC128/256 and KMACXOF128/256
+        tuplehash.dart             # TupleHash128/256 and TupleHashXOF128/256
         keccak_parameters.dart     # tested Keccak-f[1600] and function profiles
         shake.dart                 # SHAKE wrappers + incremental XOF
         sha2.dart                  # vendored FIPS 180-4 SHA-2 functions
@@ -110,7 +110,7 @@ The current Keccak implementation is a shared primitive for ML-KEM, ML-DSA, and
 SLH-DSA. It is not a complete standalone SHA-3 release. SHA3-224/256/384/512,
 SHAKE128/256, and incremental SHAKE XOFs exist. The official NIST examples for
 every listed message length pass on the VM, Chrome, and dart2wasm.
-`lib/src/common/sp800_185.dart` has the encodings and cSHAKE. `lib/src/common/kmac.dart` has KMAC and KMACXOF. TupleHash and ParallelHash remain for 0.6.0, with 0.7.0 as spillover.
+`lib/src/common/sp800_185.dart` has the encodings and cSHAKE. `lib/src/common/kmac.dart` has KMAC and KMACXOF. `lib/src/common/tuplehash.dart` has TupleHash and TupleHashXOF. ParallelHash remains for 0.6.0, with 0.7.0 as spillover.
 
 The target architecture keeps Keccak ownership in `lib/src/common/keccak.dart`
 and adds `lib/src/common/sp800_185.dart` for the derived functions:

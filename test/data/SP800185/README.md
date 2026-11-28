@@ -18,5 +18,5 @@ for <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-185.pdf>.
 (`encode_string`, `bytepad`, `left_encode`, and `right_encode`), and the
 final output. `test/sp800_185_encoding_corpus_test.dart` checks the encoding
 fields. `test/sp800_185_cshake_test.dart` and `test/sp800_185_kmac_test.dart`
-match the cSHAKE and KMAC outputs. TupleHash and ParallelHash are not
+match the cSHAKE, KMAC, and TupleHash outputs. ParallelHash is not
 executed here.
