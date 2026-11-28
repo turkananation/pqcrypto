@@ -9,10 +9,13 @@
 - SP 800-185 cSHAKE, KMAC, TupleHash, and ParallelHash sample vectors.
 - `leftEncode`, `rightEncode`, `encodeString`, and `bytepad`.
 - cSHAKE128 and cSHAKE256. Public output length is in bytes. Empty function name and customization return SHAKE128 or SHAKE256.
+- KMAC128, KMAC256, KMACXOF128, and KMACXOF256.
+- TupleHash128, TupleHash256, TupleHashXOF128, and TupleHashXOF256.
 - ParallelHash128, ParallelHash256, ParallelHashXOF128, and ParallelHashXOF256. Blocks are hashed in order.
 
 ### Changed
 
+- Keccak-f[1600] rounds are straight-line 32-bit lanes, and one-shot sponges reuse one wiped scratch. SHA-512 rotates return into locals.
 - Record 0.4.0 through 0.4.5 as published. ML-KEM coefficients are an `Int16List`.
 - Check non-byte FIPS 202 examples with internal `fips202AbsorbBits`.
 

@@ -2,8 +2,8 @@
 ///
 /// [leftEncode], [rightEncode], [encodeString], and [bytepad] are the shared
 /// prefix from section 2.3. [CShake128] and [CShake256] are the cSHAKE XOFs.
-/// KMAC and TupleHash are not implemented here. ParallelHash is in
-/// `parallelhash.dart`. Nothing in
+/// KMAC is in `kmac.dart`. TupleHash is in `tuplehash.dart`. ParallelHash is
+/// in `parallelhash.dart`. Nothing in
 /// this file is a CMVP or FIPS 140 validation claim.
 library;
 

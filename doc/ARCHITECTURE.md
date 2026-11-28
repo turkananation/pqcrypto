@@ -14,7 +14,7 @@ CMVP/FIPS 140 module validation — see
 
 FIPS 202 support includes SHA3-224/256/384/512, SHAKE128/256, and incremental
 SHAKE XOFs. The official example lengths, including non-byte messages, pass on
-the VM, Chrome, and dart2wasm. SP 800-185 encodings and cSHAKE128/256 are implemented. ParallelHash128/256 and ParallelHashXOF128/256 are in `lib/src/common/parallelhash.dart`. KMAC and TupleHash are not. See
+the VM, Chrome, and dart2wasm. SP 800-185 encodings and cSHAKE128/256 are implemented. KMAC128/256 and KMACXOF128/256 are in `lib/src/common/kmac.dart`. TupleHash128/256 and TupleHashXOF128/256 are in `lib/src/common/tuplehash.dart`. ParallelHash128/256 and ParallelHashXOF128/256 are in `lib/src/common/parallelhash.dart`. See
 [FIPS202_SP800185_RELEASE_GUIDE.md](FIPS202_SP800185_RELEASE_GUIDE.md).
 
 ## Package Shape
@@ -27,6 +27,8 @@ pqcrypto/
       common/
         keccak.dart                # vendored FIPS 202 SHA3/SHAKE + KeccakXof
         sp800_185.dart             # encodings and cSHAKE128/256
+        kmac.dart                  # KMAC128/256 and KMACXOF128/256
+        tuplehash.dart             # TupleHash128/256 and TupleHashXOF128/256
         parallelhash.dart          # ParallelHash128/256 and ParallelHashXOF128/256
         keccak_parameters.dart     # tested Keccak-f[1600] and function profiles
         shake.dart                 # SHAKE wrappers + incremental XOF
@@ -109,7 +111,7 @@ The current Keccak implementation is a shared primitive for ML-KEM, ML-DSA, and
 SLH-DSA. It is not a complete standalone SHA-3 release. SHA3-224/256/384/512,
 SHAKE128/256, and incremental SHAKE XOFs exist. The official NIST examples for
 every listed message length pass on the VM, Chrome, and dart2wasm.
-`lib/src/common/sp800_185.dart` has the encodings and cSHAKE. `lib/src/common/parallelhash.dart` has ParallelHash and ParallelHashXOF. KMAC and TupleHash remain for 0.6.0, with 0.7.0 as spillover.
+`lib/src/common/sp800_185.dart` has the encodings and cSHAKE. `lib/src/common/kmac.dart` has KMAC and KMACXOF. `lib/src/common/tuplehash.dart` has TupleHash and TupleHashXOF. `lib/src/common/parallelhash.dart` has ParallelHash and ParallelHashXOF.
 
 The target architecture keeps Keccak ownership in `lib/src/common/keccak.dart`
 and adds `lib/src/common/sp800_185.dart` for the derived functions:

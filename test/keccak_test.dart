@@ -364,6 +364,10 @@ void main() {
         expect(before, isNot(equals(exact)));
         expect(exact, isNot(equals(after)));
         expect(before, isNot(equals(after)));
+        // The longer message runs first, then the short one is repeated.
+        // A dirty reused rate block would change the second short digest.
+        profile.$3(message(profile.$2 + 1));
+        expect(profile.$3(message(profile.$2 - 1)), before);
       });
     }
   });
