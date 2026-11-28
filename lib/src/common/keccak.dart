@@ -39,71 +39,185 @@ const int _mask32 = 0xFFFFFFFF;
 /// within 32 bits. Requires `0 <= n < 32` and `0 <= x <= 0xFFFFFFFF`.
 int _shl32(int x, int n) => ((x & (_mask32 >> n)) << n) & _mask32;
 
-/// One Keccak-f[1600] permutation, in place on `a` (50 words = 25 lanes × 2).
-/// `b`, `c`, `d` are caller-provided scratch (reused across rounds/calls).
-void _permute(Uint32List a, Uint32List b, Uint32List c, Uint32List d) {
+/// Keccak-f[1600], in place on [a]. [b] is scratch.
+///
+/// Lanes stay two 32-bit halves. Rho offsets are baked in, so a round does
+/// not branch on the rotation count. Indexes are constants.
+void _permute(Uint32List a, Uint32List b) {
   for (var round = 0; round < KeccakF1600Parameters.rounds; round++) {
-    // θ — column parities.
-    for (var x = 0; x < 5; x++) {
-      var lo = a[2 * x], hi = a[2 * x + 1];
-      for (var y = 1; y < 5; y++) {
-        final i = x + 5 * y;
-        lo ^= a[2 * i];
-        hi ^= a[2 * i + 1];
-      }
-      c[2 * x] = lo;
-      c[2 * x + 1] = hi;
-    }
-    for (var x = 0; x < 5; x++) {
-      final x1 = (x + 1) % 5, x4 = (x + 4) % 5;
-      final clo = c[2 * x1], chi = c[2 * x1 + 1];
-      // D[x] = C[x-1] ^ ROL64(C[x+1], 1)
-      d[2 * x] = c[2 * x4] ^ (_shl32(clo, 1) | (chi >> 31));
-      d[2 * x + 1] = c[2 * x4 + 1] ^ (_shl32(chi, 1) | (clo >> 31));
-    }
-    for (var i = 0; i < 25; i++) {
-      final dx = (i % 5);
-      a[2 * i] ^= d[2 * dx];
-      a[2 * i + 1] ^= d[2 * dx + 1];
-    }
+    final c0Lo = a[0] ^ a[10] ^ a[20] ^ a[30] ^ a[40];
+    final c0Hi = a[1] ^ a[11] ^ a[21] ^ a[31] ^ a[41];
+    final c1Lo = a[2] ^ a[12] ^ a[22] ^ a[32] ^ a[42];
+    final c1Hi = a[3] ^ a[13] ^ a[23] ^ a[33] ^ a[43];
+    final c2Lo = a[4] ^ a[14] ^ a[24] ^ a[34] ^ a[44];
+    final c2Hi = a[5] ^ a[15] ^ a[25] ^ a[35] ^ a[45];
+    final c3Lo = a[6] ^ a[16] ^ a[26] ^ a[36] ^ a[46];
+    final c3Hi = a[7] ^ a[17] ^ a[27] ^ a[37] ^ a[47];
+    final c4Lo = a[8] ^ a[18] ^ a[28] ^ a[38] ^ a[48];
+    final c4Hi = a[9] ^ a[19] ^ a[29] ^ a[39] ^ a[49];
+    // D[x] = C[x - 1] ^ ROL64(C[x + 1], 1).
+    final d0Lo = c4Lo ^ (_shl32(c1Lo, 1) | (c1Hi >> 31));
+    final d0Hi = c4Hi ^ (_shl32(c1Hi, 1) | (c1Lo >> 31));
+    final d1Lo = c0Lo ^ (_shl32(c2Lo, 1) | (c2Hi >> 31));
+    final d1Hi = c0Hi ^ (_shl32(c2Hi, 1) | (c2Lo >> 31));
+    final d2Lo = c1Lo ^ (_shl32(c3Lo, 1) | (c3Hi >> 31));
+    final d2Hi = c1Hi ^ (_shl32(c3Hi, 1) | (c3Lo >> 31));
+    final d3Lo = c2Lo ^ (_shl32(c4Lo, 1) | (c4Hi >> 31));
+    final d3Hi = c2Hi ^ (_shl32(c4Hi, 1) | (c4Lo >> 31));
+    final d4Lo = c3Lo ^ (_shl32(c0Lo, 1) | (c0Hi >> 31));
+    final d4Hi = c3Hi ^ (_shl32(c0Hi, 1) | (c0Lo >> 31));
+    a[0] ^= d0Lo;
+    a[1] ^= d0Hi;
+    a[2] ^= d1Lo;
+    a[3] ^= d1Hi;
+    a[4] ^= d2Lo;
+    a[5] ^= d2Hi;
+    a[6] ^= d3Lo;
+    a[7] ^= d3Hi;
+    a[8] ^= d4Lo;
+    a[9] ^= d4Hi;
+    a[10] ^= d0Lo;
+    a[11] ^= d0Hi;
+    a[12] ^= d1Lo;
+    a[13] ^= d1Hi;
+    a[14] ^= d2Lo;
+    a[15] ^= d2Hi;
+    a[16] ^= d3Lo;
+    a[17] ^= d3Hi;
+    a[18] ^= d4Lo;
+    a[19] ^= d4Hi;
+    a[20] ^= d0Lo;
+    a[21] ^= d0Hi;
+    a[22] ^= d1Lo;
+    a[23] ^= d1Hi;
+    a[24] ^= d2Lo;
+    a[25] ^= d2Hi;
+    a[26] ^= d3Lo;
+    a[27] ^= d3Hi;
+    a[28] ^= d4Lo;
+    a[29] ^= d4Hi;
+    a[30] ^= d0Lo;
+    a[31] ^= d0Hi;
+    a[32] ^= d1Lo;
+    a[33] ^= d1Hi;
+    a[34] ^= d2Lo;
+    a[35] ^= d2Hi;
+    a[36] ^= d3Lo;
+    a[37] ^= d3Hi;
+    a[38] ^= d4Lo;
+    a[39] ^= d4Hi;
+    a[40] ^= d0Lo;
+    a[41] ^= d0Hi;
+    a[42] ^= d1Lo;
+    a[43] ^= d1Hi;
+    a[44] ^= d2Lo;
+    a[45] ^= d2Hi;
+    a[46] ^= d3Lo;
+    a[47] ^= d3Hi;
+    a[48] ^= d4Lo;
+    a[49] ^= d4Hi;
 
-    // ρ (rotate) + π (permute) → b.
-    for (var x = 0; x < 5; x++) {
-      for (var y = 0; y < 5; y++) {
-        final src = x + 5 * y;
-        final dst = y + 5 * ((2 * x + 3 * y) % 5);
-        var lo = a[2 * src], hi = a[2 * src + 1];
-        var n = KeccakF1600Parameters.rhoOffsets[src];
-        if (n >= 32) {
-          final t = lo;
-          lo = hi;
-          hi = t;
-          n -= 32;
-        }
-        if (n == 0) {
-          b[2 * dst] = lo;
-          b[2 * dst + 1] = hi;
-        } else {
-          b[2 * dst] = _shl32(lo, n) | (hi >> (32 - n));
-          b[2 * dst + 1] = _shl32(hi, n) | (lo >> (32 - n));
-        }
-      }
-    }
+    b[0] = a[0];
+    b[1] = a[1];
+    b[20] = _shl32(a[2], 1) | (a[3] >> 31);
+    b[21] = _shl32(a[3], 1) | (a[2] >> 31);
+    b[40] = _shl32(a[5], 30) | (a[4] >> 2);
+    b[41] = _shl32(a[4], 30) | (a[5] >> 2);
+    b[10] = _shl32(a[6], 28) | (a[7] >> 4);
+    b[11] = _shl32(a[7], 28) | (a[6] >> 4);
+    b[30] = _shl32(a[8], 27) | (a[9] >> 5);
+    b[31] = _shl32(a[9], 27) | (a[8] >> 5);
+    b[32] = _shl32(a[11], 4) | (a[10] >> 28);
+    b[33] = _shl32(a[10], 4) | (a[11] >> 28);
+    b[2] = _shl32(a[13], 12) | (a[12] >> 20);
+    b[3] = _shl32(a[12], 12) | (a[13] >> 20);
+    b[22] = _shl32(a[14], 6) | (a[15] >> 26);
+    b[23] = _shl32(a[15], 6) | (a[14] >> 26);
+    b[42] = _shl32(a[17], 23) | (a[16] >> 9);
+    b[43] = _shl32(a[16], 23) | (a[17] >> 9);
+    b[12] = _shl32(a[18], 20) | (a[19] >> 12);
+    b[13] = _shl32(a[19], 20) | (a[18] >> 12);
+    b[14] = _shl32(a[20], 3) | (a[21] >> 29);
+    b[15] = _shl32(a[21], 3) | (a[20] >> 29);
+    b[34] = _shl32(a[22], 10) | (a[23] >> 22);
+    b[35] = _shl32(a[23], 10) | (a[22] >> 22);
+    b[4] = _shl32(a[25], 11) | (a[24] >> 21);
+    b[5] = _shl32(a[24], 11) | (a[25] >> 21);
+    b[24] = _shl32(a[26], 25) | (a[27] >> 7);
+    b[25] = _shl32(a[27], 25) | (a[26] >> 7);
+    b[44] = _shl32(a[29], 7) | (a[28] >> 25);
+    b[45] = _shl32(a[28], 7) | (a[29] >> 25);
+    b[46] = _shl32(a[31], 9) | (a[30] >> 23);
+    b[47] = _shl32(a[30], 9) | (a[31] >> 23);
+    b[16] = _shl32(a[33], 13) | (a[32] >> 19);
+    b[17] = _shl32(a[32], 13) | (a[33] >> 19);
+    b[36] = _shl32(a[34], 15) | (a[35] >> 17);
+    b[37] = _shl32(a[35], 15) | (a[34] >> 17);
+    b[6] = _shl32(a[36], 21) | (a[37] >> 11);
+    b[7] = _shl32(a[37], 21) | (a[36] >> 11);
+    b[26] = _shl32(a[38], 8) | (a[39] >> 24);
+    b[27] = _shl32(a[39], 8) | (a[38] >> 24);
+    b[28] = _shl32(a[40], 18) | (a[41] >> 14);
+    b[29] = _shl32(a[41], 18) | (a[40] >> 14);
+    b[48] = _shl32(a[42], 2) | (a[43] >> 30);
+    b[49] = _shl32(a[43], 2) | (a[42] >> 30);
+    b[18] = _shl32(a[45], 29) | (a[44] >> 3);
+    b[19] = _shl32(a[44], 29) | (a[45] >> 3);
+    b[38] = _shl32(a[47], 24) | (a[46] >> 8);
+    b[39] = _shl32(a[46], 24) | (a[47] >> 8);
+    b[8] = _shl32(a[48], 14) | (a[49] >> 18);
+    b[9] = _shl32(a[49], 14) | (a[48] >> 18);
 
-    // χ — nonlinear row mixing, b → a.
-    for (var y = 0; y < 5; y++) {
-      final r = 5 * y;
-      for (var x = 0; x < 5; x++) {
-        final i = r + x;
-        final i1 = r + (x + 1) % 5;
-        final i2 = r + (x + 2) % 5;
-        a[2 * i] = b[2 * i] ^ ((b[2 * i1] ^ _mask32) & b[2 * i2]);
-        a[2 * i + 1] =
-            b[2 * i + 1] ^ ((b[2 * i1 + 1] ^ _mask32) & b[2 * i2 + 1]);
-      }
-    }
-
-    // ι — break symmetry with the round constant.
+    a[0] = b[0] ^ ((b[2] ^ _mask32) & b[4]);
+    a[1] = b[1] ^ ((b[3] ^ _mask32) & b[5]);
+    a[2] = b[2] ^ ((b[4] ^ _mask32) & b[6]);
+    a[3] = b[3] ^ ((b[5] ^ _mask32) & b[7]);
+    a[4] = b[4] ^ ((b[6] ^ _mask32) & b[8]);
+    a[5] = b[5] ^ ((b[7] ^ _mask32) & b[9]);
+    a[6] = b[6] ^ ((b[8] ^ _mask32) & b[0]);
+    a[7] = b[7] ^ ((b[9] ^ _mask32) & b[1]);
+    a[8] = b[8] ^ ((b[0] ^ _mask32) & b[2]);
+    a[9] = b[9] ^ ((b[1] ^ _mask32) & b[3]);
+    a[10] = b[10] ^ ((b[12] ^ _mask32) & b[14]);
+    a[11] = b[11] ^ ((b[13] ^ _mask32) & b[15]);
+    a[12] = b[12] ^ ((b[14] ^ _mask32) & b[16]);
+    a[13] = b[13] ^ ((b[15] ^ _mask32) & b[17]);
+    a[14] = b[14] ^ ((b[16] ^ _mask32) & b[18]);
+    a[15] = b[15] ^ ((b[17] ^ _mask32) & b[19]);
+    a[16] = b[16] ^ ((b[18] ^ _mask32) & b[10]);
+    a[17] = b[17] ^ ((b[19] ^ _mask32) & b[11]);
+    a[18] = b[18] ^ ((b[10] ^ _mask32) & b[12]);
+    a[19] = b[19] ^ ((b[11] ^ _mask32) & b[13]);
+    a[20] = b[20] ^ ((b[22] ^ _mask32) & b[24]);
+    a[21] = b[21] ^ ((b[23] ^ _mask32) & b[25]);
+    a[22] = b[22] ^ ((b[24] ^ _mask32) & b[26]);
+    a[23] = b[23] ^ ((b[25] ^ _mask32) & b[27]);
+    a[24] = b[24] ^ ((b[26] ^ _mask32) & b[28]);
+    a[25] = b[25] ^ ((b[27] ^ _mask32) & b[29]);
+    a[26] = b[26] ^ ((b[28] ^ _mask32) & b[20]);
+    a[27] = b[27] ^ ((b[29] ^ _mask32) & b[21]);
+    a[28] = b[28] ^ ((b[20] ^ _mask32) & b[22]);
+    a[29] = b[29] ^ ((b[21] ^ _mask32) & b[23]);
+    a[30] = b[30] ^ ((b[32] ^ _mask32) & b[34]);
+    a[31] = b[31] ^ ((b[33] ^ _mask32) & b[35]);
+    a[32] = b[32] ^ ((b[34] ^ _mask32) & b[36]);
+    a[33] = b[33] ^ ((b[35] ^ _mask32) & b[37]);
+    a[34] = b[34] ^ ((b[36] ^ _mask32) & b[38]);
+    a[35] = b[35] ^ ((b[37] ^ _mask32) & b[39]);
+    a[36] = b[36] ^ ((b[38] ^ _mask32) & b[30]);
+    a[37] = b[37] ^ ((b[39] ^ _mask32) & b[31]);
+    a[38] = b[38] ^ ((b[30] ^ _mask32) & b[32]);
+    a[39] = b[39] ^ ((b[31] ^ _mask32) & b[33]);
+    a[40] = b[40] ^ ((b[42] ^ _mask32) & b[44]);
+    a[41] = b[41] ^ ((b[43] ^ _mask32) & b[45]);
+    a[42] = b[42] ^ ((b[44] ^ _mask32) & b[46]);
+    a[43] = b[43] ^ ((b[45] ^ _mask32) & b[47]);
+    a[44] = b[44] ^ ((b[46] ^ _mask32) & b[48]);
+    a[45] = b[45] ^ ((b[47] ^ _mask32) & b[49]);
+    a[46] = b[46] ^ ((b[48] ^ _mask32) & b[40]);
+    a[47] = b[47] ^ ((b[49] ^ _mask32) & b[41]);
+    a[48] = b[48] ^ ((b[40] ^ _mask32) & b[42]);
+    a[49] = b[49] ^ ((b[41] ^ _mask32) & b[43]);
     a[0] ^= KeccakF1600Parameters.roundConstantsLow32[round];
     a[1] ^= KeccakF1600Parameters.roundConstantsHigh32[round];
   }
@@ -143,28 +257,28 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
   _validateSpongeArguments(rateBytes, domain);
   _validateOutputLength(outLen);
 
-  final a = Uint32List(50);
-  final b = Uint32List(50);
-  final c = Uint32List(10);
-  final d = Uint32List(10);
-  final block = Uint8List(rateBytes);
+  final scratch = _leaseScratch();
+  final a = scratch.a;
+  final b = scratch.b;
+  final block = scratch.block;
   try {
     // Absorb full blocks.
     var offset = 0;
     final n = input.length;
     while (n - offset >= rateBytes) {
       _xorBlock(a, input, offset, rateBytes);
-      _permute(a, b, c, d);
+      _permute(a, b);
       offset += rateBytes;
     }
 
     // Final block: remaining bytes ‖ domain ‖ pad10*1.
+    // [block] is zero from the lease. Only [rateBytes] of it are absorbed.
     final rem = n - offset;
     block.setRange(0, rem, input, offset);
     block[rem] = domain;
     block[rateBytes - 1] ^= 0x80;
     _xorBlock(a, block, 0, rateBytes);
-    _permute(a, b, c, d);
+    _permute(a, b);
 
     // Squeeze.
     final out = Uint8List(outLen);
@@ -173,16 +287,43 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
       final take = (outLen - got) < rateBytes ? (outLen - got) : rateBytes;
       _extractBlock(a, out, got, take);
       got += take;
-      if (got < outLen) _permute(a, b, c, d);
+      if (got < outLen) _permute(a, b);
     }
     return out;
   } finally {
-    secureZeroUint32(a);
-    secureZeroUint32(b);
-    secureZeroUint32(c);
-    secureZeroUint32(d);
-    secureZero(block);
+    _recycleScratch(scratch);
   }
+}
+
+/// One reused Keccak workspace per isolate.
+///
+/// One-shot hashes borrow it and wipe it before the next borrow. A nested
+/// call allocates its own. [KeccakXof] does not use this: its state has to
+/// outlive one call. The wipe is best-effort, same as [secureZeroUint32].
+final class _Scratch {
+  final Uint32List a = Uint32List(50);
+  final Uint32List b = Uint32List(50);
+
+  /// Largest rate [_validateSpongeArguments] accepts: 192.
+  final Uint8List block = Uint8List(192);
+}
+
+_Scratch? _idleScratch;
+
+_Scratch _leaseScratch() {
+  final idle = _idleScratch;
+  if (idle != null) {
+    _idleScratch = null;
+    return idle;
+  }
+  return _Scratch();
+}
+
+void _recycleScratch(_Scratch scratch) {
+  secureZeroUint32(scratch.a);
+  secureZeroUint32(scratch.b);
+  secureZero(scratch.block);
+  _idleScratch ??= scratch;
 }
 
 /// Incremental Keccak sponge in XOF (squeeze) mode.
@@ -195,8 +336,6 @@ Uint8List _keccak(Uint8List input, int rateBytes, int domain, int outLen) {
 class KeccakXof {
   final Uint32List _a = Uint32List(50);
   final Uint32List _b = Uint32List(50);
-  final Uint32List _c = Uint32List(10);
-  final Uint32List _d = Uint32List(10);
   final int _rate;
   final Uint8List _buf;
   int _pos = 0;
@@ -213,7 +352,7 @@ class KeccakXof {
     final n = input.length;
     while (n - offset >= rateBytes) {
       _xorBlock(_a, input, offset, rateBytes);
-      _permute(_a, _b, _c, _d);
+      _permute(_a, _b);
       offset += rateBytes;
     }
     final block = Uint8List(rateBytes);
@@ -223,7 +362,7 @@ class KeccakXof {
       block[rem] = domain;
       block[rateBytes - 1] ^= 0x80;
       _xorBlock(_a, block, 0, rateBytes);
-      _permute(_a, _b, _c, _d);
+      _permute(_a, _b);
     } finally {
       secureZero(block);
     }
@@ -231,7 +370,7 @@ class KeccakXof {
   }
 
   void _refill() {
-    _permute(_a, _b, _c, _d);
+    _permute(_a, _b);
     _extractBlock(_a, _buf, 0, _rate);
     _pos = 0;
   }
@@ -386,10 +525,9 @@ Uint8List fips202AbsorbBits({
   final zeroPad = _nonNegativeMod(-bodyBits - 2, rateBits);
   final totalBits = bodyBits + 2 + zeroPad;
   final packed = Uint8List(totalBits >> 3);
-  final state = Uint32List(50);
-  final scratchB = Uint32List(50);
-  final scratchC = Uint32List(10);
-  final scratchD = Uint32List(10);
+  final scratch = _leaseScratch();
+  final state = scratch.a;
+  final scratchB = scratch.b;
   try {
     var bitIndex = 0;
     void writeBit(int bit) {
@@ -413,7 +551,7 @@ Uint8List fips202AbsorbBits({
 
     for (var offset = 0; offset < packed.length; offset += rateBytes) {
       _xorBlock(state, packed, offset, rateBytes);
-      _permute(state, scratchB, scratchC, scratchD);
+      _permute(state, scratchB);
     }
 
     final out = Uint8List(outputBytes);
@@ -425,16 +563,13 @@ Uint8List fips202AbsorbBits({
       _extractBlock(state, out, got, take);
       got += take;
       if (got < outputBytes) {
-        _permute(state, scratchB, scratchC, scratchD);
+        _permute(state, scratchB);
       }
     }
     return out;
   } finally {
     secureZero(packed);
-    secureZeroUint32(state);
-    secureZeroUint32(scratchB);
-    secureZeroUint32(scratchC);
-    secureZeroUint32(scratchD);
+    _recycleScratch(scratch);
   }
 }
 

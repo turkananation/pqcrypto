@@ -148,30 +148,38 @@ final Uint32List _k512 = Uint32List.fromList(<int>[
   0x5fcb6fab, 0x3ad6faec, 0x6c44198c, 0x4a475817, //
 ]);
 
-// rotate-right of a 64-bit (hi,lo) by n in (0,64), result into out[0],out[1].
-void _rotr64(int hi, int lo, int n, List<int> out) {
+/// Rotate-right of a 64-bit `(hi, lo)` by [n] in `(0, 64)`.
+///
+/// The pair is returned into locals. [n] is a public SHA-512 constant, so
+/// the branch is not secret-dependent.
+@pragma('vm:prefer-inline')
+(int, int) _rotr64(int hi, int lo, int n) {
   if (n == 32) {
-    out[0] = lo & 0xFFFFFFFF;
-    out[1] = hi & 0xFFFFFFFF;
-  } else if (n < 32) {
-    out[0] = ((hi >>> n) | (lo << (32 - n))) & 0xFFFFFFFF;
-    out[1] = ((lo >>> n) | (hi << (32 - n))) & 0xFFFFFFFF;
-  } else {
-    final m = n - 32;
-    out[0] = ((lo >>> m) | (hi << (32 - m))) & 0xFFFFFFFF;
-    out[1] = ((hi >>> m) | (lo << (32 - m))) & 0xFFFFFFFF;
+    return (lo & 0xFFFFFFFF, hi & 0xFFFFFFFF);
   }
+  if (n < 32) {
+    return (
+      ((hi >>> n) | (lo << (32 - n))) & 0xFFFFFFFF,
+      ((lo >>> n) | (hi << (32 - n))) & 0xFFFFFFFF,
+    );
+  }
+  final m = n - 32;
+  return (
+    ((lo >>> m) | (hi << (32 - m))) & 0xFFFFFFFF,
+    ((hi >>> m) | (lo << (32 - m))) & 0xFFFFFFFF,
+  );
 }
 
-// logical shift-right of a 64-bit (hi,lo) by n in (0,64).
-void _shr64(int hi, int lo, int n, List<int> out) {
+/// Logical shift-right of a 64-bit `(hi, lo)` by [n] in `(0, 64)`.
+@pragma('vm:prefer-inline')
+(int, int) _shr64(int hi, int lo, int n) {
   if (n < 32) {
-    out[0] = (hi >>> n) & 0xFFFFFFFF;
-    out[1] = ((lo >>> n) | (hi << (32 - n))) & 0xFFFFFFFF;
-  } else {
-    out[0] = 0;
-    out[1] = (hi >>> (n - 32)) & 0xFFFFFFFF;
+    return (
+      (hi >>> n) & 0xFFFFFFFF,
+      ((lo >>> n) | (hi << (32 - n))) & 0xFFFFFFFF,
+    );
   }
+  return (0, (hi >>> (n - 32)) & 0xFFFFFFFF);
 }
 
 Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
@@ -185,9 +193,6 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
   }
 
   final wHi = Uint32List(80), wLo = Uint32List(80);
-  final r = Uint32List(2);
-  final r2 = Uint32List(2);
-  final r3 = Uint32List(2);
 
   for (int off = 0; off < padLen; off += 128) {
     for (int t = 0; t < 16; t++) {
@@ -207,17 +212,17 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
     }
     for (int t = 16; t < 80; t++) {
       // sigma0(w[t-15]) = rotr(1) ^ rotr(8) ^ shr(7)
-      _rotr64(wHi[t - 15], wLo[t - 15], 1, r);
-      _rotr64(wHi[t - 15], wLo[t - 15], 8, r2);
-      _shr64(wHi[t - 15], wLo[t - 15], 7, r3);
-      final s0h = r[0] ^ r2[0] ^ r3[0];
-      final s0l = r[1] ^ r2[1] ^ r3[1];
+      final (int r1h, int r1l) = _rotr64(wHi[t - 15], wLo[t - 15], 1);
+      final (int r8h, int r8l) = _rotr64(wHi[t - 15], wLo[t - 15], 8);
+      final (int s7h, int s7l) = _shr64(wHi[t - 15], wLo[t - 15], 7);
+      final s0h = r1h ^ r8h ^ s7h;
+      final s0l = r1l ^ r8l ^ s7l;
       // sigma1(w[t-2]) = rotr(19) ^ rotr(61) ^ shr(6)
-      _rotr64(wHi[t - 2], wLo[t - 2], 19, r);
-      _rotr64(wHi[t - 2], wLo[t - 2], 61, r2);
-      _shr64(wHi[t - 2], wLo[t - 2], 6, r3);
-      final s1h = r[0] ^ r2[0] ^ r3[0];
-      final s1l = r[1] ^ r2[1] ^ r3[1];
+      final (int r19h, int r19l) = _rotr64(wHi[t - 2], wLo[t - 2], 19);
+      final (int r61h, int r61l) = _rotr64(wHi[t - 2], wLo[t - 2], 61);
+      final (int s6h, int s6l) = _shr64(wHi[t - 2], wLo[t - 2], 6);
+      final s1h = r19h ^ r61h ^ s6h;
+      final s1l = r19l ^ r61l ^ s6l;
       // w[t] = w[t-16] + s0 + w[t-7] + s1
       int lo =
           (wLo[t - 16] & 0xFFFF) +
@@ -254,11 +259,11 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
 
     for (int t = 0; t < 80; t++) {
       // Sigma1(e) = rotr(14) ^ rotr(18) ^ rotr(41)
-      _rotr64(eH, eL, 14, r);
-      _rotr64(eH, eL, 18, r2);
-      _rotr64(eH, eL, 41, r3);
-      final sig1H = r[0] ^ r2[0] ^ r3[0];
-      final sig1L = r[1] ^ r2[1] ^ r3[1];
+      final (int e14h, int e14l) = _rotr64(eH, eL, 14);
+      final (int e18h, int e18l) = _rotr64(eH, eL, 18);
+      final (int e41h, int e41l) = _rotr64(eH, eL, 41);
+      final sig1H = e14h ^ e18h ^ e41h;
+      final sig1L = e14l ^ e18l ^ e41l;
       final chH = (eH & fH) ^ (~eH & gH);
       final chL = (eL & fL) ^ (~eL & gL);
       // T1 = h + Sigma1(e) + ch + K[t] + W[t]
@@ -293,11 +298,11 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
       final t1H = ((hi3 & 0xFFFF) << 16 | (hi2 & 0xFFFF)) & 0xFFFFFFFF;
 
       // Sigma0(a) = rotr(28) ^ rotr(34) ^ rotr(39)
-      _rotr64(aH, aL, 28, r);
-      _rotr64(aH, aL, 34, r2);
-      _rotr64(aH, aL, 39, r3);
-      final sig0H = r[0] ^ r2[0] ^ r3[0];
-      final sig0L = r[1] ^ r2[1] ^ r3[1];
+      final (int a28h, int a28l) = _rotr64(aH, aL, 28);
+      final (int a34h, int a34l) = _rotr64(aH, aL, 34);
+      final (int a39h, int a39l) = _rotr64(aH, aL, 39);
+      final sig0H = a28h ^ a34h ^ a39h;
+      final sig0L = a28l ^ a34l ^ a39l;
       final majH = (aH & bH) ^ (aH & cH) ^ (bH & cH);
       final majL = (aL & bL) ^ (aL & cL) ^ (bL & cL);
       // T2 = Sigma0(a) + maj
@@ -355,9 +360,6 @@ Uint8List _sha512Core(Uint8List msg, List<int> h, int outBytes) {
   secureZero(data);
   secureZeroUint32(wHi);
   secureZeroUint32(wLo);
-  secureZeroUint32(r);
-  secureZeroUint32(r2);
-  secureZeroUint32(r3);
   return out;
 }
 
